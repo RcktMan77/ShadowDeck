@@ -9,20 +9,42 @@ on:
 jobs:
   build-and-test:
     name: Build & Test (macOS)
-    runs-on: macos-14
-    timeout-minutes: 30
+    # Project uses Xcode project format 77 (file-system synchronized groups),
+    # which requires Xcode 16+; we pin Xcode 26.3 to match local tooling.
+    runs-on: macos-15
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Select Xcode 26.3
+        run: |
+          set -euo pipefail
+          # Prefer versioned app; fall back to default if layout differs.
+          if [ -d /Applications/Xcode_26.3.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          elif [ -d /Applications/Xcode_26.3.0.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.0.app/Contents/Developer
+          else
+            echo "Available Xcode apps:"
+            ls /Applications | grep -i xcode || true
+            # Last resort: newest Xcode_26*
+            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+            if [ -n "${CANDIDATE}" ]; then
+              sudo xcode-select -s "${CANDIDATE}/Contents/Developer"
+            else
+              sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+            fi
+          fi
+          xcode-select -p
+          xcodebuild -version
 
       - name: Show toolchain
         run: |
           xcodebuild -version
           swift --version
+          xcodebuild -project ShadowDeck.xcodeproj -list
 
       - name: Build
         run: |
