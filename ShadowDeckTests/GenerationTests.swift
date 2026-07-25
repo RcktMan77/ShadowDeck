@@ -154,5 +154,29 @@ final class GenerationTests: XCTestCase {
         XCTAssertEqual(RunnerArchetype.technomancer.defaultAwakened, .technomancer)
         XCTAssertEqual(RunnerArchetype.streetSamurai.defaultAwakened, .mundane)
         XCTAssertEqual(RunnerArchetype.allCases.count, 8)
+        XCTAssertTrue(RunnerArchetype.streetSamurai.summaryMarkdown.contains("wares"))
+        XCTAssertTrue(RunnerArchetype.streetSamurai.defaultPathLabel.lowercased().contains("mundane"))
+    }
+
+    func testApplyRecommendations() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr5)
+        draft.selectArchetype(.decker)
+        draft.selectMetatype(.human)
+        draft.applyRecommendedPriorities()
+        XCTAssertTrue(draft.priority.isComplete)
+        XCTAssertTrue(draft.priorityValid)
+        draft.applyRecommendedAttributes()
+        XCTAssertGreaterThan(draft.budget.attributePointsSpent, 0)
+        draft.applyRecommendedSkills()
+        XCTAssertFalse(draft.skills.isEmpty)
+        XCTAssertNotNil(draft.skillRanks["hacking"] ?? draft.skillRanks["electronics"])
+    }
+
+    func testHelpCatalogCoversCoreAttributes() {
+        for id in AttributeID.standardGenerationAttributes {
+            XCTAssertFalse(ChargenHelpCatalog.attributeDescription(id).isEmpty)
+        }
+        XCTAssertTrue(ChargenHelpCatalog.pathDescription(.mundane).lowercased().contains("no magic"))
     }
 }

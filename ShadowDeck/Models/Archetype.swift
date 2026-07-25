@@ -2,8 +2,7 @@
 //  Archetype.swift
 //  ShadowDeck
 //
-//  Playstyle “roles” for the generation wizard showcase (not mechanical classes).
-//  Summaries help players compare options before priorities/points.
+//  Playstyle roles for the generation wizard showcase (not mechanical classes).
 //
 
 import Foundation
@@ -47,28 +46,28 @@ public enum RunnerArchetype: String, Codable, Sendable, CaseIterable, Identifiab
         }
     }
 
-    public var summary: String {
+    /// Markdown-capable summary; attribute names wrapped in **bold**.
+    public var summaryMarkdown: String {
         switch self {
         case .streetSamurai:
-            "Prioritize Attributes and Resources for ware and weapons. Edge and Reaction keep you alive when plans break."
+            "Prioritize **Attributes** and **Resources** for wares and weapons. **Edge** and **Reaction** keep you alive when plans break."
         case .adept:
-            "Invest Magic/Resonance priority in Adept powers. Agility and combat skills carry the run."
+            "Invest Magic/Resonance priority in Adept powers. **Agility** and combat skills carry the run."
         case .combatMage:
-            "High Magic priority, Sorcery skills, and Willpower. Resources can stay lean if you summon and spellcast."
+            "High Magic priority, Sorcery skills, and **Willpower**. **Resources** can stay lean if you summon and spellcast."
         case .face:
-            "Charisma, Influence, and contacts. Social limit (SR5) or Edge (SR6) matters as much as a gun."
+            "**Charisma**, Influence, and contacts. Social limit (SR5) or **Edge** (SR6) matters as much as a gun."
         case .decker:
-            "Logic, cracking/electronics, and a serious deck budget. Often pairs with secondary infiltration skills."
+            "**Logic**, cracking/electronics, and a serious deck budget. Often pairs with secondary infiltration skills."
         case .rigger:
-            "Reaction, piloting, and vehicle/drone nuyen. Command the battlefield from a safe distance."
+            "**Reaction**, piloting, and vehicle/drone nuyen. Command the battlefield from a safe distance."
         case .technomancer:
-            "Resonance priority and Tasking skills. Complex forms instead of cyberdecks."
+            "Resonance priority and Tasking skills. Complex forms instead of cyberdecks. Guard your **Essence**."
         case .spy:
-            "Agility, Stealth, and Perception. Light gear, heavy preparation, escape routes."
+            "**Agility**, Stealth, and Perception. Light gear, heavy preparation, escape routes."
         }
     }
 
-    /// Suggested priority lean (informational only — not auto-applied).
     public var suggestedFocus: [String] {
         switch self {
         case .streetSamurai: ["Attributes", "Resources", "Skills"]
@@ -82,12 +81,23 @@ public enum RunnerArchetype: String, Codable, Sendable, CaseIterable, Identifiab
         }
     }
 
+    /// Magical / Resonance path default for this role.
     public var defaultAwakened: AwakenedPath {
         switch self {
         case .combatMage: .fullMagician
         case .adept: .adept
         case .technomancer: .technomancer
         default: .mundane
+        }
+    }
+
+    /// Player-facing label for the path (avoids unexplained “Mundane”).
+    public var defaultPathLabel: String {
+        switch defaultAwakened {
+        case .mundane:
+            return "Mundane — no Magic or Resonance (most runners)"
+        default:
+            return defaultAwakened.displayName
         }
     }
 
@@ -104,7 +114,6 @@ public enum RunnerArchetype: String, Codable, Sendable, CaseIterable, Identifiab
         }
     }
 
-    /// Backdrop palette for animated showcase (cyberpunk-inspired, not official art).
     public var backdropColors: [Color] {
         switch self {
         case .streetSamurai:
