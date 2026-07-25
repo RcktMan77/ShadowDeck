@@ -15,6 +15,7 @@ struct GenerationWizardView: View {
     @State private var statusMessage: String?
     @State private var didFinish = false
     @State private var avatarImportError: String?
+    @State private var scrollAnchor = UUID()
     var onFinished: (() -> Void)?
 
     var body: some View {
@@ -42,10 +43,22 @@ struct GenerationWizardView: View {
                 Divider()
             }
 
-            ScrollView {
-                stepContent
-                    .padding(20)
-                    .frame(maxWidth: 960, alignment: .leading)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    stepContent
+                        .padding(20)
+                        .frame(maxWidth: 960, alignment: .leading)
+                        .id(scrollAnchor)
+                }
+                .onChange(of: draft.step) { _, _ in
+                    statusMessage = nil
+                    scrollAnchor = UUID()
+                    DispatchQueue.main.async {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            proxy.scrollTo(scrollAnchor, anchor: .top)
+                        }
+                    }
+                }
             }
             Divider()
             footer
@@ -159,6 +172,7 @@ struct GenerationWizardView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
             .padding()
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(selected ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08))
@@ -230,7 +244,9 @@ struct GenerationWizardView: View {
                                 cornerRadius: 10,
                                 showLabel: true
                             )
+                            .frame(maxWidth: .infinity)
                             .frame(height: 150)
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .strokeBorder(
@@ -278,7 +294,9 @@ struct GenerationWizardView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
                             PaintedPortraitView(kind: .metatype(meta), cornerRadius: 8, showLabel: false)
+                                .frame(maxWidth: .infinity)
                                 .frame(height: 120)
+                                .contentShape(Rectangle())
                             Text(meta.displayName)
                                 .font(.headline)
                             Text(ChargenHelpCatalog.metatypeBlurb(meta))
@@ -290,6 +308,8 @@ struct GenerationWizardView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(selected ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06))
@@ -358,7 +378,6 @@ struct GenerationWizardView: View {
                     subtitle: ChargenRecommendations.priorities(archetype: draft.archetype, metatype: draft.metatype).rationale
                 ) {
                     draft.applyRecommendedPriorities()
-                    statusMessage = draft.lastRecommendationNote
                 }
 
                 ForEach(PriorityColumn.allCases, id: \.self) { column in
@@ -437,7 +456,6 @@ struct GenerationWizardView: View {
                 ).rationale
             ) {
                 draft.applyRecommendedAttributes()
-                statusMessage = draft.lastRecommendationNote
             }
 
             sectionCard(title: "Physical & Mental") {
@@ -567,7 +585,6 @@ struct GenerationWizardView: View {
                 ).rationale
             ) {
                 draft.applyRecommendedSkills()
-                statusMessage = draft.lastRecommendationNote
             }
 
             GroupBox {
