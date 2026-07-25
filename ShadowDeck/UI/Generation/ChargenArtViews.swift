@@ -50,34 +50,31 @@ struct PaintedPortraitView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let imgRect = PortraitLayout.imageRect(in: geo.size)
             ZStack {
-                // Letterbox background
-                Color.black.opacity(0.85)
-
                 if let image = resolvedImage {
-                    // scaledToFit keeps full art visible so measured landmarks stay aligned.
                     Image(nsImage: image)
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                         .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
                 } else {
                     LinearGradient(
                         colors: fallbackColors,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    .frame(width: imgRect.width, height: imgRect.height)
-                    .position(x: imgRect.midX, y: imgRect.midY)
                 }
 
-                TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-                    Canvas { ctx, size in
-                        let t = context.date.timeIntervalSinceReferenceDate
-                        drawFX(context: ctx, viewSize: size, time: t)
+                // Archetype FX only — metatypes stay fully static.
+                if drawsFX {
+                    TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+                        Canvas { ctx, size in
+                            let t = context.date.timeIntervalSinceReferenceDate
+                            drawFX(context: ctx, viewSize: size, time: t)
+                        }
                     }
+                    .allowsHitTesting(false)
                 }
-                .allowsHitTesting(false)
 
                 if showLabel {
                     VStack {
@@ -98,9 +95,6 @@ struct PaintedPortraitView: View {
                             )
                         )
                     }
-                    // Keep label over the letterboxed image area
-                    .frame(width: imgRect.width, height: imgRect.height)
-                    .position(x: imgRect.midX, y: imgRect.midY)
                 }
             }
         }
@@ -108,6 +102,13 @@ struct PaintedPortraitView: View {
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        }
+    }
+
+    private var drawsFX: Bool {
+        switch kind {
+        case .archetype: true
+        case .metatype, .custom: false
         }
     }
 
