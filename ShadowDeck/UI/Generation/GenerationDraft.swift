@@ -304,6 +304,52 @@ public final class GenerationDraft {
         }
     }
 
+    // MARK: - Recommendations (user-triggered)
+
+    public var lastRecommendationNote: String?
+
+    public func applyRecommendedPriorities() {
+        let rec = ChargenRecommendations.priorities(archetype: archetype, metatype: metatype)
+        priority = rec.assignment
+        if houseRules.isEnabled(.sumToTen) {
+            generationSystem = .sumToTen
+        }
+        recomputeBudgetsFromPriorities()
+        lastRecommendationNote = rec.rationale
+    }
+
+    public func applyRecommendedAttributes() {
+        let rec = ChargenRecommendations.attributes(
+            archetype: archetype,
+            metatype: metatype,
+            edition: edition,
+            pointBudget: budget.attributePointsTotal
+        )
+        resetAttributesToMinima()
+        let profile = MetatypeCatalog.profile(for: metatype, edition: edition)
+        for id in AttributeID.standardGenerationAttributes {
+            let bounds = profile.bounds(for: id)
+            let target = rec.values[id] ?? bounds.minimum
+            let clamped = Swift.min(bounds.maximum, Swift.max(bounds.minimum, target))
+            attributes[id] = clamped
+            attributePurchases[id] = Swift.max(0, clamped - bounds.minimum)
+        }
+        recomputeAttributeRemaining()
+        lastRecommendationNote = rec.rationale
+    }
+
+    public func applyRecommendedSkills() {
+        let rec = ChargenRecommendations.skills(archetype: archetype, pointBudget: budget.skillPointsTotal)
+        skills.removeAll()
+        skillRanks.removeAll()
+        budget.skillPointsRemaining = budget.skillPointsTotal
+        let names = Dictionary(uniqueKeysWithValues: ChargenSkillCatalog.active.map { ($0.key, $0.name) })
+        for (key, rank) in rec.ranks.sorted(by: { $0.key < $1.key }) {
+            setSkillRank(catalogKey: key, displayName: names[key] ?? key, rank: rank)
+        }
+        lastRecommendationNote = rec.rationale
+    }
+
     public func setSkillRank(catalogKey: String, displayName: String, rank: Int, category: SkillCategory = .active) {
         let clamped = max(0, min(rank, 6))
         let previous = skillRanks[catalogKey] ?? 0

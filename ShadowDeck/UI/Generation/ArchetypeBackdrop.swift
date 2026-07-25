@@ -103,7 +103,7 @@ struct ArchetypeSummaryCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(archetype.tagline)
                 .font(.headline)
-            Text(archetype.summary)
+            Text(LocalizedStringKey(archetype.summaryMarkdown))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
