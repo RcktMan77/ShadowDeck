@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  ShadowDeck
 //
-//  Root window: library shell with import entry point.
+//  Root window: library, import, and character generation wizard.
 //
 
 import SwiftUI
@@ -50,7 +50,6 @@ struct ContentView: View {
                 }
                 Section("Create") {
                     Label(SidebarItem.newCharacter.title, systemImage: SidebarItem.newCharacter.systemImage)
-                        .foregroundStyle(.secondary)
                         .tag(SidebarItem.newCharacter)
                 }
             }
@@ -73,11 +72,10 @@ struct ContentView: View {
             ImportView()
                 .onDisappear { refresh() }
         case .newCharacter:
-            ContentUnavailableView(
-                "Character Generation",
-                systemImage: "wand.and.stars",
-                description: Text("The generation wizard arrives in Phase 4.")
-            )
+            GenerationWizardView {
+                selection = .characters
+                refresh()
+            }
         case .characters, .none:
             charactersDetail
         }
@@ -91,6 +89,9 @@ struct ContentView: View {
                 Spacer()
                 Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
                 Button("Load Samples", systemImage: "tray.and.arrow.down") { seedSamplesIfEmpty() }
+                Button("New Character", systemImage: "plus.circle") {
+                    selection = .newCharacter
+                }
                 Button("Import…", systemImage: "square.and.arrow.down") {
                     selection = .importCharacter
                 }
@@ -112,8 +113,9 @@ struct ContentView: View {
                 ContentUnavailableView {
                     Label("No Characters Yet", systemImage: "person.crop.rectangle.stack")
                 } description: {
-                    Text("Import a Chummer file or load sample runners to get started.")
+                    Text("Create a runner with the generation wizard, import Chummer, or load samples.")
                 } actions: {
+                    Button("New Character") { selection = .newCharacter }
                     Button("Import…") { selection = .importCharacter }
                     Button("Load Samples") { seedSamplesIfEmpty() }
                 }
@@ -167,8 +169,7 @@ struct ContentView: View {
                 }
                 statusMessage = "Seeded sample SR4 / SR5 / SR6 characters."
             } else {
-                // Still allow adding samples only when empty to avoid duplicates of fixed IDs.
-                statusMessage = "Library already has characters. Use Import for new runners."
+                statusMessage = "Library already has characters. Use New Character or Import."
             }
             refresh()
         } catch {
