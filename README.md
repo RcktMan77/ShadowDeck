@@ -46,7 +46,7 @@ ShadowDeck/
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **0** | Project bootstrap & foundation | In progress |
+| **0** | Project bootstrap & foundation | ✅ Complete |
 | **1** | Core domain models & multi-edition support | Pending |
 | **2** | Persistence layer (SwiftData + avatars) | Pending |
 | **3** | Import pipeline (Chummer JSON / `.chum5`) | Pending |
