@@ -28,8 +28,8 @@ public enum GenerationStep: Int, CaseIterable, Identifiable, Comparable, Sendabl
 
     public var title: String {
         switch self {
-        case .edition: "Edition"
-        case .concept: "Concept"
+        case .edition: "Choose Edition"
+        case .concept: "Concept & Role"
         case .metatype: "Metatype"
         case .priorities: "Priorities"
         case .attributes: "Attributes"
@@ -37,7 +37,7 @@ public enum GenerationStep: Int, CaseIterable, Identifiable, Comparable, Sendabl
         case .skills: "Skills"
         case .qualities: "Qualities"
         case .resources: "Resources"
-        case .finish: "Finish"
+        case .finish: "Finishing Touches"
         }
     }
 

@@ -120,7 +120,7 @@ struct GenerationWizardView: View {
 
     private var editionStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose edition")
+            Text("Choose Edition")
                 .font(.title3.weight(.semibold))
             HelpCallout(text: "ShadowDeck treats 4th, 5th, and 6th edition as equal peers. Generation rules (priority tables, limits, Edge) adapt to your choice.")
 
@@ -175,9 +175,9 @@ struct GenerationWizardView: View {
 
     private var conceptStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Concept & role")
+            Text("Concept & Role")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Pick a runner **role** (playstyle archetype). This is not a mechanical character class—it guides recommendations and default Magic/Resonance path. Painted portraits stay still; rain, glow, and code ticks animate in the environment.")
+            HelpCallout(text: "Pick a runner role (playstyle archetype). This is not a mechanical character class—it guides recommendations and your default Magic/Resonance path.")
 
             HStack(alignment: .top, spacing: 20) {
                 VStack(spacing: 12) {
@@ -188,13 +188,10 @@ struct GenerationWizardView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(draft.archetype.tagline)
                             .font(.headline)
-                        Text(LocalizedStringKey(draft.archetype.summaryMarkdown))
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        EmphasizedHelpText(text: draft.archetype.summaryMarkdown)
 
                         Divider()
-                        Text("Suggested focus")
+                        Text("Suggested Focus")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         HStack {
@@ -208,15 +205,12 @@ struct GenerationWizardView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Default magical path")
+                            Text("Default Magical Path")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
                             Text(draft.archetype.defaultPathLabel)
                                 .font(.callout)
-                            Text(ChargenHelpCatalog.pathDescription(draft.archetype.defaultAwakened))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            EmphasizedHelpText(text: pathDescriptionMarkdown(draft.archetype.defaultAwakened))
                         }
                     }
                     .padding()
@@ -268,7 +262,7 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Metatype")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Your metatype sets natural minimum and maximum scores for attributes. Hover attribute chips for Body and Edge explanations—these matter for every runner.")
+            HelpCallout(text: "Your metatype sets natural minimum and maximum scores for attributes. Body and Edge are especially important for every runner:")
 
             HStack(spacing: 12) {
                 attributeChip(id: .body, short: "BOD")
@@ -288,9 +282,8 @@ struct GenerationWizardView: View {
                             Text(meta.displayName)
                                 .font(.headline)
                             Text(ChargenHelpCatalog.metatypeBlurb(meta))
-                                .font(.caption2)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(4)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text("BOD \(profile.bounds(for: .body).minimum)–\(profile.bounds(for: .body).maximum) · EDG max \(profile.bounds(for: .edge).maximum)")
                                 .font(.caption2.monospacedDigit())
@@ -307,7 +300,6 @@ struct GenerationWizardView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .help(ChargenHelpCatalog.metatypeBlurb(meta))
                 }
             }
         }
@@ -327,7 +319,24 @@ struct GenerationWizardView: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-        .help(ChargenHelpCatalog.attributeDescription(id))
+    }
+
+    private func pathDescriptionMarkdown(_ path: AwakenedPath) -> String {
+        // Emphasize key game terms consistently for hover help.
+        switch path {
+        case .mundane:
+            "You have no **Magic** or **Resonance**—neither a spellcaster nor a technomancer. Most runners are mundane and rely on **Skills**, **Edge**, gear, and cyberware."
+        case .fullMagician:
+            "A Magician channels mana to cast spells, summon spirits, and project astrally. You need a **Magic** attribute; **Essence** loss from cyberware can reduce **Magic**."
+        case .aspectedMagician:
+            "Limited to one magical skill category (for example only **Sorcery**, Conjuring, or Enchanting). Cheaper than a full Magician, with a narrower toolbox."
+        case .mysticAdept:
+            "Splits power between spellcasting and adept powers. Flexible but expensive; you juggle **Magic** for both spells and power points."
+        case .adept:
+            "Spends **Magic** on adept powers (improved reflexes, combat sense, attribute boosts) instead of spells. Your body is the focus."
+        case .technomancer:
+            "Emerged, not awakened: **Resonance** replaces a cyberdeck. You thread complex forms and compile sprites. Guard your **Essence**."
+        }
     }
 
     // MARK: - Priorities
@@ -345,38 +354,17 @@ struct GenerationWizardView: View {
                     : "Assign each of A–E exactly once across the five columns. The balance banner above updates as you choose.")
 
                 RecommendButton(
-                    title: "Apply recommended priorities",
+                    title: "Apply Recommended Priorities",
                     subtitle: ChargenRecommendations.priorities(archetype: draft.archetype, metatype: draft.metatype).rationale
                 ) {
                     draft.applyRecommendedPriorities()
                     statusMessage = draft.lastRecommendationNote
                 }
 
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 10) {
-                        labeledHelp("Metatype column", ChargenHelpCatalog.priorityColumnDescription(.metatype))
-                        labeledHelp("Special / adjustment points", ChargenHelpCatalog.specialAdjustmentPointsHelp)
-                        labeledHelp("Attributes column", ChargenHelpCatalog.attributePointsHelp)
-                        labeledHelp("Magic / Resonance column", ChargenHelpCatalog.magicResonancePriorityHelp)
-                        labeledHelp("Skills column", ChargenHelpCatalog.skillPointsHelp)
-                        labeledHelp("Resources column", ChargenHelpCatalog.resourcesHelp)
-                    }
-                } label: {
-                    Text("What these columns mean")
-                        .font(.headline)
-                }
-
                 ForEach(PriorityColumn.allCases, id: \.self) { column in
                     priorityRow(column)
                 }
             }
-        }
-    }
-
-    private func labeledHelp(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.subheadline.weight(.semibold))
-            Text(body).font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -387,6 +375,7 @@ struct GenerationWizardView: View {
             Text(ChargenHelpCatalog.priorityColumnDescription(column))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
                 ForEach(PriorityLetter.allCases, id: \.self) { letter in
@@ -439,7 +428,7 @@ struct GenerationWizardView: View {
                 .font(.title3.weight(.semibold))
 
             RecommendButton(
-                title: "Apply recommended attributes",
+                title: "Apply Recommended Attributes",
                 subtitle: ChargenRecommendations.attributes(
                     archetype: draft.archetype,
                     metatype: draft.metatype,
@@ -513,7 +502,6 @@ struct GenerationWizardView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
         }
-        .help(ChargenHelpCatalog.attributeDescription(id))
     }
 
     // MARK: - Magic
@@ -522,7 +510,7 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Magic / Resonance")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Your path decides whether you use Magic, Resonance, or neither. **Mundane** is the normal state for most runners—no spells, no complex forms—just skills, Edge, and gear.")
+            HelpCallout(text: "Your path decides whether you use Magic, Resonance, or neither. Mundane is the normal state for most runners—no spells, no complex forms—just skills, Edge, and gear.")
 
             ForEach(AwakenedPath.allCases, id: \.self) { path in
                 let selected = draft.awakened == path
@@ -541,10 +529,7 @@ struct GenerationWizardView: View {
                             Text(path == .mundane ? ChargenHelpCatalog.mundanePathLabel : path.displayName)
                                 .font(.headline)
                         }
-                        Text(ChargenHelpCatalog.pathDescription(path))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        EmphasizedHelpText(text: pathDescriptionMarkdown(path))
                         Text(ChargenHelpCatalog.pathStory(path))
                             .font(.caption2)
                             .italic()
@@ -572,10 +557,10 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Skills")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Skills + linked attributes form dice pools. Hover a skill name for what it does. Recommendations match your role.")
+            HelpCallout(text: "Skills plus linked attributes form dice pools. Recommendations match your role; adjust any rank afterward.")
 
             RecommendButton(
-                title: "Apply recommended skills",
+                title: "Apply Recommended Skills",
                 subtitle: ChargenRecommendations.skills(
                     archetype: draft.archetype,
                     pointBudget: draft.budget.skillPointsTotal
@@ -587,7 +572,7 @@ struct GenerationWizardView: View {
 
             GroupBox {
                 ForEach(ChargenSkillCatalog.active, id: \.key) { item in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         PointStepperRow(
                             title: item.name,
                             value: draft.skillRanks[item.key] ?? 0,
@@ -612,9 +597,11 @@ struct GenerationWizardView: View {
                         Text(ChargenHelpCatalog.skillDescription(catalogKey: item.key))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.trailing, 88) // keep clear of stepper control column
                         Divider()
                     }
-                    .help(ChargenHelpCatalog.skillDescription(catalogKey: item.key))
                 }
             }
         }
@@ -664,7 +651,6 @@ struct GenerationWizardView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
-                .help(ChargenHelpCatalog.qualityDescription(catalogKey: item.0))
             }
         }
     }
@@ -720,7 +706,7 @@ struct GenerationWizardView: View {
             VStack(spacing: 12) {
                 Group {
                     if let data = draft.avatarData, let img = NSImage(data: data) {
-                        PaintedPortraitView(kind: .custom(img), showLabel: false)
+                        PaintedPortraitView(kind: .custom, customImage: img, showLabel: false)
                     } else {
                         PaintedPortraitView(kind: .archetype(draft.archetype), showLabel: true)
                     }
@@ -745,7 +731,7 @@ struct GenerationWizardView: View {
             }
 
             VStack(alignment: .leading, spacing: 16) {
-                Text("Finishing touches")
+                Text("Finishing Touches")
                     .font(.title3.weight(.semibold))
 
                 TextField("Legal / real name", text: $draft.name)
@@ -753,7 +739,7 @@ struct GenerationWizardView: View {
                 TextField("Street name", text: $draft.streetName)
                     .textFieldStyle(.roundedBorder)
 
-                GroupBox("Summary") {
+                GroupBox {
                     VStack(alignment: .leading, spacing: 6) {
                         LabeledContent("Edition", value: draft.edition.rawValue)
                         LabeledContent("Metatype", value: draft.metatype.displayName)
@@ -765,6 +751,9 @@ struct GenerationWizardView: View {
                         LabeledContent("Nuyen", value: "¥\(draft.nuyen)")
                         LabeledContent("Qualities", value: "\(draft.qualities.count)")
                     }
+                } label: {
+                    Text("Summary")
+                        .font(.title3.weight(.semibold))
                 }
 
                 if didFinish {

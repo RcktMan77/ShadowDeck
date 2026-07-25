@@ -46,25 +46,25 @@ public enum RunnerArchetype: String, Codable, Sendable, CaseIterable, Identifiab
         }
     }
 
-    /// Markdown-capable summary; attribute names wrapped in **bold**.
+    /// Summary with **Term** markers for every game term (attributes, skills, pools).
     public var summaryMarkdown: String {
         switch self {
         case .streetSamurai:
             "Prioritize **Attributes** and **Resources** for wares and weapons. **Edge** and **Reaction** keep you alive when plans break."
         case .adept:
-            "Invest Magic/Resonance priority in Adept powers. **Agility** and combat skills carry the run."
+            "Invest **Magic** / **Resonance** priority in Adept powers. **Agility** and combat **Skills** carry the run."
         case .combatMage:
-            "High Magic priority, Sorcery skills, and **Willpower**. **Resources** can stay lean if you summon and spellcast."
+            "High **Magic** priority, **Sorcery** skills, and **Willpower**. **Resources** can stay lean if you summon and spellcast."
         case .face:
-            "**Charisma**, Influence, and contacts. Social limit (SR5) or **Edge** (SR6) matters as much as a gun."
+            "**Charisma**, **Influence**, and contacts. Social limit (SR5) or **Edge** (SR6) matters as much as a gun."
         case .decker:
-            "**Logic**, cracking/electronics, and a serious deck budget. Often pairs with secondary infiltration skills."
+            "**Logic**, **Hacking** / electronics, and a serious deck **Resources** budget. Often pairs with secondary **Stealth** skills."
         case .rigger:
-            "**Reaction**, piloting, and vehicle/drone nuyen. Command the battlefield from a safe distance."
+            "**Reaction**, **Piloting**, and vehicle/drone **Resources**. Command the battlefield from a safe distance."
         case .technomancer:
-            "Resonance priority and Tasking skills. Complex forms instead of cyberdecks. Guard your **Essence**."
+            "**Resonance** priority and **Tasking** skills. Complex forms instead of cyberdecks. Guard your **Essence**."
         case .spy:
-            "**Agility**, Stealth, and Perception. Light gear, heavy preparation, escape routes."
+            "**Agility**, **Stealth**, and **Perception**. Light gear, heavy preparation, escape routes."
         }
     }
 

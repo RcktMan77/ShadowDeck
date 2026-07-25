@@ -35,31 +35,31 @@ public enum ChargenHelpCatalog {
         case .charisma:
             "Charisma is force of personality. It drives Influence skills, leadership, negotiations, and how well spirits or people respond to you."
         case .edge:
-            "Edge is luck, grit, and narrative favor. Spending Edge can re-roll dice, seize initiative, or shrug off catastrophe. Humans often start with higher natural Edge maxima."
+            "Edge is luck, grit, and narrative favor. Spending Edge can re-roll dice, seize Initiative, or shrug off catastrophe. Humans often start with higher natural Edge maxima."
         case .magic:
             "Magic measures awakened power. Magicians, adepts, and mystic adepts use it for spellcasting, powers, and astral ability. Essence loss from cyberware can reduce Magic."
         case .resonance:
-            "Resonance is a technomancer’s living connection to the Matrix. It powers complex forms, sprites, and living persona attributes in place of a cyberdeck."
+            "Resonance is a technomancer’s living connection to the Matrix. It powers complex forms, sprites, and Living Persona attributes in place of a cyberdeck."
         case .essence:
-            "Essence is the integrity of your living spirit. Cyberware and some bioware reduce Essence. At 0 Essence a character dies; Magic/Resonance are often capped by current Essence."
+            "Essence is the integrity of your living spirit. Cyberware and some bioware reduce Essence. At 0 Essence a character dies; Magic and Resonance are often capped by current Essence."
         case .initiative:
-            "Initiative determines turn order in combat. It is usually derived from Reaction + Intuition (plus initiative dice), not purchased as a primary attribute."
+            "Initiative determines turn order in combat. It is usually derived from Reaction + Intuition (plus Initiative Dice), not purchased as a primary attribute."
         }
     }
 
     public static func attributeInfluences(_ id: AttributeID) -> String {
         switch id {
-        case .body: "Condition monitors, damage resistance, toxin resistance"
-        case .agility: "Firearms, stealth, athletics, many combat tests"
-        case .reaction: "Initiative, vehicles, defense, reaction-based skills"
+        case .body: "Physical Condition Monitor, damage resistance, toxin resistance"
+        case .agility: "Firearms, Stealth, Athletics, many combat tests"
+        case .reaction: "Initiative, vehicles, defense, Reaction-linked skills"
         case .strength: "Melee damage, lift/carry, feats of strength"
-        case .willpower: "Drain, stun track, composure, magical resistance"
-        case .logic: "Matrix, technical skills, knowledge, memory"
-        case .intuition: "Initiative, perception, surprise, street instincts"
+        case .willpower: "Drain, Stun Condition Monitor, composure, magical resistance"
+        case .logic: "Matrix tests, technical skills, knowledge, memory"
+        case .intuition: "Initiative, Perception, surprise, street instincts"
         case .charisma: "Social tests, contacts, conjuring rapport"
         case .edge: "Edge actions, luck spends, special human advantage"
         case .magic: "Spells, adept powers, astral projection limits"
-        case .resonance: "Complex forms, sprites, living persona"
+        case .resonance: "Complex forms, sprites, Living Persona"
         case .essence: "Caps Magic/Resonance; tracks augmentation load"
         case .initiative: "Combat turn order"
         }
