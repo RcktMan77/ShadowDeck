@@ -61,16 +61,21 @@ struct PointStepperRow: View {
     let onDecrease: () -> Void
 
     var body: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
+                    .font(.body.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                 if let subtitle {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             HStack(spacing: 12) {
                 Button {
                     onDecrease()
@@ -96,6 +101,7 @@ struct PointStepperRow: View {
                 .disabled(!canIncrease)
                 .opacity(canIncrease ? 1 : 0.35)
             }
+            .fixedSize()
         }
         .padding(.vertical, 4)
     }
