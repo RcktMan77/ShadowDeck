@@ -17,7 +17,8 @@ Updated as phases land. **Human input required** before locking ambiguous items.
 | Portability | Single-file **`.shadowdeck`** package (ZIP + JSON) for import/export |
 | Edition priority | **Equal peers** — SR4, SR5, SR6 first-class from day one |
 | House rules | Core-book default + top ~10 popular toggles early |
-| Domain model | Pure `Codable` value types; SwiftData wraps in Phase 2 |
+| Domain model | Pure `Codable` value types; SwiftData `CharacterRecord` + JSON payload |
+| Avatar storage | **Hybrid**: ≤256KB static inline; large/animated as files |
 
 ## Architecture Overview
 
@@ -66,18 +67,28 @@ UI  →  View models / observation  →  Domain models (Character, …)
 
 ### Portable file format (`.shadowdeck`)
 
-User sees **one file/object**. On disk it is a ZIP package:
+User sees **one file/object**. On disk it is a **directory package** (Mac-native):
 
 ```
 runner.shadowdeck/
   manifest.json      # id, name, edition, formatVersion, hasAvatar
   character.json     # PortableCharacterDocument (JSON, ISO-8601 dates)
-  avatar/            # optional portrait bytes
+  avatar/portrait.*  # optional portrait bytes
 ```
 
 - JSON payload is human-debuggable and `Codable`-native.
-- ZIP keeps avatars efficient without a proprietary whole-file binary.
-- App library (Phase 2) stores characters in SwiftData; export writes `.shadowdeck`.
+- App library stores characters in **SwiftData**; export/import uses `.shadowdeck`.
+
+### Hybrid avatar storage (Phase 2)
+
+| Case | Storage |
+|------|---------|
+| No portrait | `AvatarStorageKind.none` |
+| Static ≤ 256 KB | SwiftData inline blob (`CharacterRecord.avatarInlineData`) |
+| Static > 256 KB | File under Application Support `ShadowDeck/Avatars/<id>/portrait.<ext>` |
+| Animated (any size) | Always file |
+
+Domain `Character.avatar.inlineData` is rehydrated on fetch for UI/export convenience; the JSON payload never embeds binary.
 
 ### House rules (early set)
 
@@ -96,11 +107,10 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 
 ## Open Decisions (ask human before locking)
 
-1. **Avatar storage in library**: SwiftData blob vs Application Support file reference *(default lean: blob for small portraits, file for large/animated)*.
-2. **Which core books** first for full data packs in Phase 7.
-3. **Chummer version** reference for JSON schema (5a latest vs pinned).
-4. **Visual design language**: neon cyberpunk accent vs restrained professional chrome.
-5. **Exact SR6 priority table numbers** — Phase 1 uses documented core approximations; confirm against your table’s core book printing when generation wizard lands.
+1. **Which core books** first for full data packs in Phase 7.
+2. **Chummer version** reference for JSON schema (5a latest vs pinned).
+3. **Visual design language**: neon cyberpunk accent vs restrained professional chrome.
+4. **Exact SR6 priority table numbers** — Phase 1 uses documented core approximations; confirm against your table’s core book printing when generation wizard lands.
 
 ## Migration Strategy
 
@@ -115,7 +125,7 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 |------|------|
 | Smoke / module load | Phase 0 ✅ |
 | Domain invariants per edition | Phase 1 ✅ |
-| CRUD + avatar persistence | Phase 2 |
+| CRUD + avatar persistence | Phase 2 ✅ |
 | Import mapping fidelity | Phase 3 |
 | Generation cost / legality | Phase 4 |
 | Derived values / UI logic as pure functions | Ongoing |
@@ -126,3 +136,4 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 |------|----------|
 | 2026-07-25 | Named **ShadowDeck**; public repo; Phase 0 bootstrap |
 | 2026-07-25 | Phase 1: equal edition peers; app library + `.shadowdeck` portability; house-rule framework |
+| 2026-07-25 | Phase 2: SwiftData library; hybrid avatars; `.shadowdeck` package I/O |

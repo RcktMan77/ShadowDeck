@@ -4,14 +4,13 @@
 //
 //  Single-file portable character format presented to users as one object.
 //
-//  On disk (Phase 2+): a ZIP package with extension `.shadowdeck` containing:
+//  On disk (Phase 2+): a directory package with extension `.shadowdeck`:
 //    manifest.json  — format version, edition, ids
 //    character.json — full Character payload (this schema)
 //    avatar/        — optional portrait bytes
 //
 //  Wire format for character.json is JSON (human-debuggable, Codable-native).
-//  The ZIP container keeps avatars and future attachments efficient without
-//  forcing a proprietary binary for the whole character.
+//  The package is Mac-native (like .rtfd): one object in Finder, efficient files inside.
 //
 
 import Foundation

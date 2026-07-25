@@ -48,7 +48,7 @@ ShadowDeck/
 |-------|--------|--------|
 | **0** | Project bootstrap & foundation | ✅ Complete |
 | **1** | Core domain models & multi-edition support | ✅ Complete |
-| **2** | Persistence layer (SwiftData + avatars) | Pending |
+| **2** | Persistence layer (SwiftData + avatars) | ✅ Complete |
 | **3** | Import pipeline (Chummer JSON / `.chum5`) | Pending |
 | **4** | Character generation wizard | Pending |
 | **5** | Main character summary (at-a-glance) | Pending |
