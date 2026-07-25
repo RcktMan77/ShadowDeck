@@ -50,25 +50,31 @@ struct PaintedPortraitView: View {
 
     var body: some View {
         GeometryReader { geo in
+            let imgRect = PortraitLayout.imageRect(in: geo.size)
             ZStack {
+                // Letterbox background
+                Color.black.opacity(0.85)
+
                 if let image = resolvedImage {
+                    // scaledToFit keeps full art visible so measured landmarks stay aligned.
                     Image(nsImage: image)
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                         .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
                 } else {
                     LinearGradient(
                         colors: fallbackColors,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
+                    .frame(width: imgRect.width, height: imgRect.height)
+                    .position(x: imgRect.midX, y: imgRect.midY)
                 }
 
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
                     Canvas { ctx, size in
                         let t = context.date.timeIntervalSinceReferenceDate
-                        drawFX(context: ctx, size: size, time: t)
+                        drawFX(context: ctx, viewSize: size, time: t)
                     }
                 }
                 .allowsHitTesting(false)
@@ -92,6 +98,9 @@ struct PaintedPortraitView: View {
                             )
                         )
                     }
+                    // Keep label over the letterboxed image area
+                    .frame(width: imgRect.width, height: imgRect.height)
+                    .position(x: imgRect.midX, y: imgRect.midY)
                 }
             }
         }
@@ -129,12 +138,12 @@ struct PaintedPortraitView: View {
         }
     }
 
-    private func drawFX(context: GraphicsContext, size: CGSize, time: Double) {
+    private func drawFX(context: GraphicsContext, viewSize: CGSize, time: Double) {
         switch kind {
         case .archetype(let a):
-            PortraitFX.drawArchetype(a, context: context, size: size, time: time)
+            PortraitFX.drawArchetype(a, context: context, viewSize: viewSize, time: time)
         case .metatype(let m):
-            PortraitFX.drawMetatype(m, context: context, size: size, time: time)
+            PortraitFX.drawMetatype(m, context: context, viewSize: viewSize, time: time)
         case .custom:
             break
         }
