@@ -3,16 +3,8 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
-
-/* Begin PBXBuildFile section */
-		A10000000000000000000001 /* ShadowDeckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ShadowDeckApp.swift */; };
-		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ContentView.swift */; };
-		A10000000000000000000003 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* SettingsView.swift */; };
-		A10000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* Assets.xcassets */; };
-		A10000000000000000000005 /* ShadowDeckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ShadowDeckTests.swift */; };
-/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		A30000000000000000000001 /* PBXContainerItemProxy */ = {
@@ -25,14 +17,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A20000000000000000000001 /* ShadowDeckApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowDeckApp.swift; sourceTree = "<group>"; };
-		A20000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A20000000000000000000003 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A20000000000000000000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A20000000000000000000005 /* ShadowDeckTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowDeckTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ShadowDeck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShadowDeck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000007 /* ShadowDeckTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShadowDeckTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AD0000000000000000000001 /* ShadowDeck */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ShadowDeck;
+			sourceTree = "<group>";
+		};
+		AD0000000000000000000002 /* ShadowDeckTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ShadowDeckTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A60000000000000000000001 /* Frameworks */ = {
@@ -55,33 +55,10 @@
 		A70000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A70000000000000000000002 /* ShadowDeck */,
-				A70000000000000000000003 /* ShadowDeckTests */,
+				AD0000000000000000000001 /* ShadowDeck */,
+				AD0000000000000000000002 /* ShadowDeckTests */,
 				A70000000000000000000004 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		A70000000000000000000002 /* ShadowDeck */ = {
-			isa = PBXGroup;
-			children = (
-				A70000000000000000000005 /* App */,
-				A70000000000000000000006 /* Models */,
-				A70000000000000000000007 /* Rules */,
-				A70000000000000000000008 /* Persistence */,
-				A70000000000000000000009 /* Import */,
-				A7000000000000000000000A /* UI */,
-				A7000000000000000000000B /* Resources */,
-				A20000000000000000000004 /* Assets.xcassets */,
-			);
-			path = ShadowDeck;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000003 /* ShadowDeckTests */ = {
-			isa = PBXGroup;
-			children = (
-				A20000000000000000000005 /* ShadowDeckTests.swift */,
-			);
-			path = ShadowDeckTests;
 			sourceTree = "<group>";
 		};
 		A70000000000000000000004 /* Products */ = {
@@ -91,58 +68,6 @@
 				A20000000000000000000007 /* ShadowDeckTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000005 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				A20000000000000000000001 /* ShadowDeckApp.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000006 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000007 /* Rules */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Rules;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000008 /* Persistence */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Persistence;
-			sourceTree = "<group>";
-		};
-		A70000000000000000000009 /* Import */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Import;
-			sourceTree = "<group>";
-		};
-		A7000000000000000000000A /* UI */ = {
-			isa = PBXGroup;
-			children = (
-				A20000000000000000000002 /* ContentView.swift */,
-				A20000000000000000000003 /* SettingsView.swift */,
-			);
-			path = UI;
-			sourceTree = "<group>";
-		};
-		A7000000000000000000000B /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -160,6 +85,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				AD0000000000000000000001 /* ShadowDeck */,
+			);
 			name = ShadowDeck;
 			productName = ShadowDeck;
 			productReference = A20000000000000000000006 /* ShadowDeck.app */;
@@ -176,6 +104,9 @@
 			);
 			dependencies = (
 				AB0000000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AD0000000000000000000002 /* ShadowDeckTests */,
 			);
 			name = ShadowDeckTests;
 			productName = ShadowDeckTests;
@@ -202,7 +133,6 @@
 				};
 			};
 			buildConfigurationList = A80000000000000000000001 /* Build configuration list for PBXProject "ShadowDeck" */;
-			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -210,6 +140,8 @@
 				Base,
 			);
 			mainGroup = A70000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = A70000000000000000000004 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -225,7 +157,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000004 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,9 +167,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000001 /* ShadowDeckApp.swift in Sources */,
-				A10000000000000000000002 /* ContentView.swift in Sources */,
-				A10000000000000000000003 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,7 +174,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000005 /* ShadowDeckTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,7 +333,6 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shadowdeck.ShadowDeck;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
@@ -438,7 +364,6 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shadowdeck.ShadowDeck;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
