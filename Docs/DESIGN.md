@@ -109,8 +109,9 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 
 1. **Which core books** first for full data packs in Phase 7.
 2. **Chummer version** reference for JSON schema (5a latest vs pinned).
-3. **Visual design language**: neon cyberpunk accent vs restrained professional chrome.
-4. **Exact SR6 priority table numbers** — Phase 1 uses documented core approximations; confirm against your table’s core book printing when generation wizard lands.
+3. **Visual design language**: archetype showcase uses SwiftUI neon/animated Canvas art (not licensed SR art); can swap for custom assets later.
+4. **Exact SR6 priority table numbers** — wizard uses rules tables; confirm against your core book printing if a number feels off.
+5. **Wizard avatar step** — portrait upload deferred to summary screen (Phase 5); finish step is name + review.
 
 ## Import pipeline (Phase 3)
 
@@ -147,7 +148,7 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | Domain invariants per edition | Phase 1 ✅ |
 | CRUD + avatar persistence | Phase 2 ✅ |
 | Import mapping fidelity | Phase 3 ✅ |
-| Generation cost / legality | Phase 4 |
+| Generation cost / legality | Phase 4 ✅ |
 | Derived values / UI logic as pure functions | Ongoing |
 
 ## Changelog of Decisions
@@ -158,3 +159,5 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | 2026-07-25 | Phase 1: equal edition peers; app library + `.shadowdeck` portability; house-rule framework |
 | 2026-07-25 | Phase 2: SwiftData library; hybrid avatars; `.shadowdeck` package I/O |
 | 2026-07-25 | Phase 3: Chummer JSON + `.chum5` import; Ghostwire validated read-only |
+| 2026-07-25 | CI: macos-15 + Xcode 26.3; Chummer audit doc |
+| 2026-07-25 | Phase 4: multi-page generation wizard, live allocation, archetype showcase |
