@@ -112,6 +112,26 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 3. **Visual design language**: neon cyberpunk accent vs restrained professional chrome.
 4. **Exact SR6 priority table numbers** — Phase 1 uses documented core approximations; confirm against your table’s core book printing when generation wizard lands.
 
+## Import pipeline (Phase 3)
+
+```
+.file → CharacterImporter (detect)
+          ├─ Chummer JSON  → ChummerJSONParser
+          ├─ .chum5 XML    → ChummerXMLParser  (legacy <skills> + modern <newskills>)
+          └─ .shadowdeck   → ShadowDeckPackage
+                ↓
+        ChummerNormalizedCharacter
+                ↓
+        ChummerMapper → Character + ImportDiagnostics
+                ↓
+        CharacterLibrary.importAndSave
+```
+
+- Original Chummer files are **read-only**; never written back.
+- Skill ranks use Chummer `rating` / `base+karma`, **not** dice-pool `total`.
+- Attribute sheet values prefer Chummer `total` (includes permanent aug bonuses as displayed).
+- Personal test fixtures (e.g. Ghostwire) stay outside the repo; CI uses synthetic fixtures under `ShadowDeckTests/Fixtures/`.
+
 ## Migration Strategy
 
 - `Character.schemaVersion` + `PortableCharacterDocument.formatVersion` from Phase 1.
@@ -126,7 +146,7 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | Smoke / module load | Phase 0 ✅ |
 | Domain invariants per edition | Phase 1 ✅ |
 | CRUD + avatar persistence | Phase 2 ✅ |
-| Import mapping fidelity | Phase 3 |
+| Import mapping fidelity | Phase 3 ✅ |
 | Generation cost / legality | Phase 4 |
 | Derived values / UI logic as pure functions | Ongoing |
 
@@ -137,3 +157,4 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | 2026-07-25 | Named **ShadowDeck**; public repo; Phase 0 bootstrap |
 | 2026-07-25 | Phase 1: equal edition peers; app library + `.shadowdeck` portability; house-rule framework |
 | 2026-07-25 | Phase 2: SwiftData library; hybrid avatars; `.shadowdeck` package I/O |
+| 2026-07-25 | Phase 3: Chummer JSON + `.chum5` import; Ghostwire validated read-only |
