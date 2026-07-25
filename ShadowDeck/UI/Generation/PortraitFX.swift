@@ -2,202 +2,273 @@
 //  PortraitFX.swift
 //  ShadowDeck
 //
-//  Animated overlays calibrated to landmarks in each painted portrait.
-//  Coordinates are normalized 0…1 in portrait space (width × height),
-//  assuming scaledToFill on a 3:4 image. The painted figure is never warped—
-//  only light, rain, glyphs, and sparkle layers animate.
+//  FX landmarks measured from portrait pixels (864×1152) via luminance/color
+//  analysis, drawn in the same letterboxed image rect as the static art so
+//  effects track features (fists, lightning path, laptop screen, etc.).
 //
 
 import SwiftUI
 
+/// Normalized (0…1) coords in full image space (top-left origin).
+struct NormRect: Sendable {
+    var x: CGFloat
+    var y: CGFloat
+    var w: CGFloat
+    var h: CGFloat
+
+    func cgRect(in imageRect: CGRect) -> CGRect {
+        CGRect(
+            x: imageRect.minX + x * imageRect.width,
+            y: imageRect.minY + y * imageRect.height,
+            width: w * imageRect.width,
+            height: h * imageRect.height
+        )
+    }
+}
+
+struct NormPoint: Sendable {
+    var x: CGFloat
+    var y: CGFloat
+
+    func cgPoint(in imageRect: CGRect) -> CGPoint {
+        CGPoint(
+            x: imageRect.minX + x * imageRect.width,
+            y: imageRect.minY + y * imageRect.height
+        )
+    }
+}
+
+enum PortraitLayout {
+    /// Source art is 864×1152 (3:4).
+    static let imageAspect: CGFloat = 864.0 / 1152.0
+
+    /// Letterboxed rect where the image is drawn under `.scaledToFit`.
+    static func imageRect(in viewSize: CGSize) -> CGRect {
+        let viewAspect = viewSize.width / max(viewSize.height, 1)
+        if viewAspect > imageAspect {
+            let h = viewSize.height
+            let w = h * imageAspect
+            return CGRect(x: (viewSize.width - w) / 2, y: 0, width: w, height: h)
+        } else {
+            let w = viewSize.width
+            let h = w / imageAspect
+            return CGRect(x: 0, y: (viewSize.height - h) / 2, width: w, height: h)
+        }
+    }
+}
+
 enum PortraitFX {
-    // MARK: - Archetypes (landmarks from art audit)
+    // MARK: - Measured landmarks (from pixel analysis of ChargenArt/*.jpg)
 
-    static func drawArchetype(_ archetype: RunnerArchetype, context: GraphicsContext, size: CGSize, time: Double) {
-        switch archetype {
-        case .streetSamurai:
-            // Rainy alley — enhance existing rain only.
-            rain(context: context, size: size, time: time, density: 28, color: .white.opacity(0.4))
+    private static let adeptLowerFist = NormPoint(x: 0.290, y: 0.583)
+    private static let adeptUpperFist = NormPoint(x: 0.693, y: 0.286)
+    private static let adeptScreenL = NormRect(x: 0.00, y: 0.05, w: 0.22, h: 0.55)
+    private static let adeptScreenR = NormRect(x: 0.78, y: 0.05, w: 0.22, h: 0.55)
 
-        case .adept:
-            // Billboards/screens L & R mid-background; fist glows at lower-left & upper-right of figure.
-            billboardScreens(context: context, size: size, time: time)
-            // Lower fist (viewer's left of center)
-            fistGlow(context: context, at: p(0.38, 0.58, size), radius: size.width * 0.09, time: time, color: .cyan)
-            // Raised fist (viewer's right / upper)
-            fistGlow(context: context, at: p(0.62, 0.32, size), radius: size.width * 0.11, time: time + 0.8, color: .mint)
+    /// Bright purple core path left-hand → right-hand (combat mage).
+    private static let mageArc: [NormPoint] = [
+        .init(x: 0.17, y: 0.40),
+        .init(x: 0.21, y: 0.43),
+        .init(x: 0.28, y: 0.57),
+        .init(x: 0.34, y: 0.60),
+        .init(x: 0.41, y: 0.66),
+        .init(x: 0.47, y: 0.68),
+        .init(x: 0.53, y: 0.67),
+        .init(x: 0.62, y: 0.70),
+        .init(x: 0.73, y: 0.76),
+        .init(x: 0.80, y: 0.66),
+        .init(x: 0.86, y: 0.66),
+    ]
 
-        case .combatMage:
-            // Arc from outstretched left hand (~0.22, 0.48) to lower right hand (~0.72, 0.62)
-            cracklingArc(
-                context: context,
-                from: p(0.24, 0.48, size),
-                to: p(0.74, 0.62, size),
-                time: time,
-                color: .purple
-            )
-            fistGlow(context: context, at: p(0.24, 0.48, size), radius: size.width * 0.08, time: time, color: .purple)
-            fistGlow(context: context, at: p(0.74, 0.62, size), radius: size.width * 0.07, time: time + 0.5, color: .purple)
+    /// Laptop screen bezel (decker) — tightened after visual check.
+    private static let deckerScreen = NormRect(x: 0.10, y: 0.40, w: 0.42, h: 0.20)
 
-        case .face:
-            // Neon signs in upper half / sides — flicker those light sources.
-            neonSignRegions(context: context, size: size, time: time, faceStyle: true)
+    private static let riggerEyeL = NormPoint(x: 0.328, y: 0.313)
+    private static let riggerEyeR = NormPoint(x: 0.533, y: 0.379)
 
-        case .decker:
-            // Laptop screen only (lower-left/center of frame).
-            let screen = CGRect(
-                x: size.width * 0.12,
-                y: size.height * 0.42,
-                width: size.width * 0.42,
-                height: size.height * 0.22
-            )
-            context.drawLayer { layer in
-                layer.clip(to: Path(roundedRect: screen, cornerRadius: 3))
-                matrixColumns(context: layer, in: screen, time: time)
-                let glow = 0.10 + 0.12 * abs(sin(time * 3.4))
-                layer.fill(Path(screen), with: .color(Color.cyan.opacity(glow)))
-            }
-            // Subtle spill on keyboard/desk immediately below screen
-            let spill = CGRect(x: screen.minX, y: screen.maxY, width: screen.width, height: size.height * 0.06)
-            context.fill(Path(spill), with: .color(Color.cyan.opacity(0.05 + 0.04 * abs(sin(time * 2.5)))))
+    /// Floating card cluster + champagne bowl (technomancer / socialite art).
+    private static let technoCards = NormRect(x: 0.68, y: 0.48, w: 0.28, h: 0.22)
+    private static let technoGlass = NormRect(x: 0.74, y: 0.58, w: 0.14, h: 0.20)
+    private static let technoSign = NormRect(x: 0.50, y: 0.08, w: 0.45, h: 0.16)
 
-        case .rigger:
-            // Eyes glowing; data tendrils from eyes upward/outward.
-            let leftEye = p(0.42, 0.38, size)
-            let rightEye = p(0.52, 0.37, size)
-            eyeBeam(context: context, from: leftEye, to: p(0.18, 0.12, size), time: time)
-            eyeBeam(context: context, from: rightEye, to: p(0.78, 0.10, size), time: time + 0.4)
-            eyeBeam(context: context, from: leftEye, to: p(0.30, 0.08, size), time: time + 0.9)
-            eyeBeam(context: context, from: rightEye, to: p(0.70, 0.15, size), time: time + 1.3)
-            fistGlow(context: context, at: leftEye, radius: 10, time: time, color: .cyan)
-            fistGlow(context: context, at: rightEye, radius: 10, time: time + 0.3, color: .cyan)
-            // Neck circuit glow
-            neckStrand(context: context, size: size, time: time)
+    private static let humanMonitors: [NormRect] = [
+        .init(x: 0.04, y: 0.04, w: 0.30, h: 0.20),
+        .init(x: 0.36, y: 0.02, w: 0.28, h: 0.18),
+        .init(x: 0.66, y: 0.05, w: 0.30, h: 0.20),
+        .init(x: 0.04, y: 0.27, w: 0.24, h: 0.16),
+        .init(x: 0.28, y: 0.25, w: 0.24, h: 0.15),
+        .init(x: 0.04, y: 0.46, w: 0.22, h: 0.15),
+    ]
 
-        case .technomancer:
-            // Champagne glass lower-right; floating gold cards mid-right; neon “Velvet Vault” upper-right.
-            champagneBubblesInGlass(context: context, size: size, time: time)
-            floatingCreditCards(context: context, size: size, time: time)
-            // Sign glow upper-right
-            context.fill(
-                Path(CGRect(x: size.width * 0.45, y: size.height * 0.08, width: size.width * 0.5, height: size.height * 0.18)),
-                with: .color(Color.pink.opacity(0.08 + 0.1 * abs(sin(time * 2.2))))
-            )
+    // MARK: - Entry
 
-        case .spy:
-            // Green matrix glyphs already in background — scroll & glow them.
-            verticalGlyphRain(context: context, size: size, time: time, color: .green)
-        }
-    }
+    static func drawArchetype(
+        _ archetype: RunnerArchetype,
+        context: GraphicsContext,
+        viewSize: CGSize,
+        time: Double
+    ) {
+        let img = PortraitLayout.imageRect(in: viewSize)
+        // Clip all FX to the image letterbox so nothing paints into empty bars.
+        context.drawLayer { layer in
+            layer.clip(to: Path(img))
+            switch archetype {
+            case .streetSamurai:
+                rain(context: layer, imageRect: img, time: time)
 
-    // MARK: - Metatypes
+            case .adept:
+                screenPanel(context: layer, rect: adeptScreenL.cgRect(in: img), time: time, color: .cyan)
+                screenPanel(context: layer, rect: adeptScreenR.cgRect(in: img), time: time + 0.9, color: .pink)
+                glow(context: layer, at: adeptLowerFist.cgPoint(in: img), radius: img.width * 0.08, time: time, color: .cyan)
+                glow(context: layer, at: adeptUpperFist.cgPoint(in: img), radius: img.width * 0.09, time: time + 0.7, color: .mint)
 
-    static func drawMetatype(_ metatype: MetatypeID, context: GraphicsContext, size: CGSize, time: Double) {
-        switch metatype {
-        case .human:
-            // Cockpit monitors around subject — update screen tiles in those bezel regions.
-            humanCockpitScreens(context: context, size: size, time: time)
+            case .combatMage:
+                cracklePath(context: layer, points: mageArc.map { $0.cgPoint(in: img) }, time: time)
+                if let first = mageArc.first, let last = mageArc.last {
+                    glow(context: layer, at: first.cgPoint(in: img), radius: img.width * 0.07, time: time, color: .purple)
+                    glow(context: layer, at: last.cgPoint(in: img), radius: img.width * 0.065, time: time + 0.4, color: .purple)
+                }
 
-        case .elf:
-            // Green rim light behind hooded figure — pulse that green halo.
-            context.fill(
-                Path(CGRect(origin: .zero, size: size)),
-                with: .radialGradient(
-                    Gradient(colors: [
-                        Color.green.opacity(0.12 + 0.14 * abs(sin(time * 2.0))),
-                        .clear,
-                    ]),
-                    center: p(0.45, 0.4, size),
-                    startRadius: size.width * 0.08,
-                    endRadius: size.width * 0.55
+            case .face:
+                // Soft neon blooms only in upper neon-sign bokeh zones (not solid ovals).
+                faceNeonFlicker(context: layer, imageRect: img, time: time)
+
+            case .decker:
+                let screen = deckerScreen.cgRect(in: img)
+                layer.drawLayer { screenLayer in
+                    screenLayer.clip(to: Path(roundedRect: screen, cornerRadius: 2))
+                    matrixInRect(context: screenLayer, rect: screen, time: time)
+                    let g = 0.12 + 0.14 * abs(sin(time * 3.3))
+                    screenLayer.fill(Path(screen), with: .color(Color.cyan.opacity(g)))
+                }
+
+            case .rigger:
+                let l = riggerEyeL.cgPoint(in: img)
+                let r = riggerEyeR.cgPoint(in: img)
+                glow(context: layer, at: l, radius: 9, time: time, color: .cyan)
+                glow(context: layer, at: r, radius: 9, time: time + 0.3, color: .cyan)
+                // Tendrils from eyes toward floating icons (upper third)
+                beam(context: layer, from: l, to: CGPoint(x: img.minX + img.width * 0.18, y: img.minY + img.height * 0.12), time: time)
+                beam(context: layer, from: l, to: CGPoint(x: img.minX + img.width * 0.35, y: img.minY + img.height * 0.08), time: time + 0.5)
+                beam(context: layer, from: r, to: CGPoint(x: img.minX + img.width * 0.72, y: img.minY + img.height * 0.10), time: time + 0.9)
+                beam(context: layer, from: r, to: CGPoint(x: img.minX + img.width * 0.88, y: img.minY + img.height * 0.18), time: time + 1.2)
+                // Neck strand under chin
+                beam(
+                    context: layer,
+                    from: CGPoint(x: img.minX + img.width * 0.48, y: img.minY + img.height * 0.45),
+                    to: CGPoint(x: img.minX + img.width * 0.52, y: img.minY + img.height * 0.58),
+                    time: time + 0.2
                 )
-            )
-            // Monocle glow
-            fistGlow(context: context, at: p(0.58, 0.36, size), radius: 12, time: time, color: .green)
 
-        case .dwarf:
-            // Forge fire lower-left & right — flickering flames/embers.
-            forgeFlames(context: context, size: size, time: time)
-            // Embers rising
-            embers(context: context, size: size, time: time)
+            case .technomancer:
+                floatCards(context: layer, region: technoCards.cgRect(in: img), time: time)
+                bubbles(context: layer, in: technoGlass.cgRect(in: img), time: time)
+                let sign = technoSign.cgRect(in: img)
+                let pulse = 0.08 + 0.12 * abs(sin(time * 2.4))
+                layer.fill(Path(ellipseIn: sign), with: .color(Color.pink.opacity(pulse)))
 
-        case .ork:
-            // Neon signs: SCRAP MEAT (left), CHROME & BURN (upper), OPEN 24 (right).
-            orkMarketSigns(context: context, size: size, time: time)
-
-        case .troll:
-            // Blue/purple neon tubes behind shoulders — pulse those tubes.
-            trollNeonTubes(context: context, size: size, time: time)
+            case .spy:
+                glyphColumns(context: layer, imageRect: img, time: time, avoidFaceX: 0.38...0.72)
+            }
         }
     }
 
-    // MARK: - Landmark-specific helpers
+    static func drawMetatype(
+        _ metatype: MetatypeID,
+        context: GraphicsContext,
+        viewSize: CGSize,
+        time: Double
+    ) {
+        let img = PortraitLayout.imageRect(in: viewSize)
+        context.drawLayer { layer in
+            layer.clip(to: Path(img))
+            switch metatype {
+            case .human:
+                for (i, mon) in humanMonitors.enumerated() {
+                    screenPanel(
+                        context: layer,
+                        rect: mon.cgRect(in: img).insetBy(dx: 3, dy: 3),
+                        time: time + Double(i) * 0.55,
+                        color: i % 2 == 0 ? .cyan : .pink
+                    )
+                }
+            case .elf:
+                // Green rim light around subject (centered upper torso)
+                let c = CGPoint(x: img.midX * 0.95, y: img.minY + img.height * 0.38)
+                let pulse = 0.10 + 0.14 * abs(sin(time * 2.1))
+                layer.fill(
+                    Path(ellipseIn: CGRect(x: c.x - img.width * 0.35, y: c.y - img.width * 0.35, width: img.width * 0.7, height: img.width * 0.7)),
+                    with: .radialGradient(
+                        Gradient(colors: [Color.green.opacity(pulse), .clear]),
+                        center: c,
+                        startRadius: img.width * 0.05,
+                        endRadius: img.width * 0.4
+                    )
+                )
+                glow(context: layer, at: CGPoint(x: img.minX + img.width * 0.58, y: img.minY + img.height * 0.36), radius: 11, time: time, color: .green)
 
-    private static func p(_ x: CGFloat, _ y: CGFloat, _ size: CGSize) -> CGPoint {
-        CGPoint(x: size.width * x, y: size.height * y)
+            case .dwarf:
+                forge(context: layer, imageRect: img, time: time)
+
+            case .ork:
+                orkSigns(context: layer, imageRect: img, time: time)
+
+            case .troll:
+                trollTubes(context: layer, imageRect: img, time: time)
+            }
+        }
     }
 
-    private static func rain(context: GraphicsContext, size: CGSize, time: Double, density: Int, color: Color) {
-        for i in 0..<density {
+    // MARK: - Drawing primitives (image-space)
+
+    private static func rain(context: GraphicsContext, imageRect: CGRect, time: Double) {
+        for i in 0..<30 {
             let seed = Double(i) * 7.13
-            let x = size.width * (0.02 + 0.96 * fract(sin(seed) * 43758.5453))
-            let speed = 45.0 + Double(i % 6) * 16
-            let y = size.height * fract(time * speed * 0.012 + seed)
+            let x = imageRect.minX + imageRect.width * CGFloat(0.02 + 0.96 * fract(sin(seed) * 43758.5453))
+            let speed = 48.0 + Double(i % 6) * 14
+            let y = imageRect.minY + imageRect.height * CGFloat(fract(time * speed * 0.012 + seed))
             var path = Path()
             path.move(to: CGPoint(x: x, y: y))
-            path.addLine(to: CGPoint(x: x - 1.5, y: y + 14 + CGFloat(i % 4) * 3))
-            context.stroke(
-                path,
-                with: .color(color.opacity(0.3 + 0.2 * abs(sin(time + seed)))),
-                lineWidth: 1.2
-            )
+            path.addLine(to: CGPoint(x: x - 1.5, y: y + 16))
+            context.stroke(path, with: .color(Color.white.opacity(0.35 + 0.15 * abs(sin(time + seed)))), lineWidth: 1.2)
         }
     }
 
-    /// Adept: vertical billboard panels mid-left and mid-right background.
-    private static func billboardScreens(context: GraphicsContext, size: CGSize, time: Double) {
-        let panels: [CGRect] = [
-            CGRect(x: size.width * 0.02, y: size.height * 0.18, width: size.width * 0.16, height: size.height * 0.28),
-            CGRect(x: size.width * 0.02, y: size.height * 0.48, width: size.width * 0.14, height: size.height * 0.18),
-            CGRect(x: size.width * 0.78, y: size.height * 0.42, width: size.width * 0.18, height: size.height * 0.16),
-            CGRect(x: size.width * 0.82, y: size.height * 0.22, width: size.width * 0.14, height: size.height * 0.14),
-        ]
-        for (i, panel) in panels.enumerated() {
-            animateScreenContent(context: context, in: panel, time: time + Double(i) * 0.7, hue: i % 2 == 0 ? .cyan : .pink)
-        }
-    }
-
-    private static func animateScreenContent(context: GraphicsContext, in rect: CGRect, time: Double, hue: Color) {
-        let flicker = 0.08 + 0.18 * abs(sin(time * 2.8))
-        context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(hue.opacity(flicker)))
-        // Horizontal scan bar
-        let sy = rect.minY + rect.height * CGFloat(fract(time * 0.35))
-        var scan = Path()
-        scan.addRect(CGRect(x: rect.minX, y: sy, width: rect.width, height: 2))
-        context.fill(scan, with: .color(Color.white.opacity(0.25)))
-        // Pseudo “UI blocks”
-        for r in 0..<3 {
-            for c in 0..<2 {
-                let cell = CGRect(
-                    x: rect.minX + 3 + CGFloat(c) * (rect.width / 2),
-                    y: rect.minY + 4 + CGFloat(r) * (rect.height / 3.5),
-                    width: rect.width / 2.4,
-                    height: rect.height / 5
-                )
-                let on = sin(time * 1.7 + Double(r * 3 + c)) > 0
-                if on {
-                    context.fill(Path(cell), with: .color(hue.opacity(0.35)))
+    /// Content updates only inside `rect` (billboard / monitor).
+    private static func screenPanel(context: GraphicsContext, rect: CGRect, time: Double, color: Color) {
+        context.drawLayer { layer in
+            layer.clip(to: Path(roundedRect: rect, cornerRadius: 2))
+            let base = 0.06 + 0.10 * abs(sin(time * 2.6))
+            layer.fill(Path(rect), with: .color(color.opacity(base)))
+            // scanline
+            let sy = rect.minY + rect.height * CGFloat(fract(time * 0.4))
+            layer.fill(Path(CGRect(x: rect.minX, y: sy, width: rect.width, height: 2)), with: .color(Color.white.opacity(0.3)))
+            // UI blocks
+            let cols = 2, rows = 4
+            let cw = rect.width / CGFloat(cols)
+            let rh = rect.height / CGFloat(rows)
+            for r in 0..<rows {
+                for c in 0..<cols {
+                    let on = sin(time * 1.9 + Double(r * 3 + c) * 0.7) > 0.15
+                    guard on else { continue }
+                    let cell = CGRect(
+                        x: rect.minX + CGFloat(c) * cw + 3,
+                        y: rect.minY + CGFloat(r) * rh + 3,
+                        width: cw - 6,
+                        height: rh - 6
+                    )
+                    layer.fill(Path(cell), with: .color(color.opacity(0.35)))
                 }
             }
         }
     }
 
-    private static func fistGlow(context: GraphicsContext, at center: CGPoint, radius: CGFloat, time: Double, color: Color) {
-        let pulse = 0.25 + 0.35 * (0.5 + 0.5 * sin(time * 4.2))
+    private static func glow(context: GraphicsContext, at center: CGPoint, radius: CGFloat, time: Double, color: Color) {
+        let pulse = 0.3 + 0.4 * (0.5 + 0.5 * sin(time * 4.0))
         context.fill(
             Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
             with: .radialGradient(
-                Gradient(colors: [color.opacity(pulse), color.opacity(pulse * 0.3), .clear]),
+                Gradient(colors: [color.opacity(pulse), color.opacity(pulse * 0.25), .clear]),
                 center: center,
                 startRadius: 1,
                 endRadius: radius
@@ -205,274 +276,212 @@ enum PortraitFX {
         )
     }
 
-    /// Combat mage: multi-segment crackling arc along the painted lightning path.
-    private static func cracklingArc(
-        context: GraphicsContext,
-        from: CGPoint,
-        to: CGPoint,
-        time: Double,
-        color: Color
-    ) {
-        let segs = 10
+    private static func cracklePath(context: GraphicsContext, points: [CGPoint], time: Double) {
+        guard points.count >= 2 else { return }
         var path = Path()
-        path.move(to: from)
-        for i in 1...segs {
-            let t = CGFloat(i) / CGFloat(segs)
-            // Slight bow upward like the painted arc
-            let base = CGPoint(
-                x: from.x + (to.x - from.x) * t,
-                y: from.y + (to.y - from.y) * t - sin(t * .pi) * 28
-            )
-            let jitter = CGFloat(sin(time * 22 + Double(i) * 2.7)) * (4 + CGFloat(i % 3) * 2)
-            path.addLine(to: CGPoint(x: base.x, y: base.y + jitter))
+        path.move(to: points[0])
+        for i in 1..<points.count {
+            let p = points[i]
+            let jitter = CGFloat(sin(time * 20 + Double(i) * 2.4)) * 3.5
+            path.addLine(to: CGPoint(x: p.x, y: p.y + jitter))
         }
-        let flash = 0.55 + 0.4 * abs(sin(time * 11))
-        context.stroke(path, with: .color(color.opacity(flash)), lineWidth: 3.5)
-        context.stroke(path, with: .color(Color.white.opacity(flash * 0.75)), lineWidth: 1.4)
-        // Secondary thinner fork
+        let flash = 0.55 + 0.4 * abs(sin(time * 10))
+        context.stroke(path, with: .color(Color.purple.opacity(flash)), lineWidth: 3.2)
+        context.stroke(path, with: .color(Color.white.opacity(flash * 0.7)), lineWidth: 1.3)
+        // secondary fork
         var fork = Path()
-        fork.move(to: from)
-        for i in 1...segs {
-            let t = CGFloat(i) / CGFloat(segs)
-            let base = CGPoint(
-                x: from.x + (to.x - from.x) * t,
-                y: from.y + (to.y - from.y) * t - sin(t * .pi) * 18
-            )
-            let jitter = CGFloat(cos(time * 19 + Double(i) * 1.9)) * 5
-            fork.addLine(to: CGPoint(x: base.x + jitter * 0.3, y: base.y + jitter))
+        fork.move(to: points[0])
+        for i in 1..<points.count {
+            let p = points[i]
+            let jitter = CGFloat(cos(time * 17 + Double(i) * 1.8)) * 5
+            fork.addLine(to: CGPoint(x: p.x + jitter * 0.2, y: p.y + jitter * 0.6))
         }
-        context.stroke(fork, with: .color(color.opacity(flash * 0.5)), lineWidth: 1.5)
+        context.stroke(fork, with: .color(Color.purple.opacity(flash * 0.45)), lineWidth: 1.4)
     }
 
-    private static func neonSignRegions(context: GraphicsContext, size: CGSize, time: Double, faceStyle: Bool) {
-        // Face portrait: bokeh neon upper background — pulse soft light plates.
-        let regions: [CGRect] = [
-            CGRect(x: size.width * 0.05, y: size.height * 0.05, width: size.width * 0.25, height: size.height * 0.12),
-            CGRect(x: size.width * 0.55, y: size.height * 0.02, width: size.width * 0.4, height: size.height * 0.15),
-            CGRect(x: size.width * 0.02, y: size.height * 0.35, width: size.width * 0.22, height: size.height * 0.12),
-            CGRect(x: size.width * 0.75, y: size.height * 0.28, width: size.width * 0.22, height: size.height * 0.1),
+    private static func faceNeonFlicker(context: GraphicsContext, imageRect: CGRect, time: Double) {
+        // Soft blooms matching neon bokeh — low opacity, clipped soft ellipses.
+        struct Bloom { var n: NormRect; var color: Color; var phase: Double }
+        let blooms: [Bloom] = [
+            .init(n: .init(x: 0.02, y: 0.04, w: 0.28, h: 0.14), color: .pink, phase: 0),
+            .init(n: .init(x: 0.55, y: 0.01, w: 0.4, h: 0.14), color: .yellow, phase: 0.8),
+            .init(n: .init(x: 0.00, y: 0.32, w: 0.22, h: 0.12), color: .mint, phase: 1.4),
+            .init(n: .init(x: 0.72, y: 0.26, w: 0.26, h: 0.12), color: .purple, phase: 2.1),
         ]
-        let colors: [Color] = [.pink, .yellow, .mint, .purple]
-        for (i, rect) in regions.enumerated() {
-            let on = sin(time * (2.2 + Double(i) * 0.5) + Double(i)) > -0.25
+        for b in blooms {
+            let on = sin(time * 2.8 + b.phase) > -0.2
             guard on else { continue }
-            let a = 0.12 + 0.18 * abs(sin(time * 3 + Double(i)))
-            context.fill(Path(ellipseIn: rect), with: .color(colors[i % colors.count].opacity(a)))
+            let rect = b.n.cgRect(in: imageRect)
+            let a = 0.10 + 0.12 * abs(sin(time * 3.2 + b.phase))
+            context.fill(
+                Path(ellipseIn: rect),
+                with: .radialGradient(
+                    Gradient(colors: [b.color.opacity(a), .clear]),
+                    center: CGPoint(x: rect.midX, y: rect.midY),
+                    startRadius: 2,
+                    endRadius: max(rect.width, rect.height) * 0.55
+                )
+            )
         }
-        // Jacket LED row subtle blink (mid torso)
-        if faceStyle {
-            for i in 0..<5 {
-                let x = size.width * (0.42 + CGFloat(i) * 0.035)
-                let y = size.height * 0.58
-                let lit = sin(time * 4 + Double(i) * 0.8) > 0
-                if lit {
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x, y: y, width: 4, height: 4)),
-                        with: .color(Color.purple.opacity(0.7))
-                    )
-                }
-            }
+        // Jacket LEDs
+        for i in 0..<5 {
+            let lit = sin(time * 4.2 + Double(i) * 0.9) > 0.1
+            guard lit else { continue }
+            let pt = NormPoint(x: 0.42 + CGFloat(i) * 0.032, y: 0.58).cgPoint(in: imageRect)
+            context.fill(Path(ellipseIn: CGRect(x: pt.x - 2, y: pt.y - 2, width: 4, height: 4)), with: .color(Color.purple.opacity(0.75)))
         }
     }
 
-    private static func matrixColumns(context: GraphicsContext, in rect: CGRect, time: Double) {
-        let cols = 9
+    private static func matrixInRect(context: GraphicsContext, rect: CGRect, time: Double) {
+        let cols = 8
         let colW = rect.width / CGFloat(cols)
         for c in 0..<cols {
             let x = rect.minX + CGFloat(c) * colW + colW * 0.25
-            for row in 0..<10 {
-                let phase = time * (1.4 + Double(c) * 0.12) + Double(row) * 0.28
-                let y = rect.minY + rect.height * fract(phase * 0.18 + Double(c) * 0.05)
-                guard y > rect.minY + 2 && y < rect.maxY - 6 else { continue }
-                let gRect = CGRect(x: x, y: y, width: max(3, colW * 0.35), height: 6)
-                let alpha = 0.4 + 0.4 * abs(sin(phase * 2))
-                context.fill(Path(gRect), with: .color(Color.green.opacity(alpha)))
+            for row in 0..<9 {
+                let phase = time * (1.5 + Double(c) * 0.11) + Double(row) * 0.25
+                let y = rect.minY + rect.height * CGFloat(fract(phase * 0.2 + Double(c) * 0.04))
+                guard y > rect.minY + 1 && y < rect.maxY - 5 else { continue }
+                let g = CGRect(x: x, y: y, width: max(2.5, colW * 0.32), height: 5)
+                let alpha = 0.45 + 0.4 * abs(sin(phase * 2))
+                context.fill(Path(g), with: .color(Color.green.opacity(alpha)))
             }
         }
     }
 
-    private static func eyeBeam(context: GraphicsContext, from: CGPoint, to: CGPoint, time: Double) {
+    private static func beam(context: GraphicsContext, from: CGPoint, to: CGPoint, time: Double) {
         var path = Path()
         path.move(to: from)
         let mid = CGPoint(
-            x: (from.x + to.x) / 2 + CGFloat(sin(time * 2.5)) * 6,
+            x: (from.x + to.x) / 2 + CGFloat(sin(time * 2.2)) * 5,
             y: (from.y + to.y) / 2
         )
         path.addQuadCurve(to: to, control: mid)
-        let glow = 0.4 + 0.4 * abs(sin(time * 3.5))
-        context.stroke(path, with: .color(Color.cyan.opacity(glow)), lineWidth: 2.5)
-        context.stroke(path, with: .color(Color.white.opacity(glow * 0.45)), lineWidth: 1)
+        let glow = 0.45 + 0.4 * abs(sin(time * 3.6))
+        context.stroke(path, with: .color(Color.cyan.opacity(glow)), lineWidth: 2.2)
+        context.stroke(path, with: .color(Color.white.opacity(glow * 0.4)), lineWidth: 0.9)
         let t = CGFloat(fract(time * 0.55))
         let bead = CGPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t)
-        context.fill(
-            Path(ellipseIn: CGRect(x: bead.x - 2.5, y: bead.y - 2.5, width: 5, height: 5)),
-            with: .color(Color.white.opacity(0.9))
-        )
+        context.fill(Path(ellipseIn: CGRect(x: bead.x - 2, y: bead.y - 2, width: 4, height: 4)), with: .color(.white))
     }
 
-    private static func neckStrand(context: GraphicsContext, size: CGSize, time: Double) {
-        var path = Path()
-        let start = p(0.48, 0.48, size)
-        let end = p(0.52, 0.62, size)
-        path.move(to: start)
-        path.addQuadCurve(to: end, control: p(0.55, 0.55, size))
-        let glow = 0.35 + 0.4 * abs(sin(time * 3.8))
-        context.stroke(path, with: .color(Color.cyan.opacity(glow)), lineWidth: 3)
+    private static func floatCards(context: GraphicsContext, region: CGRect, time: Double) {
+        for i in 0..<5 {
+            let seed = Double(i) * 1.35
+            let x = region.minX + region.width * CGFloat(0.1 + 0.7 * fract(sin(seed) * 3.2))
+            let y = region.minY + region.height * CGFloat(0.15 + 0.6 * fract(cos(seed) * 2.8))
+            let ox = CGFloat(sin(time * 0.8 + seed)) * 6
+            let oy = CGFloat(cos(time * 0.9 + seed)) * 5
+            let rect = CGRect(x: x + ox, y: y + oy, width: region.width * 0.28, height: region.height * 0.18)
+            let a = 0.4 + 0.25 * abs(sin(time + seed))
+            context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.yellow.opacity(a)))
+            context.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.white.opacity(a * 0.5)), lineWidth: 0.8)
+        }
     }
 
-    private static func champagneBubblesInGlass(context: GraphicsContext, size: CGSize, time: Double) {
-        // Glass bowl approx: x 0.72–0.88, y 0.58–0.78
-        let gx = size.width * 0.74
-        let gy = size.height * 0.58
-        let gw = size.width * 0.12
-        let gh = size.height * 0.18
-        for i in 0..<12 {
-            let seed = Double(i) * 0.73
-            let x = gx + gw * CGFloat(0.2 + 0.6 * fract(sin(seed) * 4.2))
-            let rise = fract(time * 0.28 + seed * 0.15)
-            let y = gy + gh * (1 - CGFloat(rise))
-            let r: CGFloat = 1.2 + CGFloat(i % 3) * 0.6
+    private static func bubbles(context: GraphicsContext, in rect: CGRect, time: Double) {
+        for i in 0..<14 {
+            let seed = Double(i) * 0.71
+            let x = rect.minX + rect.width * CGFloat(0.15 + 0.7 * fract(sin(seed) * 4.1))
+            let rise = fract(time * 0.3 + seed * 0.12)
+            let y = rect.minY + rect.height * (1 - CGFloat(rise))
+            let r: CGFloat = 1.1 + CGFloat(i % 3) * 0.55
             context.fill(
                 Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
-                with: .color(Color.white.opacity(0.45 + 0.3 * abs(sin(time + seed))))
+                with: .color(Color.white.opacity(0.5 + 0.3 * abs(sin(time + seed))))
             )
         }
     }
 
-    private static func floatingCreditCards(context: GraphicsContext, size: CGSize, time: Double) {
-        // Cards already float mid-right of technomancer art — drift near 0.7–0.9 x, 0.45–0.7 y
-        for i in 0..<5 {
-            let seed = Double(i) * 1.4
-            let baseX = 0.68 + 0.08 * fract(sin(seed) * 3.1)
-            let baseY = 0.48 + 0.12 * fract(cos(seed) * 2.7)
-            let x = size.width * (baseX + 0.02 * sin(time * 0.7 + seed))
-            let y = size.height * (baseY + 0.025 * cos(time * 0.9 + seed))
-            let w = size.width * 0.08
-            let h = size.height * 0.035
-            let rect = CGRect(x: x, y: y, width: w, height: h)
-            let a = 0.35 + 0.25 * abs(sin(time + seed))
-            context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.yellow.opacity(a)))
-            context.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.white.opacity(a * 0.6)), lineWidth: 0.8)
-        }
-    }
-
-    private static func verticalGlyphRain(context: GraphicsContext, size: CGSize, time: Double, color: Color) {
-        let cols = 7
+    private static func glyphColumns(
+        context: GraphicsContext,
+        imageRect: CGRect,
+        time: Double,
+        avoidFaceX: ClosedRange<CGFloat>
+    ) {
+        let cols = 8
         for c in 0..<cols {
-            let x = size.width * (0.08 + 0.84 * CGFloat(c) / CGFloat(max(cols - 1, 1)))
-            // Avoid covering the face column (~0.45–0.7)
-            if x > size.width * 0.38 && x < size.width * 0.72 { continue }
-            for row in 0..<10 {
-                let phase = time * 0.85 + Double(c) * 0.35 + Double(row) * 0.18
-                let y = size.height * fract(phase * 0.14)
-                let rect = CGRect(x: x, y: y, width: 5, height: 10)
-                let alpha = 0.3 + 0.4 * abs(sin(phase * 2))
-                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(color.opacity(alpha)))
+            let nx = 0.06 + 0.88 * CGFloat(c) / CGFloat(max(cols - 1, 1))
+            if avoidFaceX.contains(nx) { continue }
+            let x = imageRect.minX + imageRect.width * nx
+            for row in 0..<11 {
+                let phase = time * 0.9 + Double(c) * 0.4 + Double(row) * 0.15
+                let y = imageRect.minY + imageRect.height * CGFloat(fract(phase * 0.13))
+                let rect = CGRect(x: x, y: y, width: 5, height: 9)
+                let alpha = 0.35 + 0.4 * abs(sin(phase * 2))
+                context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(Color.green.opacity(alpha)))
                 context.stroke(
                     Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 2),
-                    with: .color(color.opacity(alpha * 0.45)),
-                    lineWidth: 1.2
+                    with: .color(Color.mint.opacity(alpha * 0.45)),
+                    lineWidth: 1.1
                 )
             }
         }
     }
 
-    private static func humanCockpitScreens(context: GraphicsContext, size: CGSize, time: Double) {
-        // Monitor bezels around the operator (subject lower-right).
-        let monitors: [CGRect] = [
-            CGRect(x: size.width * 0.05, y: size.height * 0.05, width: size.width * 0.28, height: size.height * 0.2),
-            CGRect(x: size.width * 0.36, y: size.height * 0.02, width: size.width * 0.28, height: size.height * 0.18),
-            CGRect(x: size.width * 0.68, y: size.height * 0.06, width: size.width * 0.28, height: size.height * 0.2),
-            CGRect(x: size.width * 0.04, y: size.height * 0.28, width: size.width * 0.22, height: size.height * 0.16),
-            CGRect(x: size.width * 0.28, y: size.height * 0.26, width: size.width * 0.22, height: size.height * 0.14),
-            CGRect(x: size.width * 0.04, y: size.height * 0.48, width: size.width * 0.2, height: size.height * 0.14),
-        ]
-        for (i, m) in monitors.enumerated() {
-            animateScreenContent(context: context, in: m.insetBy(dx: 4, dy: 4), time: time + Double(i), hue: i % 2 == 0 ? .cyan : .pink)
-        }
-    }
-
-    private static func forgeFlames(context: GraphicsContext, size: CGSize, time: Double) {
-        // Lower-left and lower-right fire regions in dwarf portrait.
-        let anchors: [CGPoint] = [p(0.12, 0.78, size), p(0.88, 0.72, size), p(0.18, 0.88, size)]
-        for (i, base) in anchors.enumerated() {
+    private static func forge(context: GraphicsContext, imageRect: CGRect, time: Double) {
+        let anchors = [NormPoint(x: 0.12, y: 0.80), .init(x: 0.88, y: 0.74), .init(x: 0.15, y: 0.90)]
+        for (i, a) in anchors.enumerated() {
+            let base = a.cgPoint(in: imageRect)
             for j in 0..<5 {
                 let seed = Double(i * 5 + j)
-                let h = 14 + 22 * abs(sin(time * 5.5 + seed))
-                let x = base.x + CGFloat(sin(time * 3 + seed)) * 6
+                let h = 16 + 24 * abs(sin(time * 5.5 + seed))
+                let x = base.x + CGFloat(sin(time * 3 + seed)) * 5
                 var path = Path()
                 path.move(to: CGPoint(x: x, y: base.y))
                 path.addQuadCurve(
                     to: CGPoint(x: x, y: base.y - h),
-                    control: CGPoint(x: x + CGFloat(cos(time * 6 + seed)) * 8, y: base.y - h * 0.5)
+                    control: CGPoint(x: x + CGFloat(cos(time * 6 + seed)) * 7, y: base.y - h * 0.5)
                 )
                 path.addQuadCurve(
                     to: CGPoint(x: x, y: base.y),
-                    control: CGPoint(x: x - CGFloat(sin(time * 5 + seed)) * 6, y: base.y - h * 0.4)
+                    control: CGPoint(x: x - CGFloat(sin(time * 5 + seed)) * 5, y: base.y - h * 0.4)
                 )
-                context.fill(path, with: .color(Color.orange.opacity(0.28 + 0.2 * abs(sin(time * 4 + seed)))))
+                context.fill(path, with: .color(Color.orange.opacity(0.3 + 0.2 * abs(sin(time * 4 + seed)))))
             }
         }
-    }
-
-    private static func embers(context: GraphicsContext, size: CGSize, time: Double) {
-        for i in 0..<14 {
-            let seed = Double(i) * 1.9
-            let x = size.width * fract(sin(seed) * 8.1)
-            let y = size.height * (0.95 - 0.5 * fract(time * 0.2 + seed * 0.1))
-            let r: CGFloat = 1 + CGFloat(i % 3)
+        for i in 0..<16 {
+            let seed = Double(i) * 1.7
+            let x = imageRect.minX + imageRect.width * CGFloat(fract(sin(seed) * 8.1))
+            let y = imageRect.minY + imageRect.height * CGFloat(0.95 - 0.45 * fract(time * 0.22 + seed * 0.1))
             context.fill(
-                Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
-                with: .color(Color.yellow.opacity(0.5 + 0.3 * abs(sin(time + seed))))
+                Path(ellipseIn: CGRect(x: x, y: y, width: 2, height: 2)),
+                with: .color(Color.yellow.opacity(0.55))
             )
         }
     }
 
-    private static func orkMarketSigns(context: GraphicsContext, size: CGSize, time: Double) {
-        // SCRAP MEAT left mid, CHROME upper-left, OPEN 24 right.
-        struct Sign {
-            var rect: CGRect
-            var color: Color
-            var speed: Double
-        }
-        let signs = [
-            Sign(rect: CGRect(x: size.width * 0.02, y: size.height * 0.28, width: size.width * 0.28, height: size.height * 0.08), color: .orange, speed: 3.1),
-            Sign(rect: CGRect(x: size.width * 0.18, y: size.height * 0.12, width: size.width * 0.3, height: size.height * 0.07), color: .yellow, speed: 2.4),
-            Sign(rect: CGRect(x: size.width * 0.68, y: size.height * 0.22, width: size.width * 0.28, height: size.height * 0.08), color: .green, speed: 4.0),
+    private static func orkSigns(context: GraphicsContext, imageRect: CGRect, time: Double) {
+        // Measured-ish neon sign bands in market scene.
+        let signs: [(NormRect, Color, Double)] = [
+            (.init(x: 0.02, y: 0.28, w: 0.30, h: 0.08), .orange, 3.0),  // SCRAP MEAT
+            (.init(x: 0.18, y: 0.12, w: 0.32, h: 0.07), .yellow, 2.3), // CHROME & BURN
+            (.init(x: 0.66, y: 0.20, w: 0.30, h: 0.09), .green, 3.8),   // OPEN 24
         ]
-        for (i, sign) in signs.enumerated() {
-            // Whole-sign pulse
-            let pulse = 0.1 + 0.2 * abs(sin(time * sign.speed))
-            context.fill(Path(roundedRect: sign.rect, cornerRadius: 2), with: .color(sign.color.opacity(pulse)))
-            // Letter-drop: occasionally dim a segment
-            if sin(time * sign.speed * 1.7 + Double(i)) > 0.3 {
-                let drop = CGRect(
-                    x: sign.rect.maxX - sign.rect.width * 0.28,
-                    y: sign.rect.minY,
-                    width: sign.rect.width * 0.25,
-                    height: sign.rect.height
-                )
-                let lit = sin(time * 6 + Double(i)) > 0
-                context.fill(Path(drop), with: .color(sign.color.opacity(lit ? 0.55 : 0.05)))
-            }
+        for (i, s) in signs.enumerated() {
+            let rect = s.0.cgRect(in: imageRect)
+            let pulse = 0.12 + 0.22 * abs(sin(time * s.2))
+            context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(s.1.opacity(pulse)))
+            // Letter drop on right third
+            let dropOn = sin(time * s.2 * 1.6 + Double(i)) > 0.2
+            let drop = CGRect(x: rect.maxX - rect.width * 0.3, y: rect.minY, width: rect.width * 0.28, height: rect.height)
+            context.fill(Path(drop), with: .color(s.1.opacity(dropOn ? 0.55 : 0.04)))
         }
     }
 
-    private static func trollNeonTubes(context: GraphicsContext, size: CGSize, time: Double) {
-        // Diagonal blue/purple tubes behind the troll.
-        let tubes: [(CGPoint, CGPoint, Color)] = [
-            (p(0.05, 0.35, size), p(0.45, 0.15, size), .blue),
-            (p(0.55, 0.12, size), p(0.95, 0.4, size), .purple),
-            (p(0.1, 0.7, size), p(0.5, 0.55, size), .cyan),
-            (p(0.6, 0.75, size), p(0.95, 0.55, size), .purple),
+    private static func trollTubes(context: GraphicsContext, imageRect: CGRect, time: Double) {
+        let tubes: [(NormPoint, NormPoint, Color)] = [
+            (.init(x: 0.05, y: 0.35), .init(x: 0.45, y: 0.15), .blue),
+            (.init(x: 0.55, y: 0.12), .init(x: 0.95, y: 0.40), .purple),
+            (.init(x: 0.08, y: 0.70), .init(x: 0.48, y: 0.55), .cyan),
+            (.init(x: 0.58, y: 0.75), .init(x: 0.95, y: 0.55), .purple),
         ]
-        for (i, tube) in tubes.enumerated() {
+        for (i, t) in tubes.enumerated() {
             var path = Path()
-            path.move(to: tube.0)
-            path.addLine(to: tube.1)
-            let glow = 0.35 + 0.4 * abs(sin(time * 2.5 + Double(i)))
-            context.stroke(path, with: .color(tube.2.opacity(glow)), lineWidth: 5)
-            context.stroke(path, with: .color(Color.white.opacity(glow * 0.35)), lineWidth: 1.5)
+            path.move(to: t.0.cgPoint(in: imageRect))
+            path.addLine(to: t.1.cgPoint(in: imageRect))
+            let glow = 0.4 + 0.4 * abs(sin(time * 2.6 + Double(i)))
+            context.stroke(path, with: .color(t.2.opacity(glow)), lineWidth: 5)
+            context.stroke(path, with: .color(Color.white.opacity(glow * 0.3)), lineWidth: 1.4)
         }
     }
 
