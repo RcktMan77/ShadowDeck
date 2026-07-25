@@ -1,0 +1,73 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+xcuserdata/
+*.xcscmblueprint
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# CocoaPods / Carthage (not used, but safe)
+Pods/
+Carthage/Build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# IDEs / editors
+.idea/
+.vscode/
+*.swp
+*~
+.grok/
+
+# Secrets & local config
+*.p12
+*.mobileprovision
+.env
+.env.*
+!.env.example
+Secrets.xcconfig
+Local.xcconfig
+
+# Archives & exports
+*.xcarchive
+ExportOptions.plist
+dist/
+artifacts/
+
+# Test / coverage
+*.gcno
+*.gcda
+coverage/
+*.profdata
+*.profraw
+
+# App sandbox containers (local testing)
+Containers/
