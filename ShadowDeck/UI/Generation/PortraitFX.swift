@@ -2,11 +2,8 @@
 //  PortraitFX.swift
 //  ShadowDeck
 //
-//  Minimal, landmark-anchored glows. Prefer subtle enhancement of what is
-//  already painted over elaborate overlays that fight the art.
-//
-//  Coordinates are normalized (0…1) in full image space, mapped through the
-//  same scaledToFill crop rect used by SwiftUI Image.
+//  Landmark-anchored glows. Image-space coords (0…1, top-left) mapped through
+//  the same scaledToFill crop as the painted art.
 //
 
 import SwiftUI
@@ -23,39 +20,29 @@ struct NormRect: Sendable {
     var h: CGFloat
 }
 
+struct NormDot: Sendable {
+    var x: CGFloat
+    var y: CGFloat
+    /// Radius as fraction of image width.
+    var r: CGFloat
+}
+
 enum PortraitLayout {
-    /// ChargenArt portraits are 864×1152.
     static let imageAspect: CGFloat = 864.0 / 1152.0
 
-    /// Visible rect of a scaledToFill image inside the view (may extend past view bounds).
     static func filledImageRect(in viewSize: CGSize) -> CGRect {
         let viewAspect = viewSize.width / max(viewSize.height, 1)
         if viewAspect > imageAspect {
-            // View wider than image → fill width, crop top/bottom.
             let drawnHeight = viewSize.width / imageAspect
-            return CGRect(
-                x: 0,
-                y: (viewSize.height - drawnHeight) / 2,
-                width: viewSize.width,
-                height: drawnHeight
-            )
+            return CGRect(x: 0, y: (viewSize.height - drawnHeight) / 2, width: viewSize.width, height: drawnHeight)
         } else {
-            // View taller → fill height, crop sides.
             let drawnWidth = viewSize.height * imageAspect
-            return CGRect(
-                x: (viewSize.width - drawnWidth) / 2,
-                y: 0,
-                width: drawnWidth,
-                height: viewSize.height
-            )
+            return CGRect(x: (viewSize.width - drawnWidth) / 2, y: 0, width: drawnWidth, height: viewSize.height)
         }
     }
 
     static func point(_ n: NormPoint, in imageRect: CGRect) -> CGPoint {
-        CGPoint(
-            x: imageRect.minX + n.x * imageRect.width,
-            y: imageRect.minY + n.y * imageRect.height
-        )
+        CGPoint(x: imageRect.minX + n.x * imageRect.width, y: imageRect.minY + n.y * imageRect.height)
     }
 
     static func rect(_ n: NormRect, in imageRect: CGRect) -> CGRect {
@@ -69,25 +56,51 @@ enum PortraitLayout {
 }
 
 enum PortraitFX {
-    // Measured / visually tuned landmarks (image space, top-left origin).
+    // Adept fists (painted energy cores)
     private static let adeptFistLower = NormPoint(x: 0.36, y: 0.58)
     private static let adeptFistUpper = NormPoint(x: 0.62, y: 0.30)
 
-    private static let mageBoltCenter = NormPoint(x: 0.48, y: 0.58)
-    private static let mageHandL = NormPoint(x: 0.22, y: 0.48)
-    private static let mageHandR = NormPoint(x: 0.74, y: 0.62)
+    // Combat mage: path along painted lightning
+    private static let mageArc: [NormPoint] = [
+        .init(x: 0.22, y: 0.45),
+        .init(x: 0.28, y: 0.50),
+        .init(x: 0.34, y: 0.58),
+        .init(x: 0.40, y: 0.64),
+        .init(x: 0.46, y: 0.67),
+        .init(x: 0.52, y: 0.68),
+        .init(x: 0.60, y: 0.72),
+        .init(x: 0.68, y: 0.74),
+        .init(x: 0.74, y: 0.70),
+        .init(x: 0.78, y: 0.64),
+    ]
 
-    private static let faceNecklace = NormPoint(x: 0.52, y: 0.62)
+    // Face: purple LEDs on mesh top + shoulder (small painted dots)
+    private static let faceLEDs: [NormDot] = [
+        .init(x: 0.435, y: 0.578, r: 0.0055),
+        .init(x: 0.455, y: 0.578, r: 0.0055),
+        .init(x: 0.475, y: 0.578, r: 0.0055),
+        .init(x: 0.545, y: 0.578, r: 0.0055),
+        .init(x: 0.565, y: 0.578, r: 0.0055),
+        .init(x: 0.585, y: 0.578, r: 0.0055),
+        .init(x: 0.605, y: 0.578, r: 0.0055),
+        .init(x: 0.72, y: 0.548, r: 0.008),
+        .init(x: 0.48, y: 0.615, r: 0.005),
+        .init(x: 0.56, y: 0.615, r: 0.005),
+    ]
 
-    private static let deckerScreen = NormRect(x: 0.12, y: 0.41, w: 0.40, h: 0.19)
+    // Decker: small central screen core only (angled; head clips lower-right)
+    private static let deckerScreenCore = NormRect(x: 0.22, y: 0.47, w: 0.16, h: 0.09)
 
-    private static let riggerEyeL = NormPoint(x: 0.33, y: 0.31)
-    private static let riggerEyeR = NormPoint(x: 0.53, y: 0.38)
+    // Rigger eyes (bright cores on face; head tilted up so y is mid-face)
+    private static let riggerEyeL = NormPoint(x: 0.40, y: 0.46)
+    private static let riggerEyeR = NormPoint(x: 0.49, y: 0.46)
 
-    private static let technoGlass = NormRect(x: 0.78, y: 0.60, w: 0.12, h: 0.18)
+    // Champagne yellow liquid only (tight)
+    private static let technoLiquid = NormRect(x: 0.845, y: 0.68, w: 0.045, h: 0.09)
 
-    private static let spyEyeL = NormPoint(x: 0.48, y: 0.42)
-    private static let spyEyeR = NormPoint(x: 0.62, y: 0.43)
+    // Infiltrator purple irises
+    private static let spyEyeL = NormPoint(x: 0.47, y: 0.36)
+    private static let spyEyeR = NormPoint(x: 0.59, y: 0.355)
 
     static func drawArchetype(
         _ archetype: RunnerArchetype,
@@ -103,60 +116,43 @@ enum PortraitFX {
                 rain(context: layer, imageRect: img, viewSize: viewSize, time: time)
 
             case .adept:
-                // No billboard FX — only clear fist glows on the painted energy.
-                softGlow(context: layer, at: PortraitLayout.point(adeptFistLower, in: img), radius: img.width * 0.11, time: time, color: .cyan, strength: 0.85)
-                softGlow(context: layer, at: PortraitLayout.point(adeptFistUpper, in: img), radius: img.width * 0.12, time: time + 0.6, color: .mint, strength: 0.9)
+                softGlow(context: layer, at: PortraitLayout.point(adeptFistLower, in: img), radius: img.width * 0.11, time: time, color: .cyan, strength: 0.9)
+                softGlow(context: layer, at: PortraitLayout.point(adeptFistUpper, in: img), radius: img.width * 0.12, time: time + 0.55, color: .mint, strength: 0.95)
 
             case .combatMage:
-                // Pulse the existing painted bolt (center + hands) — no new lightning path.
-                softGlow(context: layer, at: PortraitLayout.point(mageBoltCenter, in: img), radius: img.width * 0.20, time: time, color: .purple, strength: 0.55)
-                softGlow(context: layer, at: PortraitLayout.point(mageHandL, in: img), radius: img.width * 0.10, time: time + 0.3, color: .purple, strength: 0.7)
-                softGlow(context: layer, at: PortraitLayout.point(mageHandR, in: img), radius: img.width * 0.09, time: time + 0.7, color: .purple, strength: 0.7)
+                arcPulse(context: layer, points: mageArc.map { PortraitLayout.point($0, in: img) }, time: time)
 
             case .face:
-                // Background neon bokeh only + necklace pulse (no free-floating neck lights).
                 faceNeonBokeh(context: layer, imageRect: img, time: time)
-                softGlow(context: layer, at: PortraitLayout.point(faceNecklace, in: img), radius: img.width * 0.07, time: time, color: .red, strength: 0.75)
+                syncedDots(context: layer, dots: faceLEDs, imageRect: img, time: time, color: Color(red: 0.65, green: 0.35, blue: 0.95))
 
             case .decker:
-                // Border glow on laptop screen only (no scrolling code — screen is angled).
-                screenBorderGlow(context: layer, rect: PortraitLayout.rect(deckerScreen, in: img), time: time, color: .cyan)
+                screenBorderGlow(context: layer, rect: PortraitLayout.rect(deckerScreenCore, in: img), time: time, color: .cyan)
 
             case .rigger:
-                // Concentrated eye glows only — no forehead beams.
-                softGlow(context: layer, at: PortraitLayout.point(riggerEyeL, in: img), radius: 14, time: time, color: .cyan, strength: 0.95)
-                softGlow(context: layer, at: PortraitLayout.point(riggerEyeR, in: img), radius: 14, time: time + 0.35, color: .cyan, strength: 0.95)
+                softGlow(context: layer, at: PortraitLayout.point(riggerEyeL, in: img), radius: 12, time: time, color: .cyan, strength: 1.0)
+                softGlow(context: layer, at: PortraitLayout.point(riggerEyeR, in: img), radius: 12, time: time + 0.3, color: .cyan, strength: 1.0)
 
             case .technomancer:
-                // Champagne bubbles only, centered in glass; no floating cards.
-                champagneBubbles(context: layer, glass: PortraitLayout.rect(technoGlass, in: img), time: time)
+                champagneBubbles(context: layer, liquid: PortraitLayout.rect(technoLiquid, in: img), time: time)
 
             case .spy:
-                // Purple eye glow only (no glyph bars).
-                softGlow(context: layer, at: PortraitLayout.point(spyEyeL, in: img), radius: 12, time: time, color: .purple, strength: 0.9)
-                softGlow(context: layer, at: PortraitLayout.point(spyEyeR, in: img), radius: 12, time: time + 0.4, color: .purple, strength: 0.9)
+                softGlow(context: layer, at: PortraitLayout.point(spyEyeL, in: img), radius: 9, time: time, color: .purple, strength: 0.95)
+                softGlow(context: layer, at: PortraitLayout.point(spyEyeR, in: img), radius: 9, time: time + 0.35, color: .purple, strength: 0.95)
             }
         }
     }
 
-    /// Metatypes are static — intentionally no FX.
     static func drawMetatype(
         _ metatype: MetatypeID,
         context: GraphicsContext,
         viewSize: CGSize,
         time: Double
-    ) {
-        // no-op
-    }
+    ) {}
 
-    // MARK: - Primitives
+    // MARK: Primitives
 
-    private static func rain(
-        context: GraphicsContext,
-        imageRect: CGRect,
-        viewSize: CGSize,
-        time: Double
-    ) {
+    private static func rain(context: GraphicsContext, imageRect: CGRect, viewSize: CGSize, time: Double) {
         let bounds = CGRect(origin: .zero, size: viewSize)
         for i in 0..<28 {
             let seed = Double(i) * 7.13
@@ -167,10 +163,72 @@ enum PortraitFX {
             var path = Path()
             path.move(to: CGPoint(x: x, y: y))
             path.addLine(to: CGPoint(x: x - 1.5, y: y + 16))
-            context.stroke(
-                path,
-                with: .color(Color.white.opacity(0.35 + 0.15 * abs(sin(time + seed)))),
-                lineWidth: 1.2
+            context.stroke(path, with: .color(Color.white.opacity(0.35 + 0.15 * abs(sin(time + seed)))), lineWidth: 1.2)
+        }
+    }
+
+    /// Traveling pulse beads + soft wash along the static lightning.
+    private static func arcPulse(context: GraphicsContext, points: [CGPoint], time: Double) {
+        guard points.count >= 2 else { return }
+        var wash = Path()
+        wash.move(to: points[0])
+        for p in points.dropFirst() { wash.addLine(to: p) }
+        context.stroke(wash, with: .color(Color.purple.opacity(0.16 + 0.1 * abs(sin(time * 2)))), lineWidth: 12)
+        context.stroke(wash, with: .color(Color.purple.opacity(0.28 + 0.12 * abs(sin(time * 3)))), lineWidth: 4.5)
+
+        for offset in [0.0, 0.45] {
+            let t = fract(time * 0.5 + offset)
+            let pos = pointAlong(points, t: CGFloat(t))
+            let pulse = 0.75 + 0.25 * abs(sin(time * 9 + offset * 5))
+            context.fill(
+                Path(ellipseIn: CGRect(x: pos.x - 8, y: pos.y - 8, width: 16, height: 16)),
+                with: .radialGradient(
+                    Gradient(colors: [
+                        Color.white.opacity(pulse),
+                        Color.purple.opacity(pulse * 0.65),
+                        .clear,
+                    ]),
+                    center: pos,
+                    startRadius: 1,
+                    endRadius: 14
+                )
+            )
+        }
+    }
+
+    private static func pointAlong(_ points: [CGPoint], t: CGFloat) -> CGPoint {
+        let clamped = min(1, max(0, t))
+        let segs = points.count - 1
+        let f = clamped * CGFloat(segs)
+        let i = min(segs - 1, max(0, Int(f)))
+        let local = f - CGFloat(i)
+        let a = points[i], b = points[i + 1]
+        return CGPoint(x: a.x + (b.x - a.x) * local, y: a.y + (b.y - a.y) * local)
+    }
+
+    private static func syncedDots(
+        context: GraphicsContext,
+        dots: [NormDot],
+        imageRect: CGRect,
+        time: Double,
+        color: Color
+    ) {
+        let phase = 0.4 + 0.6 * (0.5 + 0.5 * sin(time * 3.5))
+        for d in dots {
+            let c = PortraitLayout.point(NormPoint(x: d.x, y: d.y), in: imageRect)
+            let r = max(1.5, d.r * imageRect.width)
+            context.fill(
+                Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
+                with: .color(color.opacity(0.5 + 0.5 * phase))
+            )
+            context.fill(
+                Path(ellipseIn: CGRect(x: c.x - r * 2.4, y: c.y - r * 2.4, width: r * 4.8, height: r * 4.8)),
+                with: .radialGradient(
+                    Gradient(colors: [color.opacity(0.4 * phase), .clear]),
+                    center: c,
+                    startRadius: r * 0.4,
+                    endRadius: r * 2.6
+                )
             )
         }
     }
@@ -183,15 +241,11 @@ enum PortraitFX {
         color: Color,
         strength: Double
     ) {
-        let pulse = strength * (0.45 + 0.55 * (0.5 + 0.5 * sin(time * 3.4)))
+        let pulse = strength * (0.5 + 0.5 * (0.5 + 0.5 * sin(time * 3.4)))
         context.fill(
             Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
             with: .radialGradient(
-                Gradient(colors: [
-                    color.opacity(pulse),
-                    color.opacity(pulse * 0.35),
-                    .clear,
-                ]),
+                Gradient(colors: [color.opacity(pulse), color.opacity(pulse * 0.28), .clear]),
                 center: center,
                 startRadius: 1,
                 endRadius: radius
@@ -200,13 +254,7 @@ enum PortraitFX {
     }
 
     private static func faceNeonBokeh(context: GraphicsContext, imageRect: CGRect, time: Double) {
-        struct Bloom {
-            var p: NormPoint
-            var radius: CGFloat
-            var color: Color
-            var phase: Double
-        }
-        // Soft neon lights in upper / side bokeh — not hard rectangles.
+        struct Bloom { var p: NormPoint; var radius: CGFloat; var color: Color; var phase: Double }
         let blooms: [Bloom] = [
             .init(p: .init(x: 0.12, y: 0.12), radius: 0.12, color: .pink, phase: 0),
             .init(p: .init(x: 0.78, y: 0.10), radius: 0.14, color: .yellow, phase: 0.9),
@@ -214,63 +262,35 @@ enum PortraitFX {
             .init(p: .init(x: 0.88, y: 0.32), radius: 0.11, color: .purple, phase: 2.2),
         ]
         for b in blooms {
-            let on = sin(time * 2.6 + b.phase) > -0.35
-            guard on else { continue }
+            guard sin(time * 2.6 + b.phase) > -0.35 else { continue }
             let c = PortraitLayout.point(b.p, in: imageRect)
             let r = imageRect.width * b.radius
-            let a = 0.12 + 0.14 * abs(sin(time * 3 + b.phase))
+            let a = 0.10 + 0.12 * abs(sin(time * 3 + b.phase))
             context.fill(
                 Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
-                with: .radialGradient(
-                    Gradient(colors: [b.color.opacity(a), .clear]),
-                    center: c,
-                    startRadius: 2,
-                    endRadius: r
-                )
+                with: .radialGradient(Gradient(colors: [b.color.opacity(a), .clear]), center: c, startRadius: 2, endRadius: r)
             )
         }
     }
 
-    private static func screenBorderGlow(
-        context: GraphicsContext,
-        rect: CGRect,
-        time: Double,
-        color: Color
-    ) {
-        let pulse = 0.35 + 0.45 * (0.5 + 0.5 * sin(time * 3.0))
-        // Outer soft fill
-        context.fill(
-            Path(roundedRect: rect.insetBy(dx: -4, dy: -4), cornerRadius: 4),
-            with: .color(color.opacity(0.08 * pulse))
-        )
-        // Bright rim
-        context.stroke(
-            Path(roundedRect: rect, cornerRadius: 3),
-            with: .color(color.opacity(0.55 * pulse)),
-            lineWidth: 2.5
-        )
-        context.stroke(
-            Path(roundedRect: rect.insetBy(dx: 1.5, dy: 1.5), cornerRadius: 2),
-            with: .color(Color.white.opacity(0.25 * pulse)),
-            lineWidth: 1
-        )
-        // Gentle interior wash (not scrolling lines)
+    private static func screenBorderGlow(context: GraphicsContext, rect: CGRect, time: Double, color: Color) {
+        let pulse = 0.4 + 0.5 * (0.5 + 0.5 * sin(time * 3.0))
+        context.fill(Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 2), with: .color(color.opacity(0.08 * pulse)))
+        context.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(color.opacity(0.65 * pulse)), lineWidth: 2)
         context.fill(Path(rect), with: .color(color.opacity(0.06 * pulse)))
     }
 
-    private static func champagneBubbles(context: GraphicsContext, glass: CGRect, time: Double) {
-        // Keep bubbles strictly inside the glass bowl (inset).
-        let inset = glass.insetBy(dx: glass.width * 0.22, dy: glass.height * 0.12)
-        guard inset.width > 2, inset.height > 2 else { return }
-        for i in 0..<12 {
+    private static func champagneBubbles(context: GraphicsContext, liquid: CGRect, time: Double) {
+        let bowl = liquid.insetBy(dx: liquid.width * 0.12, dy: liquid.height * 0.1)
+        guard bowl.width > 2, bowl.height > 2 else { return }
+        for i in 0..<9 {
             let seed = Double(i) * 0.73
-            let x = inset.minX + inset.width * CGFloat(0.15 + 0.7 * fract(sin(seed) * 4.2))
-            let rise = fract(time * 0.28 + seed * 0.13)
-            let y = inset.minY + inset.height * (1 - CGFloat(rise))
-            let r: CGFloat = 1.2 + CGFloat(i % 3) * 0.5
-            // Skip if outside inset (safety)
+            let x = bowl.minX + bowl.width * CGFloat(0.25 + 0.5 * fract(sin(seed) * 4.2))
+            let rise = fract(time * 0.24 + seed * 0.13)
+            let y = bowl.minY + bowl.height * (1 - CGFloat(rise))
+            let r: CGFloat = 1.0 + CGFloat(i % 3) * 0.35
             let pt = CGPoint(x: x, y: y)
-            guard inset.insetBy(dx: -1, dy: -1).contains(pt) else { continue }
+            guard bowl.insetBy(dx: r + 0.5, dy: r + 0.5).contains(pt) else { continue }
             context.fill(
                 Path(ellipseIn: CGRect(x: x - r / 2, y: y - r / 2, width: r, height: r)),
                 with: .color(Color.white.opacity(0.55 + 0.3 * abs(sin(time + seed))))
