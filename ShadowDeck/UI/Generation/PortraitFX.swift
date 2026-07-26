@@ -66,7 +66,6 @@ enum PortraitFX {
         .init(x: 0.78, y: 0.64),
     ]
 
-    private static let deckerScreenCore = NormRect(x: 0.22, y: 0.47, w: 0.16, h: 0.09)
     private static let technoLiquid = NormRect(x: 0.845, y: 0.68, w: 0.045, h: 0.09)
 
     static func drawArchetype(
@@ -95,7 +94,8 @@ enum PortraitFX {
                 break
 
             case .decker:
-                screenBorderGlow(context: layer, rect: PortraitLayout.rect(deckerScreenCore, in: img), time: time, color: .cyan)
+                // Static — angled screen glow was unreliable.
+                break
 
             case .rigger:
                 // Static — eye landmarks unreliable across crops.
@@ -135,38 +135,46 @@ enum PortraitFX {
         }
     }
 
-    /// Single soft circular discharge that travels the full arc before looping.
+    /// One soft, diffuse circular discharge travels the full arc quickly, then restarts.
     private static func singleArcDischarge(context: GraphicsContext, points: [CGPoint], time: Double) {
         guard points.count >= 2 else { return }
 
-        // Very soft path wash so the bolt reads as energized between pulses.
+        // Faint path wash so the bolt stays lightly energized.
         var wash = Path()
         wash.move(to: points[0])
         for p in points.dropFirst() { wash.addLine(to: p) }
-        context.stroke(wash, with: .color(Color.purple.opacity(0.12)), lineWidth: 8)
+        context.stroke(wash, with: .color(Color.purple.opacity(0.10)), lineWidth: 10)
 
-        // One pulse only: t goes 0→1, then restarts.
-        let cycle: Double = 1.6
-        let t = fract(time / cycle)
-        let pos = pointAlong(points, t: CGFloat(t))
+        // Fast electrical travel: full path in ~0.55s, then brief gap before next.
+        let travel: Double = 0.55
+        let gap: Double = 0.12
+        let cycle = travel + gap
+        let phase = time.truncatingRemainder(dividingBy: cycle)
+        guard phase <= travel else { return } // pause between discharges
 
-        // Diffuse but still clearly circular — layered soft discs.
-        let baseR: CGFloat = 18
-        let breath = 0.85 + 0.15 * sin(time * 10)
-        let outer = baseR * 1.7 * breath
-        let mid = baseR * 1.15 * breath
-        let core = baseR * 0.55 * breath
+        let t = phase / travel
+        // Ease slightly so it snaps through the middle of the bolt.
+        let eased = t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2) / 2
+        let pos = pointAlong(points, t: CGFloat(eased))
+
+        // Very diffuse circular bloom — soft edges, still readable as a round pulse.
+        let breath = 0.9 + 0.1 * sin(time * 14)
+        let outer: CGFloat = 32 * breath
+        let mid: CGFloat = 20 * breath
+        let core: CGFloat = 9 * breath
+        // Fade in/out at ends of travel for a strike feel.
+        let envelope = sin(t * .pi)
 
         context.fill(
             Path(ellipseIn: CGRect(x: pos.x - outer, y: pos.y - outer, width: outer * 2, height: outer * 2)),
             with: .radialGradient(
                 Gradient(colors: [
-                    Color.purple.opacity(0.22),
-                    Color.purple.opacity(0.08),
+                    Color.purple.opacity(0.18 * envelope),
+                    Color.purple.opacity(0.06 * envelope),
                     .clear,
                 ]),
                 center: pos,
-                startRadius: mid * 0.4,
+                startRadius: mid * 0.5,
                 endRadius: outer
             )
         )
@@ -174,12 +182,12 @@ enum PortraitFX {
             Path(ellipseIn: CGRect(x: pos.x - mid, y: pos.y - mid, width: mid * 2, height: mid * 2)),
             with: .radialGradient(
                 Gradient(colors: [
-                    Color(red: 0.75, green: 0.45, blue: 1.0).opacity(0.45),
-                    Color.purple.opacity(0.2),
+                    Color(red: 0.78, green: 0.5, blue: 1.0).opacity(0.32 * envelope),
+                    Color.purple.opacity(0.12 * envelope),
                     .clear,
                 ]),
                 center: pos,
-                startRadius: 1,
+                startRadius: 2,
                 endRadius: mid
             )
         )
@@ -187,8 +195,8 @@ enum PortraitFX {
             Path(ellipseIn: CGRect(x: pos.x - core, y: pos.y - core, width: core * 2, height: core * 2)),
             with: .radialGradient(
                 Gradient(colors: [
-                    Color.white.opacity(0.75),
-                    Color(red: 0.85, green: 0.7, blue: 1.0).opacity(0.4),
+                    Color.white.opacity(0.45 * envelope),
+                    Color(red: 0.9, green: 0.75, blue: 1.0).opacity(0.22 * envelope),
                     .clear,
                 ]),
                 center: pos,
@@ -225,26 +233,6 @@ enum PortraitFX {
                 startRadius: 1,
                 endRadius: radius
             )
-        )
-    }
-
-    private static func screenBorderGlow(context: GraphicsContext, rect: CGRect, time: Double, color: Color) {
-        // Stronger, clearly visible screen energy.
-        let pulse = 0.55 + 0.45 * (0.5 + 0.5 * sin(time * 2.8))
-        context.fill(
-            Path(roundedRect: rect.insetBy(dx: -6, dy: -6), cornerRadius: 4),
-            with: .color(color.opacity(0.18 * pulse))
-        )
-        context.fill(Path(rect), with: .color(color.opacity(0.14 * pulse)))
-        context.stroke(
-            Path(roundedRect: rect, cornerRadius: 3),
-            with: .color(color.opacity(0.85 * pulse)),
-            lineWidth: 3
-        )
-        context.stroke(
-            Path(roundedRect: rect.insetBy(dx: 2, dy: 2), cornerRadius: 2),
-            with: .color(Color.white.opacity(0.35 * pulse)),
-            lineWidth: 1.5
         )
     }
 
