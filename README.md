@@ -51,7 +51,7 @@ ShadowDeck/
 | **2** | Persistence layer (SwiftData + avatars) | ✅ Complete |
 | **3** | Import pipeline (Chummer JSON / `.chum5`) | ✅ Complete |
 | **4** | Character generation wizard | ✅ Complete |
-| **5** | Main character summary (at-a-glance) | Pending |
+| **5** | Main character summary (at-a-glance) | ✅ Complete |
 | **6** | Detailed management views | Pending |
 | **7** | Polish, export, packaging | Pending |
 | **8** | Extensibility (optional stretch) | Pending |
