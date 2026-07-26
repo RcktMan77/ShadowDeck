@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  ShadowDeck
 //
-//  Root window: library, import, and character generation wizard.
+//  Root window: library list, at-a-glance summary, import, and generation.
 //
 
 import SwiftUI
@@ -61,7 +61,12 @@ struct ContentView: View {
         .navigationTitle("ShadowDeck")
         .onAppear { refresh() }
         .onChange(of: selection) { _, newValue in
-            if newValue == .characters { refresh() }
+            if newValue == .characters {
+                // Stay on summary if a character is selected; refresh list data.
+                refresh()
+            } else {
+                selectedCharacterID = nil
+            }
         }
     }
 
@@ -77,11 +82,25 @@ struct ContentView: View {
                 refresh()
             }
         case .characters, .none:
-            charactersDetail
+            if let id = selectedCharacterID {
+                CharacterAtAGlanceView(
+                    characterID: id,
+                    onBack: {
+                        selectedCharacterID = nil
+                        refresh()
+                    },
+                    onDeleted: {
+                        selectedCharacterID = nil
+                        refresh()
+                    }
+                )
+            } else {
+                charactersLibrary
+            }
         }
     }
 
-    private var charactersDetail: some View {
+    private var charactersLibrary: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Character Library")
@@ -121,8 +140,17 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                Text("Select a runner for the at-a-glance summary.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
                 List(summaries, selection: $selectedCharacterID) { summary in
-                    HStack {
+                    HStack(spacing: 12) {
+                        Image(systemName: summary.hasAvatar ? "person.crop.rectangle.fill" : "person.crop.rectangle")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28)
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(summary.displayTitle)
                                 .font(.headline)
@@ -131,19 +159,23 @@ struct ContentView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if summary.hasAvatar {
-                            Image(systemName: "person.crop.square")
-                                .foregroundStyle(.secondary)
-                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                     .tag(summary.id)
+                    .contentShape(Rectangle())
                     .contextMenu {
+                        Button("Open Summary") {
+                            selectedCharacterID = summary.id
+                        }
                         Button("Delete", role: .destructive) {
                             deleteCharacter(summary.id)
                         }
                     }
                 }
-                .frame(maxWidth: 640)
+                .listStyle(.inset)
+                .frame(maxWidth: 720)
             }
         }
         .padding(24)
@@ -153,9 +185,16 @@ struct ContentView: View {
     private func refresh() {
         do {
             summaries = try libraryEnvironment.library.listSummaries()
-            statusMessage = summaries.isEmpty
-                ? "Library is empty."
-                : "\(summaries.count) character(s) in library."
+            if selectedCharacterID != nil,
+               !summaries.contains(where: { $0.id == selectedCharacterID })
+            {
+                selectedCharacterID = nil
+            }
+            if selectedCharacterID == nil {
+                statusMessage = summaries.isEmpty
+                    ? "Library is empty."
+                    : "\(summaries.count) character(s) in library."
+            }
         } catch {
             statusMessage = "Failed to load library: \(error.localizedDescription)"
         }
@@ -191,5 +230,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environment(LibraryEnvironment.preview())
-        .frame(width: 960, height: 640)
+        .frame(width: 1100, height: 720)
 }

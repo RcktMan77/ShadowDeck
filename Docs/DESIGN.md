@@ -149,6 +149,7 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | CRUD + avatar persistence | Phase 2 ✅ |
 | Import mapping fidelity | Phase 3 ✅ |
 | Generation cost / legality | Phase 4 ✅ |
+| At-a-glance summary dashboard | Phase 5 ✅ |
 | Derived values / UI logic as pure functions | Ongoing |
 
 ## Changelog of Decisions
@@ -161,3 +162,4 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | 2026-07-25 | Phase 3: Chummer JSON + `.chum5` import; Ghostwire validated read-only |
 | 2026-07-25 | CI: macos-15 + Xcode 26.3; Chummer audit doc |
 | 2026-07-25 | Phase 4: multi-page generation wizard, live allocation, archetype showcase |
+| 2026-07-25 | Phase 5: at-a-glance character summary dashboard |
