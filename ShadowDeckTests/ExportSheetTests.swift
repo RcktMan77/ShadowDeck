@@ -51,12 +51,14 @@ final class ExportSheetTests: XCTestCase {
     }
 
     func testOriginalPayloadExportIsByteFaithful() throws {
-        let source = try Data(contentsOf: URL(fileURLWithPath:
-            "/Users/zdavis/Documents/eBooks/Shadowrun/ghostwire.chum5"
-        ))
-        let imported = try CharacterImporter.importChummerXML(source, fileName: "ghostwire.chum5")
-        var character = imported.character
+        // Use the CI-stable fixture — never a developer-machine absolute path.
+        let source = try Data(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/minimal_sr5.chum5"))
+        let imported = try CharacterImporter.importChummerXML(source, fileName: "minimal_sr5.chum5")
+        let character = imported.character
         XCTAssertNotNil(character.importProvenance?.originalPayload)
+        XCTAssertEqual(character.importProvenance?.originalPayload, source)
 
         let result = try ChummerXMLExporter.export(character, mode: .preferOriginal)
         XCTAssertTrue(result.usedOriginalPayload)
