@@ -88,12 +88,19 @@ ls -la "$OUT"/0*.jpg 2>/dev/null || {
   exit 1
 }
 
-# Cap long edge for GitHub README bandwidth.
+# Normalize sizes: full UI/splash to 1800px long edge; equal thumbs for the three UI shots.
 for f in "$OUT"/0*.jpg; do
-  w=$(sips -g pixelWidth "$f" 2>/dev/null | awk '/pixelWidth/ {print $2}')
-  if [[ -n "${w:-}" && "$w" -gt 1800 ]]; then
-    sips -Z 1600 "$f" >/dev/null
+  sips -Z 1800 "$f" >/dev/null
+  sips -s format jpeg -s formatOptions 85 "$f" --out "$f" >/dev/null
+done
+
+mkdir -p "$OUT/thumbs"
+for base in 02-library 03-generation-role 04-character-sheet; do
+  if [[ -f "$OUT/${base}.jpg" ]]; then
+    sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
+    sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
   fi
 done
 
 echo "Done."
+ls -la "$OUT"/*.jpg "$OUT/thumbs"/*.jpg 2>/dev/null || true
