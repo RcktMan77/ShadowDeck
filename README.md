@@ -100,7 +100,7 @@ You’ll see a short branded splash (skip with click or any key). Loading-style 
 
 ## For developers
 
-Build, test, and packaging notes live under [Docs/DESIGN.md](Docs/DESIGN.md) and [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md).
+Branching (`main` / `develop` / `feature/*` / `release/*`) is described in [Docs/BRANCHING.md](Docs/BRANCHING.md). Build, test, and packaging notes live under [Docs/DESIGN.md](Docs/DESIGN.md) and [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md).
 
 ```bash
 # Debug build
