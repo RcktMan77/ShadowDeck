@@ -26,6 +26,12 @@ struct AllocationCounterBar: View {
                 }
                 chip("¥", remaining: draft.budget.nuyenRemaining, total: draft.budget.nuyenTotal, isCurrency: true)
                 chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
+                if draft.freeKnowledgePool > 0 {
+                    chip("Knowledge", remaining: draft.freeKnowledgePool, total: draft.freeKnowledgePool)
+                }
+                if draft.houseRules.isEnabled(.expandedContacts) || draft.contactPointPool > 0 {
+                    chip("Contacts", remaining: draft.contactPointPool, total: draft.contactPointPool)
+                }
             }
             .padding(.horizontal, 4)
         }

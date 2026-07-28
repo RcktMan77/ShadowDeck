@@ -41,10 +41,35 @@ public final class CharacterLibrary {
     // MARK: - List / fetch
 
     public func listSummaries() throws -> [CharacterSummary] {
-        let descriptor = FetchDescriptor<CharacterRecord>(
-            sortBy: [SortDescriptor(\.modifiedAt, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor).map(\.summary)
+        // Sort in-process to avoid Swift 6 Sendable warnings on SortDescriptor KeyPaths.
+        let records = try modelContext.fetch(FetchDescriptor<CharacterRecord>())
+            .sorted { $0.modifiedAt > $1.modifiedAt }
+        return records.map { record in
+            var summary = record.summary
+            // Thumbnail generation must never take down the library list.
+            // Prefer avatar store (file/inline), then raw inline snapshot bytes.
+            let full: Data? = {
+                if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
+                   !loaded.isEmpty
+                {
+                    return loaded
+                }
+                if let inline = record.avatarSnapshot.inlineData, !inline.isEmpty {
+                    return inline
+                }
+                return nil
+            }()
+            if let full {
+                if let thumb = AvatarThumbnail.make(from: full) {
+                    summary.thumbnailData = thumb
+                } else {
+                    // Fallback: use original bytes if thumbnail encode fails.
+                    summary.thumbnailData = full.count < 256_000 ? full : nil
+                }
+                summary.hasAvatar = summary.thumbnailData != nil
+            }
+            return summary
+        }
     }
 
     public func count() throws -> Int {
@@ -184,11 +209,8 @@ public final class CharacterLibrary {
     // MARK: - Internals
 
     private func fetchRecord(id: UUID) throws -> CharacterRecord? {
-        var descriptor = FetchDescriptor<CharacterRecord>(
-            predicate: #Predicate { $0.id == id }
-        )
-        descriptor.fetchLimit = 1
-        return try modelContext.fetch(descriptor).first
+        // Filter in-process to avoid Swift 6 Sendable warnings on #Predicate KeyPaths.
+        try modelContext.fetch(FetchDescriptor<CharacterRecord>()).first { $0.id == id }
     }
 
     private func character(from record: CharacterRecord) throws -> Character {

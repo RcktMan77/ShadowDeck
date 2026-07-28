@@ -15,7 +15,11 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     // Identity
     public var name: String
     public var streetName: String
+    /// Short tagline / role concept (sheet “concept” field).
     public var concept: String
+    /// Longer fiction / backstory for story-mode display. Optional for legacy payloads.
+    public var background: String?
+    /// Mission logs, table notes, freeform (may be plain text or RTF).
     public var notes: String
 
     // Edition & build
@@ -44,8 +48,14 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     public var nuyen: Int
     public var lifestyleNuyenReserve: Int
 
+    /// Play-state condition damage. Optional so legacy library payloads still decode.
+    public var conditionTrack: ConditionTrack?
+
     // Avatar (Phase 2 stores binary; Phase 1 keeps metadata + optional inline data)
     public var avatar: AvatarRef
+
+    /// Optional original import payload (Chummer) for faithful re-export.
+    public var importProvenance: ImportProvenance?
 
     // Timestamps
     public var createdAt: Date
@@ -59,6 +69,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         name: String,
         streetName: String = "",
         concept: String = "",
+        background: String? = nil,
         notes: String = "",
         edition: Edition,
         metatype: MetatypeID = .human,
@@ -80,7 +91,9 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         karmaAvailable: Int = 0,
         nuyen: Int = 0,
         lifestyleNuyenReserve: Int = 0,
+        conditionTrack: ConditionTrack? = nil,
         avatar: AvatarRef = AvatarRef(),
+        importProvenance: ImportProvenance? = nil,
         createdAt: Date = Date(),
         modifiedAt: Date = Date()
     ) {
@@ -89,6 +102,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.name = name
         self.streetName = streetName
         self.concept = concept
+        self.background = background
         self.notes = notes
         self.edition = edition
         self.metatype = metatype
@@ -110,9 +124,29 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.karmaAvailable = karmaAvailable
         self.nuyen = nuyen
         self.lifestyleNuyenReserve = lifestyleNuyenReserve
+        self.conditionTrack = conditionTrack
         self.avatar = avatar
+        self.importProvenance = importProvenance
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
+    }
+
+    public var physicalDamage: Int {
+        get { conditionTrack?.physicalDamage ?? 0 }
+        set {
+            var track = conditionTrack ?? ConditionTrack()
+            track.physicalDamage = max(0, newValue)
+            conditionTrack = track
+        }
+    }
+
+    public var stunDamage: Int {
+        get { conditionTrack?.stunDamage ?? 0 }
+        set {
+            var track = conditionTrack ?? ConditionTrack()
+            track.stunDamage = max(0, newValue)
+            conditionTrack = track
+        }
     }
 
     public var displayTitle: String {

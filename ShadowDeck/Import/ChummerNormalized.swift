@@ -52,6 +52,10 @@ public struct ChummerNormalizedCharacter: Sendable {
     public var contacts: [ChummerNormalizedContact]
     public var lifestyles: [ChummerNormalizedLifestyle]
 
+    /// Damage filled on condition monitors (from Chummer physicalcmfilled / stuncmfilled).
+    public var physicalDamage: Int
+    public var stunDamage: Int
+
     public init(
         name: String = "",
         alias: String = "",
@@ -91,7 +95,9 @@ public struct ChummerNormalizedCharacter: Sendable {
         spells: [ChummerNormalizedNamedItem] = [],
         complexForms: [ChummerNormalizedNamedItem] = [],
         contacts: [ChummerNormalizedContact] = [],
-        lifestyles: [ChummerNormalizedLifestyle] = []
+        lifestyles: [ChummerNormalizedLifestyle] = [],
+        physicalDamage: Int = 0,
+        stunDamage: Int = 0
     ) {
         self.name = name
         self.alias = alias
@@ -132,6 +138,8 @@ public struct ChummerNormalizedCharacter: Sendable {
         self.complexForms = complexForms
         self.contacts = contacts
         self.lifestyles = lifestyles
+        self.physicalDamage = max(0, physicalDamage)
+        self.stunDamage = max(0, stunDamage)
     }
 }
 
@@ -289,12 +297,44 @@ public struct ChummerNormalizedContact: Sendable {
     public var role: String
     public var loyalty: Int
     public var connection: Int
+    public var notes: String
+    public var contactType: String
+    public var metatype: String
+    public var gender: String
+    public var age: String
+    public var location: String
+    public var preferredPayment: String
+    public var hobbiesVice: String
+    public var personalLife: String
 
-    public init(name: String, role: String, loyalty: Int, connection: Int) {
+    public init(
+        name: String,
+        role: String,
+        loyalty: Int,
+        connection: Int,
+        notes: String = "",
+        contactType: String = "",
+        metatype: String = "",
+        gender: String = "",
+        age: String = "",
+        location: String = "",
+        preferredPayment: String = "",
+        hobbiesVice: String = "",
+        personalLife: String = ""
+    ) {
         self.name = name
         self.role = role
         self.loyalty = loyalty
         self.connection = connection
+        self.notes = notes
+        self.contactType = contactType
+        self.metatype = metatype
+        self.gender = gender
+        self.age = age
+        self.location = location
+        self.preferredPayment = preferredPayment
+        self.hobbiesVice = hobbiesVice
+        self.personalLife = personalLife
     }
 }
 

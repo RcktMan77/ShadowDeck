@@ -102,12 +102,12 @@ public enum CharacterImporter {
         // JSONSerialization handles BOM poorly; strip if needed.
         let cleaned = stripBOM(data)
         let normalized = try ChummerJSONParser.parse(data: cleaned)
-        return finalize(normalized, format: .chummerJSON, fileName: fileName)
+        return finalize(normalized, format: .chummerJSON, fileName: fileName, originalPayload: data)
     }
 
     public static func importChummerXML(_ data: Data, fileName: String? = nil) throws -> ImportResult {
         let normalized = try ChummerXMLParser.parse(data: stripBOM(data))
-        return finalize(normalized, format: .chummerChum5, fileName: fileName)
+        return finalize(normalized, format: .chummerChum5, fileName: fileName, originalPayload: data)
     }
 
     private static func importShadowDeckPackage(at url: URL) throws -> ImportResult {
@@ -130,14 +130,26 @@ public enum CharacterImporter {
     private static func finalize(
         _ normalized: ChummerNormalizedCharacter,
         format: ImportSourceFormat,
-        fileName: String?
+        fileName: String?,
+        originalPayload: Data? = nil
     ) -> ImportResult {
         var diagnostics = ImportDiagnostics()
         diagnostics.info(
             "import.source",
             "Parsed \(format == .chummerJSON ? "Chummer JSON" : "Chummer .chum5")\(fileName.map { " (\($0))" } ?? "")."
         )
-        let character = ChummerMapper.mapToCharacter(normalized, diagnostics: &diagnostics)
+        var character = ChummerMapper.mapToCharacter(normalized, diagnostics: &diagnostics)
+        if let originalPayload {
+            character.importProvenance = ImportProvenance(
+                sourceFormat: format.rawValue,
+                originalFileName: fileName,
+                originalPayload: originalPayload
+            )
+            diagnostics.info(
+                "import.provenance",
+                "Stored original \(format == .chummerChum5 ? ".chum5" : "JSON") payload for faithful re-export (\(originalPayload.count) bytes)."
+            )
+        }
         return ImportResult(
             character: character,
             sourceFormat: format,

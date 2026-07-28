@@ -35,7 +35,7 @@ public struct PortableCharacterDocument: Codable, Sendable, Hashable {
     public init(
         formatVersion: Int = ShadowDeckFormat.currentFormatVersion,
         exportedAt: Date = Date(),
-        appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0",
+        appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0",
         character: Character
     ) {
         self.formatVersion = formatVersion

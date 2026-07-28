@@ -53,7 +53,8 @@ public enum ChummerMapper {
                 name: q.name,
                 kind: q.isPositive ? .positive : .negative,
                 karmaValue: q.karma,
-                notes: q.source.map { "Source: \($0)" } ?? ""
+                notes: q.source.map { "Source: \($0)" } ?? "",
+                modifiers: CatalogLookup.modifiers(named: q.name)
             )
         }
 
@@ -70,7 +71,8 @@ public enum ChummerMapper {
                 catalogKey: ChummerParsingHelpers.catalogKey(from: $0.name),
                 name: $0.name,
                 level: $0.rating,
-                powerPointCost: $0.pointCost
+                powerPointCost: $0.pointCost,
+                modifiers: CatalogLookup.modifiers(named: $0.name)
             )
         }
 
@@ -90,7 +92,21 @@ public enum ChummerMapper {
         }
 
         let contacts = source.contacts.map {
-            Contact(name: $0.name, role: $0.role, loyalty: $0.loyalty, connection: $0.connection)
+            Contact(
+                name: $0.name,
+                role: $0.role,
+                loyalty: $0.loyalty,
+                connection: $0.connection,
+                notes: $0.notes,
+                contactType: Self.optionalText($0.contactType),
+                metatype: Self.optionalText($0.metatype),
+                gender: Self.optionalText($0.gender),
+                age: Self.optionalText($0.age),
+                location: Self.optionalText($0.location),
+                preferredPayment: Self.optionalText($0.preferredPayment),
+                hobbiesVice: Self.optionalText($0.hobbiesVice),
+                personalLife: Self.optionalText($0.personalLife)
+            )
         }
 
         let lifestyles = source.lifestyles.map {
@@ -102,10 +118,21 @@ public enum ChummerMapper {
             )
         }
 
+        // Story vs session notes:
+        // - background → Character.background (story-mode blurb)
+        // - description (if not already in background) may fold into story
+        // - notes / gamenotes → Character.notes (mission logs, table notes)
+        var storyParts: [String] = []
+        if !source.background.isEmpty { storyParts.append(source.background) }
+        if !source.description.isEmpty,
+           !storyParts.contains(where: { $0.caseInsensitiveCompare(source.description) == .orderedSame })
+        {
+            // Chummer “description” is often a short GM note; append if distinct.
+            storyParts.append(source.description)
+        }
+        let storyBackground = storyParts.joined(separator: "\n\n")
+
         var notesParts: [String] = []
-        if !source.concept.isEmpty { notesParts.append("Concept: \(source.concept)") }
-        if !source.description.isEmpty { notesParts.append(source.description) }
-        if !source.background.isEmpty { notesParts.append("Background:\n\(source.background)") }
         if !source.notes.isEmpty { notesParts.append(source.notes) }
         if !source.gender.isEmpty || !source.age.isEmpty {
             notesParts.append([source.gender, source.age].filter { !$0.isEmpty }.joined(separator: ", "))
@@ -113,7 +140,9 @@ public enum ChummerMapper {
         if !source.playerName.isEmpty {
             notesParts.append("Player: \(source.playerName)")
         }
-        notesParts.append("Imported from Chummer (\(source.gameEdition), \(source.buildMethod.isEmpty ? "unknown build" : source.buildMethod)).")
+        notesParts.append(
+            "Imported from Chummer (\(source.gameEdition.isEmpty ? "SR?" : source.gameEdition), \(source.buildMethod.isEmpty ? "unknown build" : source.buildMethod))."
+        )
 
         let nuyenInt = NSDecimalNumber(decimal: source.nuyen).intValue
 
@@ -121,6 +150,7 @@ public enum ChummerMapper {
             name: source.name.isEmpty ? (source.alias.isEmpty ? "Imported Runner" : source.alias) : source.name,
             streetName: source.alias,
             concept: source.concept,
+            background: storyBackground.isEmpty ? nil : storyBackground,
             notes: notesParts.joined(separator: "\n\n"),
             edition: edition,
             metatype: metatype,
@@ -140,7 +170,11 @@ public enum ChummerMapper {
             contacts: contacts,
             karmaTotal: source.karmaTotal,
             karmaAvailable: source.karmaAvailable,
-            nuyen: nuyenInt
+            nuyen: nuyenInt,
+            conditionTrack: ConditionTrack(
+                physicalDamage: source.physicalDamage,
+                stunDamage: source.stunDamage
+            )
         )
 
         // Prefer Chummer-reported essence when present.
@@ -152,18 +186,33 @@ public enum ChummerMapper {
             diagnostics.info("essence.recomputed", "Essence recomputed from augmentations.")
         }
 
-        // Soft-validate after map.
+        // Soft-validate after map. Campaign imports are play sheets, not pure chargen drafts:
+        // chargen-budget style codes become informational only.
         let validation = RulesRegistry.rules(for: edition).validate(character)
-        for issue in validation.warnings {
-            diagnostics.info("validation.\(issue.code)", issue.message)
-        }
-        for issue in validation.errors {
-            // Import may intentionally include advanced/illegal-at-chargen states.
-            diagnostics.warn("validation.\(issue.code)", "Post-import check: \(issue.message)")
+        for issue in validation.issues {
+            let code = "validation.\(issue.code)"
+            if Self.chargenOnlyValidationCodes.contains(issue.code) {
+                diagnostics.info(code, "Chargen note (not enforced on import): \(issue.message)")
+            } else if issue.severity == .error {
+                diagnostics.warn(code, "Post-import check: \(issue.message)")
+            } else {
+                diagnostics.info(code, issue.message)
+            }
         }
 
         return character
     }
+
+    /// Codes that matter at generation time but should not block or alarm campaign imports.
+    private static let chargenOnlyValidationCodes: Set<String> = [
+        "qualities.positive_cap",
+        "priority.incomplete",
+        "priority.unique",
+        "priority.sum_to_ten",
+        "bp.budget",
+        "bp.overspent",
+        "karma.overspent",
+    ]
 
     // MARK: - Field mappers
 
@@ -235,8 +284,11 @@ public enum ChummerMapper {
             for attr in list {
                 let n = attr.name.uppercased()
                 if names.contains(n) {
-                    // Prefer total (includes permanent aug bonuses as shown on sheet).
-                    return attr.total > 0 ? attr.total : attr.base
+                    // Prefer base so CharacterEffectsEngine can re-apply aug/quality/gear
+                    // modifiers without double-counting Chummer totals.
+                    if attr.base > 0 { return attr.base }
+                    if attr.total > 0 { return attr.total }
+                    return nil
                 }
             }
             return nil
@@ -345,7 +397,8 @@ public enum ChummerMapper {
             grade: mapGrade(a.grade),
             rating: a.rating,
             essenceCost: a.essence,
-            notes: a.notes
+            notes: a.notes,
+            modifiers: CatalogLookup.modifiers(named: a.name)
         )
     }
 
@@ -359,17 +412,18 @@ public enum ChummerMapper {
         }
     }
 
+    private static func optionalText(_ raw: String) -> String? {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+
     private static func mapGearItem(_ g: ChummerNormalizedGear, defaultCategory: GearCategory) -> GearItem {
         let category: GearCategory
-        switch g.category.lowercased() {
-        case "weapon": category = .weapon
-        case "armor": category = .armor
-        case "cyberdeck": category = .cyberdeck
-        case "electronics": category = .electronics
-        case "vehicle": category = .vehicle
-        case "drone": category = .drone
-        case "ammo": category = .ammo
-        default: category = defaultCategory
+        if !g.category.isEmpty {
+            let inferred = GearCategory.infer(from: g.category)
+            category = (inferred == .other && defaultCategory != .other) ? defaultCategory : inferred
+        } else {
+            category = defaultCategory
         }
         return GearItem(
             catalogKey: ChummerParsingHelpers.catalogKey(from: g.name),
@@ -380,7 +434,9 @@ public enum ChummerMapper {
             equipped: g.equipped,
             notes: g.notes,
             armorRating: g.armorRating,
-            damageCode: g.damageCode
+            damageCode: g.damageCode,
+            subcategory: optionalText(g.category),
+            modifiers: CatalogLookup.modifiers(named: g.name)
         )
     }
 

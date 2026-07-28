@@ -83,7 +83,12 @@ public enum ChummerXMLParser {
             concept: H.stripHTML(text("concept")),
             description: H.stripHTML(text("description")),
             background: H.stripHTML(text("background")),
-            notes: H.stripHTML(text("notes").isEmpty ? text("gamenotes") : text("notes")),
+            notes: {
+                let n = H.stripHTML(text("notes"))
+                let g = H.stripHTML(text("gamenotes"))
+                if !n.isEmpty, !g.isEmpty { return n + "\n\n" + g }
+                return n.isEmpty ? g : n
+            }(),
             gender: text("gender"),
             age: text("age"),
             nuyen: H.decimalValue(text("nuyen")),
@@ -112,7 +117,9 @@ public enum ChummerXMLParser {
             spells: mapNamedItems(c, parent: "spells", child: "spell"),
             complexForms: mapNamedItems(c, parent: "complexforms", child: "complexform"),
             contacts: mapContacts(c),
-            lifestyles: mapLifestyles(c)
+            lifestyles: mapLifestyles(c),
+            physicalDamage: H.intValue(text("physicalcmfilled")),
+            stunDamage: H.intValue(text("stuncmfilled"))
         )
     }
 
@@ -355,7 +362,16 @@ public enum ChummerXMLParser {
                 name: name,
                 role: childText(el, "role"),
                 loyalty: H.intValue(childText(el, "loyalty"), default: 1),
-                connection: H.intValue(childText(el, "connection"), default: 1)
+                connection: H.intValue(childText(el, "connection"), default: 1),
+                notes: H.stripHTML(childText(el, "notes")),
+                contactType: childText(el, "type").isEmpty ? childText(el, "contacttype") : childText(el, "type"),
+                metatype: childText(el, "metatype"),
+                gender: childText(el, "gender"),
+                age: childText(el, "age"),
+                location: childText(el, "location"),
+                preferredPayment: childText(el, "preferredpayment"),
+                hobbiesVice: childText(el, "hobbiesvice"),
+                personalLife: childText(el, "personallife")
             )
         }
     }

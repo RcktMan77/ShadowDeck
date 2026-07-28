@@ -5,6 +5,7 @@
 //  Shared coercion helpers for Chummer's stringly-typed exports.
 //
 
+import AppKit
 import Foundation
 
 enum ChummerParsingHelpers {
@@ -105,15 +106,79 @@ enum ChummerParsingHelpers {
         return []
     }
 
+    /// Clean Chummer rich-text fields (HTML from JSON exports, RTF from `.chum5`).
     static func stripHTML(_ html: String?) -> String {
-        guard let html, !html.isEmpty else { return "" }
+        cleanRichText(html)
+    }
+
+    /// Normalize Chummer notes/description/background into plain text.
+    static func cleanRichText(_ raw: String?) -> String {
+        guard let raw else { return "" }
+        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return "" }
+
+        // Prefer AppKit document conversion for real RTF / HTML payloads.
+        if looksLikeRTF(text), let plain = plainText(fromRichData: Data(text.utf8), documentType: .rtf) {
+            text = plain
+        } else if looksLikeHTML(text), let plain = plainText(fromRichData: Data(text.utf8), documentType: .html) {
+            text = plain
+        } else if looksLikeHTML(text) {
+            text = fallbackStripTags(text)
+        } else if looksLikeRTF(text) {
+            text = fallbackStripRTF(text)
+        }
+
+        // Collapse runs of whitespace while preserving intentional blank lines lightly.
+        let collapsed = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .joined(separator: "\n")
+            .replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
+
+        return collapsed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func looksLikeRTF(_ text: String) -> Bool {
+        text.hasPrefix("{\\rtf") || text.contains("{\\rtf")
+    }
+
+    private static func looksLikeHTML(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.contains("<html") || lower.contains("<div") || lower.contains("<p")
+            || lower.contains("<br") || lower.contains("<span") || lower.contains("<ul")
+            || (text.contains("<") && text.contains(">"))
+    }
+
+    private static func plainText(
+        fromRichData data: Data,
+        documentType: NSAttributedString.DocumentType
+    ) -> String? {
+        var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: documentType,
+        ]
+        if documentType == .html {
+            options[.characterEncoding] = String.Encoding.utf8.rawValue
+        }
+        guard let attributed = try? NSAttributedString(
+            data: data,
+            options: options,
+            documentAttributes: nil
+        ) else {
+            return nil
+        }
+        let plain = attributed.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return plain.isEmpty ? nil : plain
+    }
+
+    private static func fallbackStripTags(_ html: String) -> String {
         var result = html
-        // Basic tag strip; good enough for Chummer notes fields.
         if let regex = try? NSRegularExpression(pattern: "<[^>]+>", options: []) {
             result = regex.stringByReplacingMatches(
                 in: result,
                 range: NSRange(result.startIndex..., in: result),
-                withTemplate: ""
+                withTemplate: " "
             )
         }
         return result
@@ -122,7 +187,32 @@ enum ChummerParsingHelpers {
             .replacingOccurrences(of: "&lt;", with: "<")
             .replacingOccurrences(of: "&gt;", with: ">")
             .replacingOccurrences(of: "&quot;", with: "\"")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&apos;", with: "'")
+    }
+
+    private static func fallbackStripRTF(_ rtf: String) -> String {
+        // Drop control words like \par, \b0, leave readable runs.
+        var result = rtf
+        if let regex = try? NSRegularExpression(pattern: #"\\'[0-9a-fA-F]{2}"#, options: []) {
+            result = regex.stringByReplacingMatches(
+                in: result,
+                range: NSRange(result.startIndex..., in: result),
+                withTemplate: ""
+            )
+        }
+        if let regex = try? NSRegularExpression(pattern: #"\\[a-zA-Z]+-?\d*[ ]?"#, options: []) {
+            result = regex.stringByReplacingMatches(
+                in: result,
+                range: NSRange(result.startIndex..., in: result),
+                withTemplate: " "
+            )
+        }
+        result = result
+            .replacingOccurrences(of: "{", with: "")
+            .replacingOccurrences(of: "}", with: "")
+            .replacingOccurrences(of: "\\", with: "")
+        return result
     }
 
     static func catalogKey(from name: String) -> String {

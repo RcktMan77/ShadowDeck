@@ -101,7 +101,7 @@ public struct SR4Rules: EditionRules {
             pools[skill.catalogKey] = DerivedStatsCalculator.dicePool(attribute: linked, skill: skill.rating)
         }
 
-        return DerivedStats(
+        let baseline = DerivedStats(
             initiativeDice: 1,
             initiativeBase: DerivedStatsCalculator.initiativeBase(reaction: a.reaction, intuition: a.intuition),
             composure: DerivedStatsCalculator.composure(charisma: a.charisma, willpower: a.willpower),
@@ -116,6 +116,8 @@ public struct SR4Rules: EditionRules {
             condition: ConditionMonitor(
                 physicalBoxes: phys,
                 stunBoxes: stun,
+                physicalFilled: min(character.physicalDamage, phys),
+                stunFilled: min(character.stunDamage, stun),
                 overflowBoxes: a.body
             ),
             currentEssence: essence,
@@ -123,6 +125,7 @@ public struct SR4Rules: EditionRules {
             armor: DerivedStatsCalculator.equippedArmor(from: character.gear),
             dicePools: pools
         )
+        return CharacterEffectsEngine.playStats(for: character, baseDerived: baseline)
     }
 
     public func validate(_ character: Character) -> ValidationResult {
@@ -137,29 +140,38 @@ public struct SR4Rules: EditionRules {
         }
 
         let profile = metatypeProfile(character.metatype)
+        let effective = character.effectiveAttributes
         for attr in AttributeID.standardGenerationAttributes + [.edge] {
-            let value = character.attributes[attr]
+            let value = effective[attr]
             let bounds = profile.bounds(for: attr)
-            if !bounds.contains(value) {
+            if ValidationHelpers.attributeOutOfPlayBounds(
+                value: value,
+                bounds: bounds,
+                houseRules: character.houseRules
+            ) {
+                let maxAllowed = ValidationHelpers.augmentedAttributeMaximum(
+                    naturalMaximum: bounds.maximum,
+                    houseRules: character.houseRules
+                )
                 result.error(
                     "attribute.bounds",
-                    "\(attr.displayName) (\(value)) outside \(character.metatype.displayName) range \(bounds.minimum)–\(bounds.maximum).",
+                    "\(attr.displayName) (\(value)) outside \(character.metatype.displayName) range \(bounds.minimum)–\(maxAllowed) (natural max \(bounds.maximum) + augs).",
                     field: attr.rawValue
                 )
             }
         }
 
-        if character.awakened.usesMagic && character.attributes.magic < 1 {
+        if character.awakened.usesMagic && effective.magic < 1 {
             result.error("magic.missing", "Awakened path requires Magic ≥ 1.", field: "magic")
         }
-        if character.awakened.usesResonance && character.attributes.resonance < 1 {
+        if character.awakened.usesResonance && effective.resonance < 1 {
             result.error("resonance.missing", "Technomancer requires Resonance ≥ 1.", field: "resonance")
         }
         if character.awakened == .mundane {
-            if character.attributes.magic > 0 {
+            if effective.magic > 0 {
                 result.warning("magic.mundane", "Mundane character has Magic > 0.")
             }
-            if character.attributes.resonance > 0 {
+            if effective.resonance > 0 {
                 result.warning("resonance.mundane", "Mundane character has Resonance > 0.")
             }
         }
@@ -172,11 +184,9 @@ public struct SR4Rules: EditionRules {
             result.warning("essence.zero", "Essence is 0 — character is dying / dead under core rules.")
         }
 
-        // Qualities budget (core + house rule cap).
+        // Qualities budget (core + house rule cap). Free path qualities excluded.
         let posCap = character.houseRules.positiveQualityKarmaCap ?? positiveQualityKarmaCap
-        let positiveSpend = character.qualities
-            .filter { $0.kind == .positive }
-            .reduce(0) { $0 + $1.karmaValue }
+        let positiveSpend = ValidationHelpers.positiveQualityKarmaSpend(qualities: character.qualities)
         if positiveSpend > posCap {
             result.error(
                 "qualities.positive_cap",

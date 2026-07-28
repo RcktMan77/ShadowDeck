@@ -75,7 +75,10 @@ public enum ChummerJSONParser {
             concept: H.stripHTML(H.stringValue(c["concept"])),
             description: H.stripHTML(H.stringValue(c["description"])),
             background: H.stripHTML(H.stringValue(c["background"])),
-            notes: H.stripHTML(H.stringValue(c["notes"]) ?? H.stringValue(c["gamenotes"])),
+            notes: mergeNotes(
+                H.stripHTML(H.stringValue(c["notes"])),
+                H.stripHTML(H.stringValue(c["gamenotes"]))
+            ),
             gender: H.stringValue(c["gender"]) ?? "",
             age: H.stringValue(c["age"]) ?? "",
             nuyen: H.decimalValue(c["nuyen"]),
@@ -104,7 +107,9 @@ public enum ChummerJSONParser {
             spells: mapNamed(c["spells"] ?? c["spell"], nameKeys: ["name", "name_english"]),
             complexForms: mapNamed(c["complexforms"] ?? c["complexform"], nameKeys: ["name", "name_english"]),
             contacts: mapContacts(c["contacts"] ?? c["contact"]),
-            lifestyles: mapLifestyles(c["lifestyles"] ?? c["lifestyle"])
+            lifestyles: mapLifestyles(c["lifestyles"] ?? c["lifestyle"]),
+            physicalDamage: H.intValue(c["physicalcmfilled"]),
+            stunDamage: H.intValue(c["stuncmfilled"])
         )
 
         // Infer adept from qualities if flags missing.
@@ -293,6 +298,11 @@ public enum ChummerJSONParser {
         }
     }
 
+    private static func mergeNotes(_ notes: String, _ gameNotes: String) -> String {
+        if !notes.isEmpty, !gameNotes.isEmpty { return notes + "\n\n" + gameNotes }
+        return notes.isEmpty ? gameNotes : notes
+    }
+
     private static func mapPowers(_ node: Any?) -> [ChummerNormalizedPower] {
         let H = ChummerParsingHelpers.self
         return H.arrayOfDictionaries(node, childKey: "power").compactMap { p in
@@ -328,7 +338,16 @@ public enum ChummerJSONParser {
                 name: name,
                 role: H.stringValue(c["role"]) ?? H.stringValue(c["job"]) ?? "",
                 loyalty: H.intValue(c["loyalty"], default: 1),
-                connection: H.intValue(c["connection"], default: 1)
+                connection: H.intValue(c["connection"], default: 1),
+                notes: H.stripHTML(H.stringValue(c["notes"])),
+                contactType: H.stringValue(c["type"]) ?? H.stringValue(c["contacttype"]) ?? "",
+                metatype: H.stringValue(c["metatype"]) ?? "",
+                gender: H.stringValue(c["gender"]) ?? "",
+                age: H.stringValue(c["age"]) ?? "",
+                location: H.stringValue(c["location"]) ?? "",
+                preferredPayment: H.stringValue(c["preferredpayment"]) ?? "",
+                hobbiesVice: H.stringValue(c["hobbiesvice"]) ?? "",
+                personalLife: H.stringValue(c["personallife"]) ?? ""
             )
         }
     }
