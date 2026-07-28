@@ -126,23 +126,31 @@ struct LaunchSplashView: View {
 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 6) {
+                        // Static chrome — never participates in quip opacity animation.
                         Text("CYBERDECK // BOOT")
                             .font(BrandFonts.mono(size: 10))
                             .foregroundStyle(Color.cyan.opacity(0.65))
                             .tracking(1.5)
+                            .transaction { $0.animation = nil }
 
+                        // Fixed-height slot so swapping quips never reflows this row.
+                        // Opacity animation is scoped here only (not a global withAnimation).
                         Text(Self.quips[quipIndex % Self.quips.count])
                             .font(BrandFonts.mono(size: 13))
                             .foregroundStyle(.white.opacity(0.9))
                             .opacity(quipOpacity)
-                            .animation(.easeInOut(duration: 0.25), value: quipIndex)
-                            .frame(maxWidth: 420, alignment: .leading)
+                            .animation(.easeInOut(duration: 0.28), value: quipOpacity)
                             .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: 420, minHeight: 36, maxHeight: 36, alignment: .topLeading)
                     }
-                    Spacer()
+
+                    Spacer(minLength: 12)
+
                     Text("Click or any key to skip")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.4))
+                        .transaction { $0.animation = nil }
                 }
                 .padding(.horizontal, 36)
                 .padding(.bottom, 28)
@@ -178,12 +186,18 @@ struct LaunchSplashView: View {
             try? await Task.sleep(nanoseconds: UInt64(Self.introDelay * 1_000_000_000))
             for i in 0..<Self.quipsToShow {
                 if Task.isCancelled || didDismiss { return }
+                // Swap copy while fully transparent — no mid-fade string replacement.
                 quipIndex = i
-                withAnimation(.easeIn(duration: 0.2)) { quipOpacity = 1 }
+                quipOpacity = 0
+                // Yield one frame so the new string is laid out at opacity 0 before fade-in.
+                await Task.yield()
+                if Task.isCancelled || didDismiss { return }
+                quipOpacity = 1
                 try? await Task.sleep(nanoseconds: UInt64(Self.secondsPerQuip * 1_000_000_000))
                 if Task.isCancelled || didDismiss { return }
-                withAnimation(.easeOut(duration: 0.15)) { quipOpacity = 0 }
-                try? await Task.sleep(nanoseconds: 120_000_000)
+                quipOpacity = 0
+                // Hold dark long enough that fade-out finishes before the next string lands.
+                try? await Task.sleep(nanoseconds: 300_000_000)
             }
             if !didDismiss {
                 dismiss()
