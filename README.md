@@ -1,103 +1,123 @@
 # ShadowDeck
 
-**Native macOS character creation & campaign management for Shadowrun 4th, 5th, and 6th edition.**
+**Create, import, and run Shadowrun characters on your Mac** — for Shadowrun 4th, 5th, and 6th edition.
 
-ShadowDeck is a production-grade SwiftUI app designed to rival (and eventually surpass) the feature set of Chummer5a on Windows—while feeling fully at home on the Mac.
+ShadowDeck is an unofficial fan-made character and campaign companion for tabletop Shadowrun. Build runners with a guided wizard, pull in sheets from Chummer, keep a living library of characters, and export what your table or online hub needs.
 
-## Vision
+> Shadowrun is a trademark of its respective owners. ShadowDeck is **not** affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
 
-- Beautiful, HIG-compliant macOS experience
-- Multi-edition character generation and long-term campaign tracking
-- Rich **at-a-glance** character summary with portrait/avatar
-- Reliable import from Chummer (JSON first, then `.chum5`)
-- Edition-aware rules engine; data-driven where practical
-- Clear architecture a single developer can own long-term
+<p align="center">
+  <img src="Docs/Screenshots/01-splash.jpg" alt="ShadowDeck launch splash" width="920" />
+</p>
 
-## Tech Stack
+<p align="center">
+  <img src="Docs/Screenshots/02-library.jpg" alt="Character library" width="450" />
+  &nbsp;
+  <img src="Docs/Screenshots/03-generation-role.jpg" alt="Character generation — Concept &amp; Role" width="450" />
+</p>
 
-| Layer | Choice |
-|--------|--------|
-| Language | Swift 5 / Swift 6 concurrency readiness |
-| UI | SwiftUI (macOS 14+) |
-| Architecture | Observation + protocol-oriented design |
-| Persistence | SwiftData (preferred; Core Data if needed) |
-| Packaging | Xcode project; SPM modules if modularity helps |
-| Tests | XCTest for domain, rules, import, persistence |
+<p align="center">
+  <img src="Docs/Screenshots/04-character-sheet.jpg" alt="Character summary sheet" width="920" />
+</p>
 
-**Bundle ID:** `com.shadowdeck.ShadowDeck`  
-**Deployment target:** macOS 14.0+  
-**Category:** Role-Playing Games
+<p align="center"><sub>Splash · Library · Generation (role pick) · Play sheet</sub></p>
 
-## Project Layout
+---
 
-```
-ShadowDeck/
-├── App/              # App entry, scene configuration
-├── Models/           # Domain models (Phase 1+)
-├── Rules/            # Edition-aware rules engine (Phase 1+)
-├── Persistence/      # SwiftData / storage (Phase 2+)
-├── Import/           # Chummer JSON & .chum5 (Phase 3+)
-├── UI/               # Views and view models
-├── Resources/        # Game data files (JSON/plist)
-└── Assets.xcassets   # Icons, accent color, images
-```
+## What you can do
 
-## Phased Delivery
+### Build a runner
+- **Edition-aware generation** for SR4, SR5, and SR6
+- Step-by-step wizard: metatype, priorities, attributes, skills, qualities, resources, magic/resonance
+- **House rules catalog** — Sum-to-Ten, free knowledge, expanded contacts, prime runner packages, and more (stack individual rules or start from presets)
+- Role recommendations and painted archetype / metatype art
 
-| Phase | Focus | Status |
-|-------|--------|--------|
-| **0** | Project bootstrap & foundation | ✅ Complete |
-| **1** | Core domain models & multi-edition support | ✅ Complete |
-| **2** | Persistence layer (SwiftData + avatars) | ✅ Complete |
-| **3** | Import pipeline (Chummer JSON / `.chum5`) | ✅ Complete |
-| **4** | Character generation wizard | ✅ Complete |
-| **5** | Main character summary (at-a-glance) | ✅ Complete |
-| **6** | Detailed management views | Pending |
-| **7** | Polish, export, packaging | Pending |
-| **8** | Extensibility (optional stretch) | Pending |
+### Keep a character library
+- Local library of all your runners (search and filter)
+- **Interactive play sheet**: attributes (base + gear/aug bonuses), condition monitors, karma, nuyen, initiative, armor, dice pools
+- Tabs for skills, gear, augmentations, qualities, contacts, and magic
+- Portraits (including animated GIF support via hybrid storage)
 
-See [Docs/DESIGN.md](Docs/DESIGN.md) for architecture notes and open decisions.
+### Import what you already have
+- **Chummer** JSON and **`.chum5`** files
+- Native **`.shadowdeck`** packages (double-click or File → Open Package…)
+- Original Chummer payload is stored when you import, so you can re-export a faithful `.chum5` later
+
+### Export for the table
+| Format | Best for |
+|--------|----------|
+| **PDF character sheet** | GMs, Discord, printable review (includes portrait when set) |
+| **Chummer `.chum5`** | Online hubs that expect Chummer files (original import when available, else best-effort regenerate) |
+| **`.shadowdeck` package** | Backups and moving between Macs |
+
+### Catalogs & effects
+- Bundled **SR5 reference catalog** (gear, weapons, armor, cyberware, bioware, qualities, skills, adept powers) — no Chummer install required
+- Equipping gear, installing augs, qualities, and powers **updates attributes, armor, initiative, and pools** on the summary sheet
+- Custom items can carry their own stat modifiers
+
+---
+
+## Getting started
+
+1. Open **ShadowDeck.xcodeproj** in Xcode 16+ (macOS 14+ target) and Run, **or** build a Release app with `Scripts/release_build.sh`.
+2. **New Character** from the sidebar (or ⌘N) to run the wizard, **or**
+3. **Import…** a Chummer (`.json` / `.chum5`) or **`.shadowdeck`** package, **or** load sample runners from the library toolbar.
+4. Open a character for the play sheet; use **Sheet** for PDF / Chummer export, **Export…** for a portable package.
+
+### First launch
+You’ll see a short branded splash (skip with click or any key). Loading-style quips are flavor only — the app is already ready.
+
+---
 
 ## Requirements
 
-- macOS 14.0 or later (runtime)
-- Xcode 16+ (development)
-- Accept the Xcode license: `sudo xcodebuild -license`
+- **macOS 14.0** or later
+- For development: **Xcode 16+**
 
-## Build & Run
+---
 
-```bash
-# Open in Xcode
-open ShadowDeck.xcodeproj
+## Tips
 
-# Or build from the command line
-xcodebuild \
-  -project ShadowDeck.xcodeproj \
-  -scheme ShadowDeck \
-  -destination 'platform=macOS' \
-  build
-```
+- **Profile fields** (contacts, attributes, gear equip) save as you go.
+- **Rich-text notes** use **Save Notes** (or collapse a contact to commit its notes).
+- **House Rules…** on the character identity area apply after chargen and affect validation/essence ceilings.
+- Re-import a Chummer file once if you want **byte-faithful** `.chum5` re-export of that original file.
 
-Run tests:
+---
+
+## For developers
+
+Build, test, and packaging notes live under [Docs/DESIGN.md](Docs/DESIGN.md) and [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md).
 
 ```bash
-xcodebuild \
-  -project ShadowDeck.xcodeproj \
-  -scheme ShadowDeck \
-  -destination 'platform=macOS' \
-  test
+# Debug build
+xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
+  -destination 'platform=macOS' build
+
+# Tests
+xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
+  -destination 'platform=macOS' test
+
+# Unsigned Release app → build/Release/ShadowDeck.app
+Scripts/release_build.sh
+
+# Refresh README marquee screenshots (in-app capture → Docs/Screenshots/)
+Scripts/capture_readme_screenshots.sh
 ```
 
-## Principles
+Regenerate the bundled catalog from a Chummer `data/` folder:
 
-1. Prefer clarity and long-term maintainability over cleverness.
-2. Ask early about visual design, prioritization, and ambiguous rules.
-3. Focused commits with descriptive messages (`Phase N complete: …`).
-4. Tests for logic that would be painful to regress.
-5. No hard-coded large game-data tables when a data file is feasible.
-6. Document non-obvious decisions in code comments or `Docs/DESIGN.md`.
+```bash
+python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
+```
 
-## License
+---
 
-Source available under the terms specified in [LICENSE](LICENSE).  
-Shadowrun is a trademark of its respective owners. This project is an unofficial fan tool and is not affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
+## License & credits
+
+- Application source: see [LICENSE](LICENSE).
+- Bundled catalog data is derived from Chummer5a open data (GPL-3.0); see `ShadowDeck/Resources/Catalog/NOTICE.txt`.
+- Brand fonts: Orbitron / Rajdhani (SIL Open Font License) under `Resources/Fonts/`.
+- Splash and icon art are original generated assets for this fan tool.
+
+**Shadowrun** names and setting elements remain trademarks of their owners. Use this app for personal tabletop play; respect the rights of book publishers when importing your own PDFs or materials.

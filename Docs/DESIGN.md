@@ -19,6 +19,7 @@ Updated as phases land. **Human input required** before locking ambiguous items.
 | House rules | Core-book default + top ~10 popular toggles early |
 | Domain model | Pure `Codable` value types; SwiftData `CharacterRecord` + JSON payload |
 | Avatar storage | **Hybrid**: ≤256KB static inline; large/animated as files |
+| Character dashboard | **Interactive play sheet** (Phase 5) + **management tabs** (Phase 6): skills, gear, augs, qualities, contacts, magic |
 
 ## Architecture Overview
 
@@ -90,20 +91,24 @@ runner.shadowdeck/
 
 Domain `Character.avatar.inlineData` is rehydrated on fetch for UI/export convenience; the JSON payload never embeds binary.
 
-### House rules (early set)
+### House rules
 
-1. Sum-to-Ten  
-2. Karma generation  
-3. Bonus starting karma  
-4. Free knowledge skills  
-5. Expanded contacts  
-6. Exceptional Attribute at chargen  
-7. Essence cost rounding  
-8. Quality budget adjustment  
-9. Prime runner package  
-10. Alternate attribute costs  
+**Design choice: multi-select individual rules**, not exclusive “rule packs.” Tables almost always stack conveniences (Sum-to-Ten + free knowledge + expanded contacts). Presets (`.coreBook`, `.popularTable`, `.primeRunner`) only seed the set; players can still toggle pieces. The only mutual exclusion is **Karma Generation** vs **Sum-to-Ten / classic priority letters**.
 
-Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
+| Rule | Chargen / play effect |
+|------|------------------------|
+| Sum-to-Ten | Priority values sum to 10; duplicates OK |
+| Karma generation | Switches wizard to karmagen budget |
+| Bonus starting karma | Adds `bonusKarma` to starting pool |
+| Free knowledge skills | Free ranks = fixed or (LOG+INT)×2 |
+| Expanded contacts | CHA×3 + `extraContactPoints` |
+| Exceptional Attribute at chargen | Natural max +1; augmented ceiling +1 |
+| Essence cost rounding | Rounds each aug cost down (effects engine / essence) |
+| Quality budget adjustment | Positive quality karma cap override |
+| Prime runner package | Karma + contacts + quality cap + ~10% nuyen |
+| Alternate attribute costs | Linear post-gen attribute karma |
+
+UI: **Configure…** on the edition wizard step and **House Rules…** on the Summary identity column open a searchable catalog with descriptions and live effect list (`HouseRulesBrowserView` + `HouseRulesEngine`).
 
 ## Open Decisions (ask human before locking)
 
@@ -130,7 +135,7 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 
 - Original Chummer files are **read-only**; never written back.
 - Skill ranks use Chummer `rating` / `base+karma`, **not** dice-pool `total`.
-- Attribute sheet values prefer Chummer `total` (includes permanent aug bonuses as displayed).
+- Attribute sheet values prefer Chummer **`base`** so `CharacterEffectsEngine` can re-apply aug/quality/gear modifiers without double-counting totals. Imported gear/augs/qualities pull modifiers from the bundled catalog by name.
 - Personal test fixtures (e.g. Ghostwire) stay outside the repo; CI uses synthetic fixtures under `ShadowDeckTests/Fixtures/`.
 
 ## Migration Strategy
@@ -150,7 +155,96 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | Import mapping fidelity | Phase 3 ✅ |
 | Generation cost / legality | Phase 4 ✅ |
 | At-a-glance summary dashboard | Phase 5 ✅ |
+| Detailed management (skills/gear/augs/…) | Phase 6 ✅ |
+| Character effects (equip → attrs/nuyen/armor) | Phase 7 ✅ |
+| House rules catalog + multi-select enforcement | Phase 7 ✅ |
+| Packaging / menus / library polish | Phase 8 ✅ |
 | Derived values / UI logic as pure functions | Ongoing |
+
+## Phase 8 — Packaging & polish
+
+| Deliverable | Detail |
+|-------------|--------|
+| **Version** | Marketing version `0.8.0` |
+| **UTType** | `com.shadowdeck.character` exported for `.shadowdeck` directory packages (`Info.plist` + `UTType.shadowdeckCharacter`) |
+| **Open package** | Finder double-click / `application(_:open:)` → import into library; File → Open Package…; library **Open Package…** |
+| **Menus** | File → New Character (⌘N), Import (⇧⌘O), Open Package (⌘O) |
+| **Library** | Search/filter by name, street name, concept, edition, metatype |
+| **Summary** | Validation banner (errors/warnings from `EditionRules.validate`) |
+| **Settings** | About + portable format tips |
+| **Release** | `Scripts/release_build.sh` produces unsigned `build/Release/ShadowDeck.app` |
+
+**Extensibility notes (intentional hooks, not full plugin system yet):**
+
+- Catalog is data-driven JSON (`formatVersion` 2) regenerable from Chummer XML.
+- House rules are a `Set<HouseRuleID>` + parameters; new rules add an enum case + `HouseRulesEngine` branch.
+- Edition rules stay behind `EditionRules` / `RulesRegistry`.
+
+## Character workspace (Phase 5–6)
+
+Segmented tabs on the open character:
+
+| Tab | Role |
+|-----|------|
+| **Summary** | Play sheet: portrait, attributes, story, vitals, condition, notes |
+| **Skills** | Full skill list; rating steppers; add/remove |
+| **Gear** | Inventory; equip toggles; quantity; add/remove |
+| **Augs** | Cyberware/bioware + essence costs |
+| **Qualities** | Positive/negative qualities + karma values |
+| **Contacts** | Loyalty / Connection |
+| **Magic** | Adept powers, spells, complex forms |
+
+Mutations persist immediately through `CharacterLibrary.save`.
+
+## Character effects engine (Phase 7)
+
+Equipping gear, installing augmentations, taking qualities, and ranking adept powers dynamically updates the play sheet.
+
+| Concept | Behavior |
+|---------|----------|
+| **Base attributes** | Stored on `Character.attributes`; Summary ± edits base only |
+| **Effective attributes** | `base + Σ modifiers` from augs, qualities, powers, **equipped** gear |
+| **Armor** | `max(equipped armorRating) + additive armor modifiers` |
+| **Initiative** | Uses effective REA/INT + initiative / initiative-dice modifiers (e.g. Wired Reflexes) |
+| **Dice pools / limits** | Recomputed from effective attributes + skill bonuses |
+| **Nuyen** | Catalog/custom purchase deducts cost when affordable; soft-add if broke; refund on delete if `purchasedInApp` |
+| **Custom items** | Field values + optional `StatModifier` list (target, amount, ×Rating, skill key) |
+| **Catalog** | Bundled JSON includes Chummer `<bonus>` extracts (`specificattribute`, `specificskill`, `armor`, `initiativepass`, …) |
+
+```
+Character.attributes (base)
+        + gear[equipped].modifiers
+        + augmentations.modifiers
+        + qualities.modifiers
+        + adeptPowers.modifiers
+        ↓
+CharacterEffectsEngine.resolve → CharacterEffects
+        ↓
+EditionRules.deriveStats → play sheet (Summary)
+```
+
+Regenerate catalog after Chummer data updates:
+
+```bash
+python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
+```
+
+## Reference catalogs (bundled)
+
+ShadowDeck **ships a built-in SR5 catalog** (`Resources/Catalog/sr5_catalog.json`, ~3.8k entries) derived from Chummer5a’s open **GPL-3.0** data XML. No Chummer install is required.
+
+| Source | Role |
+|--------|------|
+| **Bundled JSON** | Default for all users (gear, weapons, armor, cyberware, bioware, qualities, contact roles) |
+| **NOTICE.txt** | Attribution / GPL notice for redistributed data |
+| **Scripts/build_catalog_from_chummer.py** | Regenerate JSON from a Chummer `data/` folder |
+| **Settings → external override** | Optional developer path to live Chummer XML |
+
+Add flows use a **searchable browser**; **Custom…** always works offline without the catalog.
+
+**Not done / not planned as scrape:** Shadowrun Wiki scraping is brittle, incomplete for costs, and a poor ToS fit. Named street-contact art DBs do not exist officially — contacts stay freeform (+ role archetypes from catalog).
+
+SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs are curated.
 
 ## Changelog of Decisions
 
@@ -163,3 +257,21 @@ Presets: `.coreBook`, `.popularTable`, `.primeRunner`.
 | 2026-07-25 | CI: macos-15 + Xcode 26.3; Chummer audit doc |
 | 2026-07-25 | Phase 4: multi-page generation wizard, live allocation, archetype showcase |
 | 2026-07-25 | Phase 5: at-a-glance character summary dashboard |
+| 2026-07-25 | Phase 6: detailed management tabs (skills, gear, augs, qualities, contacts, magic) |
+
+
+## Phase 9A — Brand kit
+
+- Custom macOS app icon (cyberpunk deck / card motif) in `AppIcon.appiconset`.
+- Launch splash (`Resources/Brand/launch_splash.jpg`) with role cast; shown once until dismissed (`hasSeenLaunchSplash`).
+- Unofficial fan art; not Catalyst IP.
+
+## Phase 9B — Campaign sheet export
+
+| Artifact | Module |
+|----------|--------|
+| Validation snapshot | `CampaignSheetReport` |
+| Pretty PDF | `CharacterSheetPDF` (US Letter, 2 pages) |
+| Chummer best-effort | `ChummerXMLExporter` → `.chum5` |
+
+Chummer export is **lossy / best-effort**. Prefer PDF + `.shadowdeck` as ShadowDeck source of truth. Online hubs that require `.chum5` get a re-importable core sheet with a fidelity report.

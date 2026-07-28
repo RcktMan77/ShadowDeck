@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Capture README marquee screenshots by launching ShadowDeck with an in-app
+# exporter (no Screen Recording permission required).
+#
+# Usage:
+#   Scripts/capture_readme_screenshots.sh
+#   SHADOWDECK_APP=/path/to/ShadowDeck.app Scripts/capture_readme_screenshots.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$ROOT/Docs/Screenshots"
+mkdir -p "$OUT"
+
+# Prefer Debug build from DerivedData; fall back to release_build output.
+DEFAULT_DEBUG="$(ls -d "$HOME"/Library/Developer/Xcode/DerivedData/ShadowDeck-*/Build/Products/Debug/ShadowDeck.app 2>/dev/null | head -1 || true)"
+APP="${SHADOWDECK_APP:-${DEFAULT_DEBUG:-$ROOT/build/Release/ShadowDeck.app}}"
+
+if [[ ! -d "$APP" ]]; then
+  echo "Building Debug ShadowDeck…"
+  xcodebuild -project "$ROOT/ShadowDeck.xcodeproj" -scheme ShadowDeck \
+    -destination 'platform=macOS' -configuration Debug build
+  APP="$(ls -d "$HOME"/Library/Developer/Xcode/DerivedData/ShadowDeck-*/Build/Products/Debug/ShadowDeck.app 2>/dev/null | head -1)"
+fi
+
+if [[ ! -d "$APP" ]]; then
+  echo "error: ShadowDeck.app not found. Build the project first." >&2
+  exit 1
+fi
+
+echo "Using app: $APP"
+echo "Repo out:  $OUT"
+
+# Sandboxed app writes here; we copy into the repo afterward.
+CONTAINER_OUT="$HOME/Library/Containers/com.shadowdeck.ShadowDeck/Data/Library/Application Support/ShadowDeck/MarketingScreenshots"
+# Non-sandboxed fallback (if entitlements ever change):
+HOST_AS="$HOME/Library/Application Support/ShadowDeck/MarketingScreenshots"
+
+# Quit any interactive instance so we get a clean launch + splash.
+pkill -x ShadowDeck 2>/dev/null || true
+sleep 0.6
+
+# Launch with capture flags. open(1) does not forward env to GUI apps reliably
+# on all macOS versions, so we exec the binary directly.
+export SHADOWDECK_CAPTURE_SCREENSHOTS=1
+
+# Run until the app terminates after captures (timeout safety).
+set +e
+"$APP/Contents/MacOS/ShadowDeck" --capture-screenshots &
+PID=$!
+set -e
+
+# Wait up to 45s for completion.
+for i in $(seq 1 90); do
+  if ! kill -0 "$PID" 2>/dev/null; then
+    break
+  fi
+  sleep 0.5
+done
+
+if kill -0 "$PID" 2>/dev/null; then
+  echo "Timed out waiting for captures; terminating." >&2
+  kill "$PID" 2>/dev/null || true
+  sleep 0.3
+  kill -9 "$PID" 2>/dev/null || true
+fi
+
+SRC=""
+if compgen -G "$CONTAINER_OUT"/0*.png > /dev/null 2>&1; then
+  SRC="$CONTAINER_OUT"
+elif compgen -G "$HOST_AS"/0*.png > /dev/null 2>&1; then
+  SRC="$HOST_AS"
+else
+  echo "No screenshots found in:" >&2
+  echo "  $CONTAINER_OUT" >&2
+  echo "  $HOST_AS" >&2
+  exit 1
+fi
+
+echo "Copying from: $SRC"
+rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/_*.png 2>/dev/null || true
+# README uses JPEG (smaller); full PNG stays in the app container if needed.
+cp -f "$SRC"/0*.jpg "$OUT"/ 2>/dev/null || true
+
+echo ""
+echo "Captured files:"
+ls -la "$OUT"/0*.jpg 2>/dev/null || {
+  echo "Copy failed." >&2
+  exit 1
+}
+
+# Cap long edge for GitHub README bandwidth.
+for f in "$OUT"/0*.jpg; do
+  w=$(sips -g pixelWidth "$f" 2>/dev/null | awk '/pixelWidth/ {print $2}')
+  if [[ -n "${w:-}" && "$w" -gt 1800 ]]; then
+    sips -Z 1600 "$f" >/dev/null
+  fi
+done
+
+echo "Done."
