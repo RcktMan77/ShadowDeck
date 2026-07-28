@@ -52,7 +52,8 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
 
 ### Import what you already have
 - **Chummer** JSON and **`.chum5`** files
-- Native **`.shadowdeck`** packages (double-click or File → Open Package…)
+- Native **`.shadowdeck`** packages
+- Ways to import: sidebar **Import…**, **File → Import Character…** (⌘O), drag-and-drop onto the library or Import drop zone, or double-click a `.shadowdeck` package in Finder (also works dropped on the Dock icon)
 - Original Chummer payload is stored when you import, so you can re-export a faithful `.chum5` later
 
 ### Export for the table
@@ -71,10 +72,10 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
 
 ## Getting started
 
-1. Open **ShadowDeck.xcodeproj** in Xcode 16+ (macOS 14+ target) and Run, **or** build a Release app with `Scripts/release_build.sh`.
+1. Download a [Release](https://github.com/RcktMan77/ShadowDeck/releases) build, **or** open **ShadowDeck.xcodeproj** in Xcode 16+ and Run, **or** build with `Scripts/release_build.sh`.
 2. **New Character** from the sidebar (or ⌘N) to run the wizard, **or**
-3. **Import…** a Chummer (`.json` / `.chum5`) or **`.shadowdeck`** package, **or** load sample runners from the library toolbar.
-4. Open a character for the play sheet; use **Sheet** for PDF / Chummer export, **Export…** for a portable package.
+3. **Import…** / **File → Import Character…** a Chummer (`.json` / `.chum5`) or **`.shadowdeck`** package (drag-and-drop also works), **or** load sample runners from the library toolbar.
+4. Open a character for the play sheet; use **Export…** for PDF, Chummer, or a portable package.
 
 ### First launch
 You’ll see a short branded splash (skip with click or any key). Loading-style quips are flavor only — the app is already ready.

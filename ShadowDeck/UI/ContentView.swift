@@ -42,6 +42,7 @@ struct ContentView: View {
     /// Pending library delete (confirmation dialog).
     @State private var characterPendingDelete: CharacterSummary?
     @State private var libraryQuery = ""
+    @State private var isLibraryDropTargeted = false
 
     private var filteredSummaries: [CharacterSummary] {
         let q = libraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -206,6 +207,12 @@ struct ContentView: View {
                 .help("Import Chummer (.json / .chum5) or a .shadowdeck package")
             }
 
+            if isLibraryDropTargeted {
+                Text("Drop to import (.json / .chum5 / .shadowdeck)")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.tint)
+            }
+
             if !summaries.isEmpty {
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -350,6 +357,54 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    isLibraryDropTargeted ? Color.accentColor : Color.clear,
+                    style: StrokeStyle(lineWidth: 2, dash: [7, 5])
+                )
+        )
+        .onDrop(of: [.fileURL], isTargeted: $isLibraryDropTargeted) { providers in
+            handleLibraryFileDrop(providers)
+        }
+    }
+
+    /// Drag-and-drop import for the library (`.json` / `.chum5` / `.shadowdeck`).
+    private func handleLibraryFileDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            let url: URL?
+            if let data = item as? Data {
+                url = URL(dataRepresentation: data, relativeTo: nil)
+            } else if let urlItem = item as? URL {
+                url = urlItem
+            } else if let str = item as? String {
+                url = URL(fileURLWithPath: str)
+            } else {
+                url = nil
+            }
+            guard let url else { return }
+            DispatchQueue.main.async {
+                importDroppedFile(from: url)
+            }
+        }
+        return true
+    }
+
+    private func importDroppedFile(from url: URL) {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+        do {
+            let result = try libraryEnvironment.library.importAndSave(from: url)
+            selection = .characters
+            selectedCharacterID = result.character.id
+            refresh()
+            statusMessage = "Imported “\(result.character.displayTitle)” into the library."
+        } catch {
+            statusMessage = "Import failed: \(error.localizedDescription)"
+        }
     }
 
     @ViewBuilder
