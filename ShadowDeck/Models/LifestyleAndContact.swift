@@ -50,6 +50,15 @@ public struct Contact: Codable, Sendable, Hashable, Identifiable {
     public var loyalty: Int
     public var connection: Int
     public var notes: String
+    /// Extended identity (from Chummer import / detail sheet).
+    public var contactType: String?
+    public var metatype: String?
+    public var gender: String?
+    public var age: String?
+    public var location: String?
+    public var preferredPayment: String?
+    public var hobbiesVice: String?
+    public var personalLife: String?
 
     public init(
         id: UUID = UUID(),
@@ -57,7 +66,15 @@ public struct Contact: Codable, Sendable, Hashable, Identifiable {
         role: String = "",
         loyalty: Int = 1,
         connection: Int = 1,
-        notes: String = ""
+        notes: String = "",
+        contactType: String? = nil,
+        metatype: String? = nil,
+        gender: String? = nil,
+        age: String? = nil,
+        location: String? = nil,
+        preferredPayment: String? = nil,
+        hobbiesVice: String? = nil,
+        personalLife: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -65,5 +82,19 @@ public struct Contact: Codable, Sendable, Hashable, Identifiable {
         self.loyalty = loyalty
         self.connection = connection
         self.notes = notes
+        self.contactType = contactType
+        self.metatype = metatype
+        self.gender = gender
+        self.age = age
+        self.location = location
+        self.preferredPayment = preferredPayment
+        self.hobbiesVice = hobbiesVice
+        self.personalLife = personalLife
+    }
+
+    public var hasExtendedProfile: Bool {
+        [contactType, metatype, gender, age, location, preferredPayment, hobbiesVice, personalLife]
+            .contains { ($0?.isEmpty == false) }
+            || !notes.isEmpty
     }
 }

@@ -85,18 +85,28 @@ final class CharacterModelTests: XCTestCase {
     func testAttributeBoundsEnforcedPerMetatype() {
         let rules = SR5Rules()
         var character = SampleCharacters.sr5CombatMage()
-        // Elf agility max 7 — force illegal 9
-        character.attributes.agility = 9
+        // Elf agility natural max 7, play max 11 (+4 augs). 12 is illegal.
+        character.attributes.agility = 12
         let result = rules.validate(character)
         XCTAssertFalse(result.isValid)
         XCTAssertTrue(result.errors.contains { $0.code == "attribute.bounds" })
+    }
+
+    func testAugmentedAttributeWithinPlayBounds() {
+        let rules = SR5Rules()
+        var character = SampleCharacters.sr5CombatMage()
+        // Human reaction natural max 6; Improved Reflexes style total 7 is legal play.
+        character.metatype = .human
+        character.attributes.reaction = 7
+        let result = rules.validate(character)
+        XCTAssertFalse(result.errors.contains { $0.code == "attribute.bounds" && $0.field == "reaction" })
     }
 
     func testExceptionalAttributeHouseRuleRelaxesMax() {
         let rules = SR5Rules()
         var character = SampleCharacters.sr5CombatMage()
         character.houseRules.enable(.exceptionalAttributeAtChargen)
-        // Elf agility natural max 7; with house rule allow 8
+        // Elf agility natural max 7; with exceptional + aug max becomes 12. 8 is fine either way.
         character.attributes.agility = 8
         let result = rules.validate(character)
         XCTAssertFalse(result.errors.contains { $0.code == "attribute.bounds" && $0.field == "agility" })
@@ -110,6 +120,20 @@ final class CharacterModelTests: XCTestCase {
         )
         let result = rules.validate(character)
         XCTAssertTrue(result.errors.contains { $0.code == "qualities.positive_cap" })
+    }
+
+    func testFreePathQualityExcludedFromPositiveCap() {
+        let rules = SR5Rules()
+        var character = SampleCharacters.sr5CombatMage()
+        // Magician is free from priority; Codeslinger-style 10 + 6 stays under 25.
+        character.qualities = [
+            QualityInstance(catalogKey: "magician", name: "Magician", kind: .positive, karmaValue: 20),
+            QualityInstance(catalogKey: "codeslinger", name: "Codeslinger", kind: .positive, karmaValue: 10),
+            QualityInstance(catalogKey: "photographic_memory", name: "Photographic Memory", kind: .positive, karmaValue: 6),
+        ]
+        let result = rules.validate(character)
+        XCTAssertFalse(result.errors.contains { $0.code == "qualities.positive_cap" })
+        XCTAssertEqual(ValidationHelpers.positiveQualityKarmaSpend(qualities: character.qualities), 16)
     }
 
     func testDisplayTitle() {

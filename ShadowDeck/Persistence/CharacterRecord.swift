@@ -97,7 +97,8 @@ public final class CharacterRecord {
             editionRaw: editionRaw,
             metatypeRaw: metatypeRaw,
             modifiedAt: modifiedAt,
-            hasAvatar: avatarKind != .none && avatarByteCount > 0
+            hasAvatar: avatarKind != .none && avatarByteCount > 0,
+            thumbnailData: nil
         )
     }
 }
@@ -112,6 +113,8 @@ public struct CharacterSummary: Identifiable, Hashable, Sendable {
     public var metatypeRaw: String
     public var modifiedAt: Date
     public var hasAvatar: Bool
+    /// Small JPEG (or original) for list-row portraits; not used for equality of identity.
+    public var thumbnailData: Data?
 
     public init(
         id: UUID,
@@ -121,7 +124,8 @@ public struct CharacterSummary: Identifiable, Hashable, Sendable {
         editionRaw: String,
         metatypeRaw: String,
         modifiedAt: Date,
-        hasAvatar: Bool
+        hasAvatar: Bool,
+        thumbnailData: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -131,6 +135,31 @@ public struct CharacterSummary: Identifiable, Hashable, Sendable {
         self.metatypeRaw = metatypeRaw
         self.modifiedAt = modifiedAt
         self.hasAvatar = hasAvatar
+        self.thumbnailData = thumbnailData
+    }
+
+    public static func == (lhs: CharacterSummary, rhs: CharacterSummary) -> Bool {
+        lhs.id == rhs.id
+            && lhs.name == rhs.name
+            && lhs.streetName == rhs.streetName
+            && lhs.concept == rhs.concept
+            && lhs.editionRaw == rhs.editionRaw
+            && lhs.metatypeRaw == rhs.metatypeRaw
+            && lhs.modifiedAt == rhs.modifiedAt
+            && lhs.hasAvatar == rhs.hasAvatar
+            && lhs.thumbnailData == rhs.thumbnailData
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(streetName)
+        hasher.combine(concept)
+        hasher.combine(editionRaw)
+        hasher.combine(metatypeRaw)
+        hasher.combine(modifiedAt)
+        hasher.combine(hasAvatar)
+        hasher.combine(thumbnailData)
     }
 
     public var edition: Edition? { Edition(rawValue: editionRaw) }

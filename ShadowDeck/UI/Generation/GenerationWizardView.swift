@@ -16,7 +16,11 @@ struct GenerationWizardView: View {
     @State private var didFinish = false
     @State private var avatarImportError: String?
     @State private var scrollAnchor = UUID()
+    @State private var showHouseRulesBrowser = false
+    @State private var confirmCancel = false
     var onFinished: (() -> Void)?
+    /// Leave the wizard without saving (any step).
+    var onCancel: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,7 +68,34 @@ struct GenerationWizardView: View {
             footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.wizardShowRoleStep)) { _ in
+            // Marketing screenshots: land on Concept & Role with a photogenic archetype.
+            draft.edition = .sr5
+            draft.archetype = .decker
+            if draft.concept.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                draft.concept = "Ex-Renraku matrix specialist"
+            }
+            if draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                draft.name = "Aiko Sato"
+            }
+            if draft.streetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                draft.streetName = "Ghostwire"
+            }
+            draft.step = .concept
+        }
         .background(Color(nsColor: .windowBackgroundColor))
+        .confirmationDialog(
+            "Cancel character creation?",
+            isPresented: $confirmCancel,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Character", role: .destructive) {
+                onCancel?()
+            }
+            Button("Keep Editing", role: .cancel) {}
+        } message: {
+            Text("Progress in this wizard will be lost. Nothing has been saved to your library yet.")
+        }
     }
 
     private var header: some View {
@@ -85,6 +116,11 @@ struct GenerationWizardView: View {
                         .help(step.title)
                 }
             }
+            Button("Cancel", role: .cancel) {
+                requestCancel()
+            }
+            .keyboardShortcut(.cancelAction)
+            .help("Leave without saving this character")
         }
         .padding(16)
     }
@@ -107,6 +143,9 @@ struct GenerationWizardView: View {
 
     private var footer: some View {
         HStack {
+            Button("Cancel", role: .cancel) {
+                requestCancel()
+            }
             Button("Back") { draft.goBack() }
                 .disabled(draft.step == .edition)
             if let statusMessage {
@@ -143,19 +182,76 @@ struct GenerationWizardView: View {
                 }
             }
 
-            Toggle("Use popular table house rules (Sum-to-Ten, bonus karma, etc.)", isOn: Binding(
-                get: { draft.houseRules.isEnabled(.sumToTen) },
-                set: { on in
-                    if on {
-                        draft.houseRules = .popularTable
-                        draft.generationSystem = .sumToTen
-                    } else {
-                        draft.houseRules = .coreBook
-                        draft.generationSystem = draft.rules.defaultGenerationSystem
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("House Rules")
+                            .font(.headline)
+                        Text(houseRulesSummaryLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
                     }
-                    draft.recomputeBudgetsFromPriorities()
+                    Spacer()
+                    Button("Configure…") {
+                        showHouseRulesBrowser = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
                 }
-            ))
+
+                if !draft.houseRules.enabled.isEmpty {
+                    houseRuleChips
+                } else {
+                    Text("Core book only. Open the catalog to enable Sum-to-Ten, free knowledge, prime runner packages, and more—rules stack.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(12)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .sheet(isPresented: $showHouseRulesBrowser) {
+            HouseRulesBrowserView(
+                houseRules: $draft.houseRules,
+                editionBaselineKarma: draft.rules.standardPriorityKarma,
+                onApply: {
+                    draft.applyHouseRulesSelection()
+                    showHouseRulesBrowser = false
+                    statusMessage = draft.houseRules.enabled.isEmpty
+                        ? "Core book rules."
+                        : "House rules applied (\(draft.houseRules.enabled.count) active)."
+                },
+                onCancel: { showHouseRulesBrowser = false }
+            )
+        }
+    }
+
+    private var houseRulesSummaryLine: String {
+        if draft.houseRules.enabled.isEmpty {
+            return "No house rules — strict core book."
+        }
+        let names = HouseRuleID.allCases
+            .filter { draft.houseRules.isEnabled($0) }
+            .map(\.displayName)
+        if names.count <= 3 {
+            return names.joined(separator: " · ")
+        }
+        return names.prefix(3).joined(separator: " · ") + " +\(names.count - 3) more"
+    }
+
+    private var houseRuleChips: some View {
+        HStack(spacing: 6) {
+            ForEach(
+                HouseRuleID.allCases.filter { draft.houseRules.isEnabled($0) },
+                id: \.self
+            ) { rule in
+                Text(rule.displayName)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+            }
         }
     }
 
@@ -576,6 +672,9 @@ struct GenerationWizardView: View {
             Text("Skills")
                 .font(.title3.weight(.semibold))
             HelpCallout(text: "Skills plus linked attributes form dice pools. Recommendations match your role; adjust any rank afterward.")
+            if draft.freeKnowledgePool > 0 {
+                HelpCallout(text: "House rule: \(draft.freeKnowledgePool) free Knowledge/Language ranks (not spent from the active skill pool above). Track them on the Skills tab after creation if needed.")
+            }
 
             RecommendButton(
                 title: "Apply Recommended Skills",
@@ -766,7 +865,20 @@ struct GenerationWizardView: View {
                         LabeledContent("Attributes spent", value: "\(draft.budget.attributePointsSpent) / \(draft.budget.attributePointsTotal)")
                         LabeledContent("Skills spent", value: "\(draft.budget.skillPointsSpent) / \(draft.budget.skillPointsTotal)")
                         LabeledContent("Nuyen", value: "¥\(draft.nuyen)")
+                        LabeledContent("Karma", value: "\(draft.budget.karmaRemaining) avail / \(draft.budget.karmaTotal) total")
                         LabeledContent("Qualities", value: "\(draft.qualities.count)")
+                        LabeledContent(
+                            "House rules",
+                            value: draft.houseRules.enabled.isEmpty
+                                ? "Core book"
+                                : "\(draft.houseRules.enabled.count) active"
+                        )
+                        if draft.freeKnowledgePool > 0 {
+                            LabeledContent("Free knowledge", value: "\(draft.freeKnowledgePool) ranks")
+                        }
+                        if draft.contactPointPool > 0 {
+                            LabeledContent("Contact points", value: "\(draft.contactPointPool)")
+                        }
                     }
                 } label: {
                     Text("Summary")
@@ -784,21 +896,51 @@ struct GenerationWizardView: View {
 
     private func pickAvatar() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.image]
+        panel.title = "Choose Portrait"
+        panel.message = "Choose a portrait image for this runner"
+        panel.prompt = "Use Image"
+        panel.allowedContentTypes = [.image, .png, .jpeg, .gif, .webP, .heic, .tiff]
+        panel.allowsOtherFileTypes = true
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.message = "Choose a portrait image for this runner"
+        panel.canChooseFiles = true
         guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+
         do {
             let data = try Data(contentsOf: url)
+            guard !data.isEmpty else {
+                avatarImportError = "Selected image was empty."
+                return
+            }
             guard data.count < 8 * 1024 * 1024 else {
                 avatarImportError = "Image must be under 8 MB."
+                return
+            }
+            guard NSImage(data: data) != nil else {
+                avatarImportError = "Could not read that file as an image."
                 return
             }
             draft.avatarData = data
             avatarImportError = nil
         } catch {
             avatarImportError = error.localizedDescription
+        }
+    }
+
+    private func requestCancel() {
+        // Confirm only after the user has moved past the first step or entered a name.
+        let hasProgress = draft.step != .edition
+            || !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || draft.houseRules.enabled.isEmpty == false && draft.houseRules != .coreBook
+        if hasProgress {
+            confirmCancel = true
+        } else {
+            onCancel?()
         }
     }
 

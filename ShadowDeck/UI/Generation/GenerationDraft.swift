@@ -86,6 +86,11 @@ public final class GenerationDraft {
 
     public var budget: GenerationBudget = GenerationBudget()
 
+    /// Free knowledge ranks from house rules (auto or fixed).
+    public private(set) var freeKnowledgePool: Int = 0
+    /// Contact points (CHA×3 + expanded extras).
+    public private(set) var contactPointPool: Int = 0
+
     public var rules: any EditionRules { RulesRegistry.rules(for: edition) }
 
     public init() {
@@ -187,9 +192,24 @@ public final class GenerationDraft {
         recomputeBudgetsFromPriorities()
     }
 
+    /// Call after the house-rules browser applies a selection.
+    public func applyHouseRulesSelection() {
+        if houseRules.isEnabled(.karmaGeneration) {
+            generationSystem = .karmaGen
+        } else if houseRules.isEnabled(.sumToTen) {
+            generationSystem = .sumToTen
+        } else if generationSystem == .sumToTen || generationSystem == .karmaGen {
+            generationSystem = rules.defaultGenerationSystem
+        }
+        recomputeBudgetsFromPriorities()
+    }
+
     public func recomputeBudgetsFromPriorities() {
         let r = rules
-        budget.positiveQualityKarmaCap = houseRules.positiveQualityKarmaCap ?? r.positiveQualityKarmaCap
+        budget.positiveQualityKarmaCap = HouseRulesEngine.positiveQualityCap(
+            editionDefault: r.positiveQualityKarmaCap,
+            houseRules: houseRules
+        )
         budget.negativeQualityKarmaCap = r.negativeQualityKarmaCap
 
         if generationSystem == .buildPoints {
@@ -198,8 +218,41 @@ public final class GenerationDraft {
             budget.resetAttributes(total: 200) // BP-ish placeholder pool UI for attrs; refined later
             budget.resetSkills(points: 100, groups: 0)
             budget.resetNuyen(total: 5_000)
-            budget.karmaTotal = r.standardPriorityKarma + (houseRules.isEnabled(.bonusStartingKarma) ? houseRules.bonusKarma : 0)
+            budget.karmaTotal = HouseRulesEngine.startingKarma(
+                editionBaseline: r.standardPriorityKarma,
+                houseRules: houseRules
+            )
             budget.karmaRemaining = budget.karmaTotal
+            refreshHouseRulePools()
+            return
+        }
+
+        if generationSystem == .karmaGen || houseRules.isEnabled(.karmaGeneration) {
+            // Simplified karmagen: attribute/skill pools derived from budget for the wizard UI.
+            generationSystem = .karmaGen
+            let kBudget = houseRules.karmaGenBudget
+            budget.resetAttributes(total: max(12, kBudget / 40))
+            budget.resetSpecial(total: 3)
+            budget.resetSkills(points: max(18, kBudget / 30), groups: 0)
+            budget.resetNuyen(total: 25_000)
+            self.nuyen = 25_000
+            budget.karmaTotal = HouseRulesEngine.startingKarma(
+                editionBaseline: kBudget,
+                houseRules: houseRules
+            )
+            // Avoid double-counting: karmagen budget already includes power level.
+            if houseRules.isEnabled(.bonusStartingKarma) || houseRules.isEnabled(.primeRunnerPackage) {
+                // startingKarma already added bonus; for pure karmagen the baseline IS karmaGenBudget
+                budget.karmaTotal = kBudget + (houseRules.isEnabled(.bonusStartingKarma) || houseRules.isEnabled(.primeRunnerPackage)
+                    ? max(0, houseRules.bonusKarma)
+                    : 0)
+            } else {
+                budget.karmaTotal = kBudget
+            }
+            budget.karmaRemaining = budget.karmaTotal
+            recomputeAttributeRemaining()
+            recomputeSkillRemaining()
+            refreshHouseRulePools()
             return
         }
 
@@ -223,7 +276,8 @@ public final class GenerationDraft {
             budget.resetSkills(points: 0, groups: 0)
         }
 
-        if let resLetter = priority[.resources], let nuyen = r.resourceNuyen(for: resLetter) {
+        if let resLetter = priority[.resources], let baseNuyen = r.resourceNuyen(for: resLetter) {
+            let nuyen = HouseRulesEngine.resourceNuyen(base: baseNuyen, houseRules: houseRules)
             budget.resetNuyen(total: nuyen)
             self.nuyen = nuyen
         } else {
@@ -231,15 +285,27 @@ public final class GenerationDraft {
             self.nuyen = 0
         }
 
-        budget.karmaTotal = r.standardPriorityKarma
-        if houseRules.isEnabled(.bonusStartingKarma) || houseRules.isEnabled(.primeRunnerPackage) {
-            budget.karmaTotal += houseRules.bonusKarma
-        }
+        budget.karmaTotal = HouseRulesEngine.startingKarma(
+            editionBaseline: r.standardPriorityKarma,
+            houseRules: houseRules
+        )
         budget.karmaRemaining = budget.karmaTotal
 
         // Re-apply purchase spending to remaining counters.
         recomputeAttributeRemaining()
         recomputeSkillRemaining()
+        refreshHouseRulePools()
+    }
+
+    private func refreshHouseRulePools() {
+        freeKnowledgePool = HouseRulesEngine.freeKnowledgePoints(
+            attributes: attributes,
+            houseRules: houseRules
+        )
+        contactPointPool = HouseRulesEngine.contactPoints(
+            charisma: attributes.charisma,
+            houseRules: houseRules
+        )
     }
 
     public func resetAttributesToMinima() {
@@ -261,7 +327,11 @@ public final class GenerationDraft {
         let profile = MetatypeCatalog.profile(for: metatype, edition: edition)
         let bounds = profile.bounds(for: id)
         let current = attributes[id]
-        guard current < bounds.maximum else { return false }
+        let maxAllowed = HouseRulesEngine.naturalAttributeMaximum(
+            metatypeMaximum: bounds.maximum,
+            houseRules: houseRules
+        )
+        guard current < maxAllowed else { return false }
         if AttributeID.standardGenerationAttributes.contains(id) {
             return budget.attributePointsRemaining > 0
         }
@@ -290,6 +360,7 @@ public final class GenerationDraft {
             specialPurchases[id, default: 0] += 1
             budget.specialPointsRemaining -= 1
         }
+        refreshHouseRulePools()
     }
 
     public func decreaseAttribute(_ id: AttributeID) {
@@ -302,6 +373,7 @@ public final class GenerationDraft {
             specialPurchases[id, default: 0] = max(0, (specialPurchases[id] ?? 0) - 1)
             budget.specialPointsRemaining += 1
         }
+        refreshHouseRulePools()
     }
 
     // MARK: - Recommendations (user-triggered)
@@ -329,12 +401,17 @@ public final class GenerationDraft {
         let profile = MetatypeCatalog.profile(for: metatype, edition: edition)
         for id in AttributeID.standardGenerationAttributes {
             let bounds = profile.bounds(for: id)
+            let maxAllowed = HouseRulesEngine.naturalAttributeMaximum(
+                metatypeMaximum: bounds.maximum,
+                houseRules: houseRules
+            )
             let target = rec.values[id] ?? bounds.minimum
-            let clamped = Swift.min(bounds.maximum, Swift.max(bounds.minimum, target))
+            let clamped = Swift.min(maxAllowed, Swift.max(bounds.minimum, target))
             attributes[id] = clamped
             attributePurchases[id] = Swift.max(0, clamped - bounds.minimum)
         }
         recomputeAttributeRemaining()
+        refreshHouseRulePools()
         lastRecommendationNote = rec.rationale
     }
 
@@ -388,23 +465,6 @@ public final class GenerationDraft {
     }
 
     public func buildCharacter() -> Character {
-        var gen = GenerationProfile(
-            system: generationSystem,
-            priority: priority,
-            buildPointBudget: budget.buildPointsTotal,
-            buildPointsSpent: budget.buildPointsTotal - budget.buildPointsRemaining,
-            karmaBudget: budget.karmaTotal,
-            karmaSpent: 0,
-            nuyenBudget: budget.nuyenTotal,
-            nuyenSpent: budget.nuyenTotal - nuyen,
-            attributePoints: budget.attributePointsTotal,
-            specialAttributePoints: budget.specialPointsTotal,
-            skillPoints: budget.skillPointsTotal,
-            skillGroupPoints: budget.skillGroupPointsTotal,
-            isFinished: true
-        )
-        _ = gen
-
         var character = Character(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             streetName: streetName.trimmingCharacters(in: .whitespacesAndNewlines),
