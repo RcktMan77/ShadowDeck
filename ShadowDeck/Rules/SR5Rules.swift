@@ -116,18 +116,20 @@ public struct SR5Rules: EditionRules {
     }
 
     public func deriveStats(for character: Character) -> DerivedStats {
+        // Baseline from base attributes; effects engine applies gear/aug/quality/power mods.
         let a = character.attributes
         let essence = computeEssence(for: character)
         let phys = DerivedStatsCalculator.physicalBoxes(body: a.body)
         let stun = DerivedStatsCalculator.stunBoxes(willpower: a.willpower)
 
         var pools: [String: Int] = [:]
-        for skill in character.skills where skill.category == .active {
+        // Effects engine rebuilds pools for all categories; keep a baseline for active skills here.
+        for skill in character.skills where skill.category == .active && skill.rating > 0 {
             let linked = linkedAttributeHint(for: skill.catalogKey, attributes: a)
             pools[skill.catalogKey] = DerivedStatsCalculator.dicePool(attribute: linked, skill: skill.rating)
         }
 
-        return DerivedStats(
+        let baseline = DerivedStats(
             initiativeDice: 1,
             initiativeBase: DerivedStatsCalculator.initiativeBase(reaction: a.reaction, intuition: a.intuition),
             composure: DerivedStatsCalculator.composure(charisma: a.charisma, willpower: a.willpower),
@@ -148,6 +150,8 @@ public struct SR5Rules: EditionRules {
             condition: ConditionMonitor(
                 physicalBoxes: phys,
                 stunBoxes: stun,
+                physicalFilled: min(character.physicalDamage, phys),
+                stunFilled: min(character.stunDamage, stun),
                 overflowBoxes: a.body
             ),
             currentEssence: essence,
@@ -155,6 +159,7 @@ public struct SR5Rules: EditionRules {
             armor: DerivedStatsCalculator.equippedArmor(from: character.gear),
             dicePools: pools
         )
+        return CharacterEffectsEngine.playStats(for: character, baseDerived: baseline)
     }
 
     public func validate(_ character: Character) -> ValidationResult {
@@ -168,24 +173,30 @@ public struct SR5Rules: EditionRules {
             result.error("identity.name", "Character name is required.", field: "name")
         }
 
+        // Validate effective (base + modifiers) against augmented play bounds.
         let profile = metatypeProfile(character.metatype)
+        let effective = character.effectiveAttributes
         for attr in AttributeID.standardGenerationAttributes + [.edge] {
-            let value = character.attributes[attr]
+            let value = effective[attr]
             let bounds = profile.bounds(for: attr)
-            if !bounds.contains(value) {
-                // Exceptional Attribute house rule: allow max + 1
-                let allowedExtra = character.houseRules.isEnabled(.exceptionalAttributeAtChargen) ? 1 : 0
-                if value > bounds.maximum + allowedExtra || value < bounds.minimum {
-                    result.error(
-                        "attribute.bounds",
-                        "\(attr.displayName) (\(value)) outside allowed range for \(character.metatype.displayName).",
-                        field: attr.rawValue
-                    )
-                }
+            if ValidationHelpers.attributeOutOfPlayBounds(
+                value: value,
+                bounds: bounds,
+                houseRules: character.houseRules
+            ) {
+                let maxAllowed = ValidationHelpers.augmentedAttributeMaximum(
+                    naturalMaximum: bounds.maximum,
+                    houseRules: character.houseRules
+                )
+                result.error(
+                    "attribute.bounds",
+                    "\(attr.displayName) (\(value)) outside allowed range \(bounds.minimum)–\(maxAllowed) for \(character.metatype.displayName) (natural max \(bounds.maximum) + augs).",
+                    field: attr.rawValue
+                )
             }
         }
 
-        if character.awakened.usesMagic && character.attributes.magic < 1 {
+        if character.awakened.usesMagic && effective.magic < 1 {
             result.error("magic.missing", "Awakened path requires Magic ≥ 1.", field: "magic")
         }
         if character.awakened.usesResonance && character.attributes.resonance < 1 {
@@ -204,9 +215,8 @@ public struct SR5Rules: EditionRules {
         }
 
         let posCap = character.houseRules.positiveQualityKarmaCap ?? positiveQualityKarmaCap
-        let positiveSpend = character.qualities
-            .filter { $0.kind == .positive }
-            .reduce(0) { $0 + $1.karmaValue }
+        // Exclude free path qualities (Adept / Magician / Technomancer / …) from the budget.
+        let positiveSpend = ValidationHelpers.positiveQualityKarmaSpend(qualities: character.qualities)
         if positiveSpend > posCap {
             result.error(
                 "qualities.positive_cap",
