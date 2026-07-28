@@ -63,6 +63,15 @@ public extension EditionRules {
     func isAttributeInBounds(_ value: Int, attribute: AttributeID, metatype: MetatypeID) -> Bool {
         bounds(for: metatype, attribute: attribute).contains(value)
     }
+
+    /// Attribute raise cost, optionally linear under `.alternateAttributeCosts`.
+    func karmaCostToRaiseAttribute(from current: Int, houseRules: HouseRules) -> Int {
+        if houseRules.isEnabled(.alternateAttributeCosts) {
+            // Flat cost per step (vs progressive new-rating × N).
+            return 5
+        }
+        return karmaCostToRaiseAttribute(from: current)
+    }
 }
 
 /// Resolves the rules strategy for an edition.

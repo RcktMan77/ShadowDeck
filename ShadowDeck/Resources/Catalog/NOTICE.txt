@@ -1,0 +1,18 @@
+ShadowDeck Catalog Data
+=======================
+
+The file `sr5_catalog.json` is derived from the Chummer5a project data XML files:
+
+  https://github.com/chummer5a/chummer5a
+
+Those source data files are free software under the GNU General Public License
+v3 (or later), as stated in the Chummer5a repository (`LICENSE`, `xml_license.txt`).
+
+This catalog is provided for use with ShadowDeck under the same GPL-3.0 terms
+as they apply to the redistributed data portion. Shadowrun game content remains
+the property of its respective trademark and copyright holders. ShadowDeck is an
+unofficial fan tool and is not affiliated with Catalyst Game Labs.
+
+To regenerate from upstream Chummer data:
+
+  python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data

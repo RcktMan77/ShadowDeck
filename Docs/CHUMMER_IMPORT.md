@@ -151,3 +151,28 @@ When import is incomplete, the user still gets a playable core sheet (identity, 
 | Library save + `.shadowdeck` re-export | Round-trip after import |
 
 Ghostwire paths are **never** required on GitHub Actions (files absent → tests skip).
+
+
+## Export (Phase 9B)
+
+ShadowDeck can **export** a best-effort `.chum5` for online campaign submission:
+
+```
+Character → ChummerXMLExporter → .chum5 (UTF-8 XML)
+```
+
+**Included (typical):** identity, priorities, attributes (base + effective totalvalue), skills, qualities, cyber/bioware, gear, contacts, lifestyles, powers/spells/forms, nuyen/karma, awakened flags.
+
+**Not guaranteed:** full Chummer improvement trees, UI state, accessories, mugshots, RTF notes formatting, Missions-legal compliance.
+
+Always review in Chummer when a hub requires official Chummer validation. Prefer ShadowDeck PDF sheet for human-readable review.
+
+
+### Original payload re-export (hardening)
+
+When a `.chum5` (or JSON) is imported, ShadowDeck stores the **original file bytes** on `Character.importProvenance`.
+
+- **Export Chummer with original available** → writes those bytes (byte-faithful; can reproduce Ghostwire’s source file).
+- **No provenance / regenerated mode** → best-effort XML under modern `<newskills>` layout, weapons/armors split, metatype attribute bounds.
+
+Re-import a character once after this update to capture provenance for existing library entries.

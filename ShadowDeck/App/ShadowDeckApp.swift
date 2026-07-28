@@ -7,12 +7,23 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 @main
 struct ShadowDeckApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let libraryEnvironment: LibraryEnvironment
+    /// Bump when splash art/copy changes so users see the new splash once after update.
+    private static let splashRevision = 3
+    @State private var showSplash: Bool
 
     init() {
+        // Show splash on every cold launch (skip with click/key). Previously a
+        // permanent "hasSeen" flag hid the splash after the first run.
+        _showSplash = State(initialValue: true)
+        // Clear legacy key so Settings / docs stay accurate.
+        UserDefaults.standard.removeObject(forKey: "hasSeenLaunchSplash")
+        UserDefaults.standard.set(Self.splashRevision, forKey: "launchSplashRevision")
         do {
             libraryEnvironment = try LibraryEnvironment.live()
         } catch {
@@ -29,13 +40,60 @@ struct ShadowDeckApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(libraryEnvironment)
-                .modelContainer(libraryEnvironment.container)
+            ZStack {
+                ContentView()
+                    .environment(libraryEnvironment)
+                    .modelContainer(libraryEnvironment.container)
+
+                if showSplash {
+                    LaunchSplashView {
+                        showSplash = false
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
+            }
+            // Explicit min + ideal so the scene always has a concrete size.
+            // Avoid max-only / min-only frames that can collapse detail columns.
+            .frame(minWidth: 900, idealWidth: 1100, minHeight: 560, idealHeight: 720)
+            .onAppear {
+                guard MarketingScreenshotExporter.isEnabled else { return }
+                Task { @MainActor in
+                    await MarketingScreenshotExporter.runSequence()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: MarketingScreenshotExporter.phaseNotification)) { note in
+                guard let raw = note.object as? String,
+                      let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
+                else { return }
+                switch phase {
+                case .splash:
+                    showSplash = true
+                case .library, .generationRole, .characterSheet, .finished:
+                    showSplash = false
+                }
+            }
         }
         .defaultSize(width: 1100, height: 720)
+        // Size from content minimum only — do not auto-resize the window when
+        // switching Library / Import / Wizard ideal content sizes change.
+        .windowResizability(.contentMinSize)
+        // Hide native title bar so splash (and main UI) are not under a chrome strip.
+        // Traffic lights remain; in-app titles come from NavigationSplitView toolbars.
+        .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .newItem) {
+                Button("New Character") {
+                    NotificationCenter.default.post(name: AppCommand.newCharacter, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: [.command])
+
+                // Unified import: Chummer JSON/.chum5 and .shadowdeck packages.
+                Button("Import Character…") {
+                    NotificationCenter.default.post(name: AppCommand.importCharacter, object: nil)
+                }
+                .keyboardShortcut("o", modifiers: [.command])
+            }
         }
 
         Settings {

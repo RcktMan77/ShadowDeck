@@ -39,8 +39,7 @@ public enum ShadowDeckPackageError: Error, LocalizedError, Equatable {
 
 public enum ShadowDeckPackage {
     public static var utType: UTType {
-        UTType(filenameExtension: ShadowDeckFormat.fileExtension)
-            ?? .package
+        .shadowdeckCharacter
     }
 
     /// Writes a directory package at `url` (should end in `.shadowdeck`).

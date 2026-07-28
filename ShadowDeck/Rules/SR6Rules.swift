@@ -132,7 +132,7 @@ public struct SR6Rules: EditionRules {
             pools[skill.catalogKey] = DerivedStatsCalculator.dicePool(attribute: linked, skill: skill.rating)
         }
 
-        return DerivedStats(
+        let baseline = DerivedStats(
             initiativeDice: 1,
             initiativeBase: DerivedStatsCalculator.initiativeBase(reaction: a.reaction, intuition: a.intuition),
             composure: DerivedStatsCalculator.composure(charisma: a.charisma, willpower: a.willpower),
@@ -147,6 +147,8 @@ public struct SR6Rules: EditionRules {
             condition: ConditionMonitor(
                 physicalBoxes: phys,
                 stunBoxes: stun,
+                physicalFilled: min(character.physicalDamage, phys),
+                stunFilled: min(character.stunDamage, stun),
                 overflowBoxes: a.body
             ),
             currentEssence: essence,
@@ -154,6 +156,7 @@ public struct SR6Rules: EditionRules {
             armor: DerivedStatsCalculator.equippedArmor(from: character.gear),
             dicePools: pools
         )
+        return CharacterEffectsEngine.playStats(for: character, baseDerived: baseline)
     }
 
     public func validate(_ character: Character) -> ValidationResult {
@@ -168,30 +171,36 @@ public struct SR6Rules: EditionRules {
         }
 
         let profile = metatypeProfile(character.metatype)
+        let effective = character.effectiveAttributes
         for attr in AttributeID.standardGenerationAttributes + [.edge] {
-            let value = character.attributes[attr]
+            let value = effective[attr]
             let bounds = profile.bounds(for: attr)
-            if !bounds.contains(value) {
-                let allowedExtra = character.houseRules.isEnabled(.exceptionalAttributeAtChargen) ? 1 : 0
-                if value > bounds.maximum + allowedExtra || value < bounds.minimum {
-                    result.error(
-                        "attribute.bounds",
-                        "\(attr.displayName) (\(value)) outside allowed range for \(character.metatype.displayName).",
-                        field: attr.rawValue
-                    )
-                }
+            if ValidationHelpers.attributeOutOfPlayBounds(
+                value: value,
+                bounds: bounds,
+                houseRules: character.houseRules
+            ) {
+                let maxAllowed = ValidationHelpers.augmentedAttributeMaximum(
+                    naturalMaximum: bounds.maximum,
+                    houseRules: character.houseRules
+                )
+                result.error(
+                    "attribute.bounds",
+                    "\(attr.displayName) (\(value)) outside allowed range \(bounds.minimum)–\(maxAllowed) for \(character.metatype.displayName) (natural max \(bounds.maximum) + augs).",
+                    field: attr.rawValue
+                )
             }
         }
 
         // Edge is central in SR6 — warn if neglected.
-        if character.attributes.edge < 2 {
+        if effective.edge < 2 {
             result.warning("edge.low", "Edge below 2 is unusually low for SR6 play.")
         }
 
-        if character.awakened.usesMagic && character.attributes.magic < 1 {
+        if character.awakened.usesMagic && effective.magic < 1 {
             result.error("magic.missing", "Awakened path requires Magic ≥ 1.", field: "magic")
         }
-        if character.awakened.usesResonance && character.attributes.resonance < 1 {
+        if character.awakened.usesResonance && effective.resonance < 1 {
             result.error("resonance.missing", "Technomancer requires Resonance ≥ 1.", field: "resonance")
         }
 
@@ -206,9 +215,7 @@ public struct SR6Rules: EditionRules {
         }
 
         let posCap = character.houseRules.positiveQualityKarmaCap ?? positiveQualityKarmaCap
-        let positiveSpend = character.qualities
-            .filter { $0.kind == .positive }
-            .reduce(0) { $0 + $1.karmaValue }
+        let positiveSpend = ValidationHelpers.positiveQualityKarmaSpend(qualities: character.qualities)
         if positiveSpend > posCap {
             result.error(
                 "qualities.positive_cap",

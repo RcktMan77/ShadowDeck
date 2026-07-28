@@ -63,6 +63,7 @@ public struct AdeptPowerInstance: Codable, Sendable, Hashable, Identifiable {
     public var level: Int
     public var powerPointCost: Decimal
     public var notes: String
+    public var modifiers: [StatModifier]
 
     public init(
         id: UUID = UUID(),
@@ -70,7 +71,8 @@ public struct AdeptPowerInstance: Codable, Sendable, Hashable, Identifiable {
         name: String,
         level: Int = 1,
         powerPointCost: Decimal,
-        notes: String = ""
+        notes: String = "",
+        modifiers: [StatModifier] = []
     ) {
         self.id = id
         self.catalogKey = catalogKey
@@ -78,7 +80,31 @@ public struct AdeptPowerInstance: Codable, Sendable, Hashable, Identifiable {
         self.level = level
         self.powerPointCost = powerPointCost
         self.notes = notes
+        self.modifiers = modifiers
     }
+}
+
+extension AdeptPowerInstance {
+    private enum CodingKeys: String, CodingKey {
+        case id, catalogKey, name, level, powerPointCost, notes, modifiers
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        catalogKey = try c.decode(String.self, forKey: .catalogKey)
+        name = try c.decode(String.self, forKey: .name)
+        level = try c.decodeIfPresent(Int.self, forKey: .level) ?? 1
+        powerPointCost = try c.decode(Decimal.self, forKey: .powerPointCost)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        modifiers = try c.decodeIfPresent([StatModifier].self, forKey: .modifiers) ?? []
+    }
+}
+
+extension AdeptPowerInstance: ModifierSource {
+    public var modifierSourceName: String { name }
+    public var modifierRating: Int { max(1, level) }
+    public var contributesModifiers: Bool { true }
 }
 
 public struct ComplexFormInstance: Codable, Sendable, Hashable, Identifiable {

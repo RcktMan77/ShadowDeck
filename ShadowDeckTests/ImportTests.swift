@@ -80,7 +80,8 @@ final class ImportTests: XCTestCase {
         XCTAssertEqual(c.metatype, .human)
         XCTAssertEqual(c.awakened, .adept)
         XCTAssertEqual(c.attributes.magic, 6)
-        XCTAssertEqual(c.attributes.reaction, 5)
+        // Prefer Chummer base (fixture REA base 4 / total 5 from Improved Reflexes).
+        XCTAssertEqual(c.attributes.reaction, 4)
         XCTAssertEqual(c.attributes.essence, Decimal(string: "5.7"))
         XCTAssertEqual(c.nuyen, 12000)
         XCTAssertEqual(c.karmaTotal, 30)
@@ -88,6 +89,8 @@ final class ImportTests: XCTestCase {
 
         XCTAssertTrue(c.skills.contains { $0.displayName == "Pistols" && $0.rating == 5 && $0.specialized == "Semi-Automatics" })
         XCTAssertTrue(c.adeptPowers.contains { $0.name == "Improved Reflexes" && $0.level == 1 })
+        // Catalog modifiers on Improved Reflexes restore effective REA to sheet total.
+        XCTAssertEqual(c.effectiveAttributes.reaction, 5)
         XCTAssertTrue(c.augmentations.contains { $0.name == "Datajack" })
         XCTAssertEqual(c.contacts.first?.name, "Fixer Jax")
         XCTAssertEqual(c.lifestyles.first?.level, .low)
@@ -151,9 +154,10 @@ final class ImportTests: XCTestCase {
         XCTAssertEqual(c.karmaAvailable, 25)
         XCTAssertEqual(c.karmaTotal, 44)
 
-        // Attributes (prefer sheet totals)
-        XCTAssertGreaterThanOrEqual(c.attributes.agility, 5)
-        XCTAssertGreaterThanOrEqual(c.attributes.logic, 5)
+        // Attributes prefer Chummer base; effective may be higher via catalog modifiers.
+        XCTAssertGreaterThanOrEqual(c.attributes.agility, 4)
+        XCTAssertGreaterThanOrEqual(c.effectiveAttributes.agility, 5)
+        XCTAssertGreaterThanOrEqual(c.attributes.logic, 4)
         XCTAssertGreaterThanOrEqual(c.attributes.magic, 2)
         XCTAssertEqual(c.attributes.essence, Decimal(string: "5.30") ?? Decimal(string: "5.3"))
 
