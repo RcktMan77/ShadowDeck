@@ -7,20 +7,32 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
 > Shadowrun is a trademark of its respective owners. ShadowDeck is **not** affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
 
 <p align="center">
-  <img src="Docs/Screenshots/01-splash.jpg" alt="ShadowDeck launch splash" width="920" />
+  <img src="Docs/Screenshots/01-splash.jpg" alt="ShadowDeck launch splash" width="900" />
 </p>
 
-<p align="center">
-  <img src="Docs/Screenshots/02-library.jpg" alt="Character library" width="450" />
-  &nbsp;
-  <img src="Docs/Screenshots/03-generation-role.jpg" alt="Character generation — Concept &amp; Role" width="450" />
-</p>
-
-<p align="center">
-  <img src="Docs/Screenshots/04-character-sheet.jpg" alt="Character summary sheet" width="920" />
-</p>
-
-<p align="center"><sub>Splash · Library · Generation (role pick) · Play sheet</sub></p>
+<!-- Three equal UI thumbs; click opens the matching full-size screenshot. -->
+<table align="center" width="900">
+  <tr>
+    <td width="33%" align="center" valign="top">
+      <a href="Docs/Screenshots/02-library.jpg">
+        <img src="Docs/Screenshots/thumbs/02-library.jpg" alt="Character library" width="280" />
+      </a><br />
+      <sub>Library</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <a href="Docs/Screenshots/03-generation-role.jpg">
+        <img src="Docs/Screenshots/thumbs/03-generation-role.jpg" alt="Character generation — Concept &amp; Role" width="280" />
+      </a><br />
+      <sub>New Character · Role</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <a href="Docs/Screenshots/04-character-sheet.jpg">
+        <img src="Docs/Screenshots/thumbs/04-character-sheet.jpg" alt="Character summary sheet" width="280" />
+      </a><br />
+      <sub>Play sheet</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
