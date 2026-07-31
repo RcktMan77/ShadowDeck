@@ -43,34 +43,13 @@ public final class LibraryEnvironment {
         return LibraryEnvironment(container: container, library: library, runLibrary: runLibrary)
     }
 
-    /// In-memory library with SR4/5/6 samples + one photogenic run.
+    /// In-memory library with SR4/5/6 samples (no runs — the mission GIF creates one).
     /// Used for README marquee captures so personal disk libraries never appear.
     public static func marketingCapture() throws -> LibraryEnvironment {
         let env = try ephemeral()
         for sample in SampleCharacters.makeAll() {
             try env.library.save(sample)
         }
-        var run = Run.makeDraft(title: "Datasteal on Renraku Arcology")
-        run.tags = ["Datasteal", "Seattle"]
-        run.status = .active
-        run.client = "Mr. Johnson (Ares cut-out)"
-        run.location = "Downtown Seattle · Renraku Arcology"
-        run.objectives = [
-            RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
-            RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
-        ]
-        run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
-        run.complicationsNotes = "Johnson may double-cross once the data leaves the building."
-        run.expectedPayout = RunPayout(nuyen: 18_000, karma: 6)
-        run.heatDelta = 2
-        run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
-        run.sessionLog = [
-            RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete."),
-            RunLogEntry(kind: .complication, text: "Spider noticed the probe; clock is ticking."),
-        ]
-        run.gmNotes = "Keep decker spotlight; Face softens the Johnson if things go south."
-        run.applyStatus(.active)
-        try env.runLibrary.save(run)
         env.refreshRunCount()
         return env
     }

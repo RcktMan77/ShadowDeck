@@ -624,9 +624,9 @@ struct ContentView: View {
             // Marquee “play sheet” stays on Summary (default tab).
             selectedCharacterID = SampleCharacters.sr5ID
         case .runLibrary:
+            // Kept for phase completeness; no longer used as a still marquee.
             selectedCharacterID = nil
             marketingOpenRunID = nil
-            openMarketingSampleRun(detail: false)
             selection = .runs
             refresh()
         case .runGif:
@@ -638,22 +638,43 @@ struct ContentView: View {
         }
     }
 
-    /// Open the single seeded marketing run (never scans personal on-disk libraries).
-    private func openMarketingSampleRun(detail: Bool) {
-        do {
-            let runs = try libraryEnvironment.runLibrary.listSummaries()
-            marketingOpenRunID = detail ? runs.first?.id : nil
-            libraryEnvironment.refreshRunCount()
-        } catch {
-            statusMessage = "Screenshot run open failed: \(error.localizedDescription)"
-        }
-    }
-
-    /// Storyboard for `07-run-mission-flow.gif` — scroll + highlight, then mutate.
+    /// Storyboard for `07-run-mission-flow.gif`:
+    /// library → create → fill → team → active/log → objectives → complete → library.
     private func applyRunGifStoryboard(step: Int) {
         selectedCharacterID = nil
-        selection = .runs
         do {
+            switch step {
+            case 0:
+                // Empty Run Library (start of flow).
+                try clearMarketingRuns()
+                marketingOpenRunID = nil
+                selection = .runs
+                refresh()
+                return
+
+            case 1:
+                // Create a new planning job and open detail.
+                try clearMarketingRuns()
+                var run = Run.makeDraft(title: "New Run")
+                run.status = .planning
+                run.participantCharacterIDs = []
+                run.sessionLog = []
+                run.outcomeSummary = ""
+                run.actualPayout = nil
+                run.objectives = []
+                try libraryEnvironment.runLibrary.save(run)
+                libraryEnvironment.refreshRunCount()
+                marketingOpenRunID = run.id
+                selection = .runs
+                refresh()
+                NotificationCenter.default.post(name: AppCommand.marketingReloadRun, object: nil)
+                postMarketingFocus(anchor: "overview", highlight: nil)
+                return
+
+            default:
+                break
+            }
+
             guard let runID = try libraryEnvironment.runLibrary.listSummaries().first?.id else {
                 statusMessage = "Screenshot run GIF: no sample run"
                 return
@@ -661,45 +682,47 @@ struct ContentView: View {
             var run = try libraryEnvironment.runLibrary.require(runID)
             var focusAnchor = "overview"
             var focusHighlight: String?
+            var returnToLibrary = false
 
             switch step {
-            case 0:
-                // Open detail at top (title / overview).
-                run.status = .planning
-                run.participantCharacterIDs = []
-                run.sessionLog = []
-                run.outcomeSummary = ""
-                run.actualPayout = nil
+            case 2:
+                // Fill briefing fields (still Planning).
+                run.title = "Datasteal on Renraku Arcology"
+                run.client = "Mr. Johnson (Ares cut-out)"
+                run.location = "Downtown Seattle · Renraku Arcology"
+                run.tags = ["Datasteal", "Seattle"]
+                run.expectedPayout = RunPayout(nuyen: 18_000, karma: 6)
                 run.objectives = [
                     RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
                     RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
                 ]
+                run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
                 focusAnchor = "overview"
-            case 1:
-                // Scroll to Team (empty) — viewer sees where linking happens.
+            case 3:
+                // Scroll to Team (empty) before linking.
                 focusAnchor = "team"
                 focusHighlight = "team"
-            case 2:
-                // Link sample runners (checkboxes now on-screen).
+            case 4:
+                // Link sample runners.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 focusAnchor = "team"
                 focusHighlight = "team"
-            case 3:
-                // Scroll to session log before adding.
+            case 5:
+                // Move to Active + focus session log.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 focusAnchor = "sessionLog"
                 focusHighlight = "sessionLog"
-            case 4:
-                // Session log entry present.
+            case 6:
+                // Session log beat.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
                 ]
                 focusAnchor = "sessionLog"
-            case 5:
-                // Scroll to objectives (still pending).
+            case 7:
+                // Objectives in view (pending).
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
@@ -707,8 +730,8 @@ struct ContentView: View {
                 ]
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
-            case 6:
-                // Primary objective complete.
+            case 8:
+                // Mark primary complete.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
@@ -720,8 +743,8 @@ struct ContentView: View {
                 ]
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
-            default:
-                // Outcome + completed status (scroll to outcome).
+            case 9:
+                // Outcome + Completed status.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
@@ -735,17 +758,44 @@ struct ContentView: View {
                 run.applyStatus(.completed)
                 focusAnchor = "outcome"
                 focusHighlight = "outcome"
+            default:
+                // Back to library — completed badge visible on the row.
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                if let i = run.objectives.firstIndex(where: \.isPrimary) {
+                    run.objectives[i].status = .complete
+                }
+                run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
+                run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
+                run.applyStatus(.completed)
+                returnToLibrary = true
             }
 
             try libraryEnvironment.runLibrary.save(run)
             libraryEnvironment.refreshRunCount()
-            marketingOpenRunID = runID
-            refresh()
-            NotificationCenter.default.post(name: AppCommand.marketingReloadRun, object: nil)
-            postMarketingFocus(anchor: focusAnchor, highlight: focusHighlight)
+
+            if returnToLibrary {
+                marketingOpenRunID = nil
+                selection = .runs
+                refresh()
+            } else {
+                marketingOpenRunID = runID
+                selection = .runs
+                refresh()
+                NotificationCenter.default.post(name: AppCommand.marketingReloadRun, object: nil)
+                postMarketingFocus(anchor: focusAnchor, highlight: focusHighlight)
+            }
         } catch {
             statusMessage = "Screenshot run GIF failed: \(error.localizedDescription)"
         }
+    }
+
+    private func clearMarketingRuns() throws {
+        let runs = try libraryEnvironment.runLibrary.listSummaries()
+        for summary in runs {
+            try libraryEnvironment.runLibrary.delete(id: summary.id)
+        }
+        libraryEnvironment.refreshRunCount()
+        marketingOpenRunID = nil
     }
 
     /// Storyboard for `08-advancement-planner.gif` — scroll skills, highlight Add/Apply.
