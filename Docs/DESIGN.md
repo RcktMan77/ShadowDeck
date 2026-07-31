@@ -48,6 +48,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs) |
 | `RunLibrary` / `RunRecord` | Parallel to character library (JSON payload + denormalized list fields) |
 | `Lifestyle` + `LifestyleTracker` | Per-character monthly burn, prepaid months, reserve, process 1–3 months, ledger |
+| `Advancement` + `AdvancementEngine` | Character Advance tab: session cart, skill/attribute karma raises, ledger; free Skills-tab edits remain for import/GM fiat |
 | `AttributeRatings` / `AttributeID` | Physical, mental, special (incl. essence) |
 | `MetatypeID` + `MetatypeCatalog` | Core five metatypes + bounds |
 | `SkillRating` / `SkillGroupRating` | Active, knowledge, language |
