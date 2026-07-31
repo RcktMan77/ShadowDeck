@@ -49,10 +49,19 @@ enum MarketingScreenshotExporter {
         case finished
     }
 
-    /// Seconds each GIF frame is shown.
-    private static let gifFrameDelay: Double = 0.95
+    /// Playback delay between GIF frames (shorter = smoother).
+    private static let gifFrameDelay: Double = 0.38
     /// Hold last frame a bit longer so the result is readable.
-    private static let gifLastFrameDelay: Double = 1.45
+    private static let gifLastFrameDelay: Double = 1.15
+    /// Extra samples per storyboard step (captures mid-scroll + settle).
+    private static let samplesPerStep = 3
+
+    private enum CropMode {
+        /// Full window (run library list).
+        case full
+        /// Drop sidebar; keep main detail column.
+        case detail
+    }
 
     @MainActor
     static func runSequence() async {
@@ -67,7 +76,7 @@ enum MarketingScreenshotExporter {
 
         fputs("Marketing screenshots → \(dir.path)\n", stderr)
 
-        // —— Stills ——
+        // —— Stills (no separate Run Library still — covered by mission GIF) ——
         try? await Task.sleep(nanoseconds: 900_000_000)
         await captureStill(named: "01-splash", to: dir)
 
@@ -83,11 +92,7 @@ enum MarketingScreenshotExporter {
         try? await Task.sleep(nanoseconds: 1_400_000_000)
         await captureStill(named: "04-character-sheet", to: dir)
 
-        post(.runLibrary)
-        try? await Task.sleep(nanoseconds: 1_200_000_000)
-        await captureStill(named: "05-run-library", to: dir)
-
-        // —— GIFs (detail-panel crop) ——
+        // —— GIFs ——
         await captureRunFlowGIF(to: dir)
         await captureAdvanceFlowGIF(to: dir)
 
@@ -99,46 +104,62 @@ enum MarketingScreenshotExporter {
 
     // MARK: - GIF storyboards
 
-    /// Run: scroll to team/log/objectives/outcome and show each interaction on-screen.
-    /// Steps pair focus → result so the GIF reads as a user walking the form.
+    /// Library → create job → fill → team → active log → objectives → complete → library.
     @MainActor
     private static func captureRunFlowGIF(to dir: URL) async {
-        let stepCount = 9
+        // Steps 0 and last are library list; middle steps are detail.
+        let stepCount = 12
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.runGif, step: step)
-            // Extra settle time for scroll animation + reload.
-            let wait: UInt64 = step == 0 ? 1_400_000_000 : 1_050_000_000
-            try? await Task.sleep(nanoseconds: wait)
-            if let full = await snapshotLargestWindow(),
-               let cropped = cropDetailPanel(full)
-            {
-                frames.append(downscale(cropped, maxLongEdge: 960) ?? cropped)
-            } else {
-                fputs("  ✗ run GIF step \(step): no frame\n", stderr)
-            }
+            let crop: CropMode = (step == 0 || step == stepCount - 1) ? .full : .detail
+            await appendSettlingFrames(to: &frames, crop: crop, firstStep: step == 0)
         }
         writeGIF(frames: frames, named: "07-run-mission-flow", to: dir)
     }
 
-    /// Advance: scroll to skills, highlight Add on each raise, then Apply Plan.
+    /// Advance: scroll skills, highlight Add on each raise, Apply Plan, show result.
     @MainActor
     private static func captureAdvanceFlowGIF(to dir: URL) async {
         let stepCount = 8
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.advanceGif, step: step)
-            let wait: UInt64 = step == 0 ? 1_400_000_000 : 1_050_000_000
-            try? await Task.sleep(nanoseconds: wait)
-            if let full = await snapshotLargestWindow(),
-               let cropped = cropDetailPanel(full)
-            {
-                frames.append(downscale(cropped, maxLongEdge: 960) ?? cropped)
-            } else {
-                fputs("  ✗ advance GIF step \(step): no frame\n", stderr)
-            }
+            await appendSettlingFrames(to: &frames, crop: .detail, firstStep: step == 0)
         }
         writeGIF(frames: frames, named: "08-advancement-planner", to: dir)
+    }
+
+    /// Capture several frames while UI scrolls/settles for smoother playback.
+    @MainActor
+    private static func appendSettlingFrames(
+        to frames: inout [NSImage],
+        crop: CropMode,
+        firstStep: Bool
+    ) async {
+        let firstWait: UInt64 = firstStep ? 450_000_000 : 220_000_000
+        try? await Task.sleep(nanoseconds: firstWait)
+        for sample in 0..<samplesPerStep {
+            if sample > 0 {
+                try? await Task.sleep(nanoseconds: 280_000_000)
+            }
+            if let full = await snapshotLargestWindow() {
+                let processed: NSImage?
+                switch crop {
+                case .full:
+                    processed = downscale(full, maxLongEdge: 960)
+                case .detail:
+                    processed = cropDetailPanel(full).flatMap { downscale($0, maxLongEdge: 960) }
+                }
+                if let frame = processed {
+                    frames.append(frame)
+                } else {
+                    frames.append(downscale(full, maxLongEdge: 960) ?? full)
+                }
+            } else {
+                fputs("  ✗ GIF frame: no snapshot\n", stderr)
+            }
+        }
     }
 
     // MARK: - Capture helpers
