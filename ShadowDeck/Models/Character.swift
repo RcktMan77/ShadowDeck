@@ -46,7 +46,12 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     public var karmaTotal: Int
     public var karmaAvailable: Int
     public var nuyen: Int
+    /// Buffer spent first when processing monthly lifestyle costs.
     public var lifestyleNuyenReserve: Int
+    /// Last successful “Process Month” (any number of months).
+    public var lifestyleLastProcessedAt: Date?
+    /// Append-only lifestyle payment history (optional in payloads for legacy decode).
+    public var lifestyleLedger: [LifestyleLedgerEntry]?
 
     /// Play-state condition damage. Optional so legacy library payloads still decode.
     public var conditionTrack: ConditionTrack?
@@ -91,6 +96,8 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         karmaAvailable: Int = 0,
         nuyen: Int = 0,
         lifestyleNuyenReserve: Int = 0,
+        lifestyleLastProcessedAt: Date? = nil,
+        lifestyleLedger: [LifestyleLedgerEntry]? = nil,
         conditionTrack: ConditionTrack? = nil,
         avatar: AvatarRef = AvatarRef(),
         importProvenance: ImportProvenance? = nil,
@@ -124,11 +131,28 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.karmaAvailable = karmaAvailable
         self.nuyen = nuyen
         self.lifestyleNuyenReserve = lifestyleNuyenReserve
+        self.lifestyleLastProcessedAt = lifestyleLastProcessedAt
+        self.lifestyleLedger = lifestyleLedger
         self.conditionTrack = conditionTrack
         self.avatar = avatar
         self.importProvenance = importProvenance
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
+    }
+
+    /// Ledger entries (empty if never set).
+    public var lifestyleLedgerEntries: [LifestyleLedgerEntry] {
+        get { lifestyleLedger ?? [] }
+        set { lifestyleLedger = newValue.isEmpty ? [] : newValue }
+    }
+
+    public mutating func appendLifestyleLedger(_ entry: LifestyleLedgerEntry, keepLast limit: Int = 40) {
+        var entries = lifestyleLedgerEntries
+        entries.insert(entry, at: 0)
+        if entries.count > limit {
+            entries = Array(entries.prefix(limit))
+        }
+        lifestyleLedger = entries
     }
 
     public var physicalDamage: Int {

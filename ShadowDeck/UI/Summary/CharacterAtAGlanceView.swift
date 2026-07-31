@@ -143,6 +143,12 @@ struct CharacterAtAGlanceView: View {
                         )
                     case .contacts:
                         ContactsManagementView(character: binding(to: c), onPersist: persistCharacter)
+                    case .lifestyle:
+                        LifestyleManagementView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter,
+                            onStatus: { statusMessage = $0 }
+                        )
                     case .magic:
                         MagicManagementView(
                             character: binding(to: c),
@@ -258,6 +264,8 @@ struct CharacterAtAGlanceView: View {
 
                 // Resource vitals (Karma, Nuyen, …)
                 vitalsGrid(c)
+
+                lifestyleBanner(c)
 
                 // Combat readiness
                 ViewThatFits(in: .horizontal) {
@@ -554,6 +562,55 @@ struct CharacterAtAGlanceView: View {
         }
     }
 
+    @ViewBuilder
+    private func lifestyleBanner(_ c: Character) -> some View {
+        let burn = LifestyleTracker.burnSummary(for: c)
+        if burn.activeCount > 0 {
+            let status = burn.overallStatus
+            let icon: String = {
+                switch status {
+                case .covered: "checkmark.seal.fill"
+                case .due: "calendar.badge.exclamationmark"
+                case .underfunded: "exclamationmark.triangle.fill"
+                case .inactive: "house"
+                }
+            }()
+            let color: Color = {
+                switch status {
+                case .covered: .green
+                case .due: .orange
+                case .underfunded: .red
+                case .inactive: .secondary
+                }
+            }()
+            let message: String = {
+                switch status {
+                case .covered:
+                    return "Lifestyle covered — min \(burn.minimumPrepaidMonths) prepaid month(s). Burn ¥\(formatInt(burn.monthlyBurn))/mo."
+                case .due:
+                    return "Lifestyle due — ¥\(formatInt(burn.cashDue)) cash this process (reserve used first). Open the Lifestyle tab."
+                case .underfunded:
+                    return "Lifestyle underfunded — need ¥\(formatInt(burn.cashDue)), have ¥\(formatInt(burn.liquidity)) (nuyen + reserve)."
+                case .inactive:
+                    return "Lifestyle inactive."
+                }
+            }()
+
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+
     /// Resource / derived vitals — after portrait / attributes.
     private func vitalsGrid(_ c: Character) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -570,6 +627,16 @@ struct CharacterAtAGlanceView: View {
                 )
                 vital("Karma Total", "\(c.karmaTotal)", "chart.line.uptrend.xyaxis")
                 vital("Nuyen", "¥\(formatInt(c.nuyen))", "yensign.circle.fill")
+                vital(
+                    "Lifestyle /mo",
+                    "¥\(formatInt(LifestyleTracker.burnSummary(for: c).monthlyBurn))",
+                    "house"
+                )
+                vital(
+                    "Life. Reserve",
+                    "¥\(formatInt(c.lifestyleNuyenReserve))",
+                    "building.columns"
+                )
                 vital("Essence", essenceString(c), "heart.fill")
                 vital("Armor", "\(derived.armor)", "shield.lefthalf.filled")
                 vital("Initiative", initiativeString(c), "gauge.with.dots.needle.67percent")
