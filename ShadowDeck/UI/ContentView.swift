@@ -355,7 +355,7 @@ struct ContentView: View {
                                     Text(summary.displayTitle)
                                         .font(.headline)
                                         .lineLimit(1)
-                                    Text("\(summary.editionRaw) · \(summary.metatypeRaw.capitalized) · \(summary.concept.isEmpty ? "—" : summary.concept)")
+                                    Text(librarySubtitle(for: summary))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
@@ -370,6 +370,17 @@ struct ContentView: View {
 
                             // Compact trailing actions (fixed width so Menu doesn't expand).
                             HStack(spacing: 4) {
+                                Button {
+                                    selectedCharacterID = summary.id
+                                } label: {
+                                    Image(systemName: "square.and.pencil")
+                                        .font(.body)
+                                        .frame(width: 28, height: 28)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Open \(summary.displayTitle)")
+
                                 Menu {
                                     Button("ShadowDeck Package…") {
                                         exportCharacter(summary)
@@ -406,7 +417,7 @@ struct ContentView: View {
                             .fixedSize()
                         }
                         .contextMenu {
-                            Button("Open Summary") {
+                            Button("Open Character Sheet") {
                                 selectedCharacterID = summary.id
                             }
                             Button("Export ShadowDeck Package…") {
@@ -543,6 +554,13 @@ struct ContentView: View {
         }
     }
 
+    /// Edition · Metatype · short concept tagline (keyword-derived when free text is long).
+    private func librarySubtitle(for summary: CharacterSummary) -> String {
+        let tag = summary.concept.trimmingCharacters(in: .whitespacesAndNewlines)
+        let conceptPart = tag.isEmpty ? "—" : tag
+        return "\(summary.editionRaw) · \(summary.metatypeRaw.capitalized) · \(conceptPart)"
+    }
+
     /// Mint exactly one run and show its detail under Create → New Run.
     private func beginNewRun() {
         var run = Run.makeDraft(title: "New Run")
@@ -629,6 +647,10 @@ struct ContentView: View {
                 } catch {
                     statusMessage = "Screenshot open failed: \(error.localizedDescription)"
                 }
+            }
+            // Showcase Advancement Planner on the marquee character-sheet shot.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                NotificationCenter.default.post(name: AppCommand.characterSheetShowAdvanceTab, object: nil)
             }
         case .runLibrary:
             selectedCharacterID = nil

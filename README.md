@@ -65,8 +65,9 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
 ### Keep a character library
 - Local **Character Library** of all your runners (search and filter)
 - **Interactive play sheet**: attributes (base + gear/aug bonuses), condition monitors, karma, nuyen, initiative, armor, dice pools
-- Tabs for skills, gear, augmentations, qualities, contacts, **lifestyle**, and magic
+- Tabs for skills, gear, augmentations, qualities, contacts, **lifestyle**, **Advance**, and magic
 - **Lifestyle tracker** — monthly burn, prepaid months, reserve (used first when paying), Process Month (1–3 mo), prepay, and a short payment ledger
+- **Advancement Planner** — plan skill/attribute raises with edition karma costs, session-persistent cart, Buy Now / Apply Plan, suggestions, and a short spend ledger (free rank edits on Skills remain for imports and house rulings)
 - Portraits (including animated GIF support via hybrid storage)
 
 ### Plan and track missions (Run Library)
@@ -129,6 +130,7 @@ You’ll see a short branded splash (skip with click or any key). Loading-style 
 - **Profile fields** (contacts, attributes, gear equip) save as you go.
 - **Rich-text notes** (character notes, contacts, run GM notes / outcome fields) include a format toolbar; long text scrolls inside the editor.
 - **Lifestyle** tab surfaces due / covered / underfunded on the Summary banner; process month only when you choose (no automatic calendar charge).
+- **Advance** tab spends `karmaAvailable` with edition rules; the Skills tab can still adjust ranks without cost when you need to fix an import or apply a table ruling.
 - **House Rules…** on the character identity area apply after chargen and affect validation/essence ceilings.
 - Re-import a Chummer file once if you want **byte-faithful** `.chum5` re-export of that original file.
 - Run **suggested awards** are planning aids only — apply karma/nuyen on each character sheet when you choose.
