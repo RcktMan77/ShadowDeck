@@ -87,8 +87,9 @@ rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/0*.gif "$OUT"/_*.png 2>/dev/null || tru
 # README uses JPEG stills + silent GIFs.
 cp -f "$SRC"/0*.jpg "$OUT"/ 2>/dev/null || true
 cp -f "$SRC"/0*.gif "$OUT"/ 2>/dev/null || true
-# Drop legacy run-detail still if present from older captures.
-rm -f "$OUT"/06-run-detail.jpg "$OUT"/thumbs/06-run-detail.jpg 2>/dev/null || true
+# Drop retired marquees from older captures.
+rm -f "$OUT"/05-run-library.jpg "$OUT"/06-run-detail.jpg \
+  "$OUT"/thumbs/05-run-library.jpg "$OUT"/thumbs/06-run-detail.jpg 2>/dev/null || true
 
 echo ""
 echo "Captured files:"
@@ -105,7 +106,7 @@ for f in "$OUT"/0*.jpg; do
 done
 
 mkdir -p "$OUT/thumbs"
-for base in 02-library 03-generation-role 04-character-sheet 05-run-library; do
+for base in 02-library 03-generation-role 04-character-sheet; do
   if [[ -f "$OUT/${base}.jpg" ]]; then
     sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null

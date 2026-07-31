@@ -38,24 +38,16 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
   </tr>
 </table>
 
-<!-- Run library still -->
-<p align="center">
-  <a href="Docs/Screenshots/05-run-library.jpg">
-    <img src="Docs/Screenshots/thumbs/05-run-library.jpg" alt="Run library" width="560" />
-  </a><br />
-  <sub>Run Library</sub>
-</p>
-
 <!-- Feature GIFs -->
 <table align="center" width="900">
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="Docs/Screenshots/07-run-mission-flow.gif" alt="Run mission flow" width="420" /><br />
-      <sub><strong>Run / mission flow</strong> — open a job, link runners, add a session log beat, complete objectives, and set the outcome.</sub>
+      <sub><strong>Run / mission flow</strong> — from the Run Library, create a job, fill the briefing, link runners, log a session, complete objectives, mark the run complete, and return to the library with the new status.</sub>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="Docs/Screenshots/08-advancement-planner.gif" alt="Advancement planner flow" width="420" /><br />
-      <sub><strong>Advancement Planner</strong> — add raises to the plan, watch karma totals, then apply and see ranks and available karma update.</sub>
+      <sub><strong>Advancement Planner</strong> — scroll to skills, add raises to the plan, watch karma totals, apply, and see ranks and available karma update.</sub>
     </td>
   </tr>
 </table>
