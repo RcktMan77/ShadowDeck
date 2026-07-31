@@ -51,8 +51,8 @@ set +e
 PID=$!
 set -e
 
-# Wait up to 45s for completion.
-for i in $(seq 1 90); do
+# Wait up to ~90s for stills + GIF storyboards.
+for i in $(seq 1 180); do
   if ! kill -0 "$PID" 2>/dev/null; then
     break
   fi
@@ -67,7 +67,11 @@ if kill -0 "$PID" 2>/dev/null; then
 fi
 
 SRC=""
-if compgen -G "$CONTAINER_OUT"/0*.png > /dev/null 2>&1; then
+if compgen -G "$CONTAINER_OUT"/0*.jpg > /dev/null 2>&1 || compgen -G "$CONTAINER_OUT"/0*.gif > /dev/null 2>&1; then
+  SRC="$CONTAINER_OUT"
+elif compgen -G "$HOST_AS"/0*.jpg > /dev/null 2>&1 || compgen -G "$HOST_AS"/0*.gif > /dev/null 2>&1; then
+  SRC="$HOST_AS"
+elif compgen -G "$CONTAINER_OUT"/0*.png > /dev/null 2>&1; then
   SRC="$CONTAINER_OUT"
 elif compgen -G "$HOST_AS"/0*.png > /dev/null 2>&1; then
   SRC="$HOST_AS"
@@ -79,25 +83,29 @@ else
 fi
 
 echo "Copying from: $SRC"
-rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/_*.png 2>/dev/null || true
-# README uses JPEG (smaller); full PNG stays in the app container if needed.
+rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/0*.gif "$OUT"/_*.png 2>/dev/null || true
+# README uses JPEG stills + silent GIFs.
 cp -f "$SRC"/0*.jpg "$OUT"/ 2>/dev/null || true
+cp -f "$SRC"/0*.gif "$OUT"/ 2>/dev/null || true
+# Drop legacy run-detail still if present from older captures.
+rm -f "$OUT"/06-run-detail.jpg "$OUT"/thumbs/06-run-detail.jpg 2>/dev/null || true
 
 echo ""
 echo "Captured files:"
-ls -la "$OUT"/0*.jpg 2>/dev/null || {
+ls -la "$OUT"/0*.jpg "$OUT"/0*.gif 2>/dev/null || {
   echo "Copy failed." >&2
   exit 1
 }
 
-# Normalize sizes: full UI/splash to 1800px long edge; equal thumbs for UI shots.
+# Normalize still sizes: full UI/splash to 1800px long edge; equal thumbs for UI shots.
 for f in "$OUT"/0*.jpg; do
+  [[ -f "$f" ]] || continue
   sips -Z 1800 "$f" >/dev/null
   sips -s format jpeg -s formatOptions 85 "$f" --out "$f" >/dev/null
 done
 
 mkdir -p "$OUT/thumbs"
-for base in 02-library 03-generation-role 04-character-sheet 05-run-library 06-run-detail; do
+for base in 02-library 03-generation-role 04-character-sheet 05-run-library; do
   if [[ -f "$OUT/${base}.jpg" ]]; then
     sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
@@ -105,4 +113,4 @@ for base in 02-library 03-generation-role 04-character-sheet 05-run-library 06-r
 done
 
 echo "Done."
-ls -la "$OUT"/*.jpg "$OUT/thumbs"/*.jpg 2>/dev/null || true
+ls -la "$OUT"/*.jpg "$OUT"/*.gif "$OUT/thumbs"/*.jpg 2>/dev/null || true
