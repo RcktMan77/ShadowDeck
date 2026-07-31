@@ -124,6 +124,9 @@ if compgen -G "$OUT"/0*.gif > /dev/null 2>&1; then
 from PIL import Image
 import glob, os, sys
 root = sys.argv[1]
+# Cap long edge; keep aspect. Speed up very slow frames a touch when optimizing.
+MAX_LONG = 720
+MIN_MS, MAX_MS = 70, 200
 for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
     im = Image.open(path)
     frames, durations = [], []
@@ -132,16 +135,25 @@ for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
             fr = im.convert("RGBA")
             w, h = fr.size
             long_edge = max(w, h)
-            if long_edge > 640:
-                scale = 640 / long_edge
-                fr = fr.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.Resampling.LANCZOS)
-            frames.append(fr.convert("P", palette=Image.ADAPTIVE, colors=96))
-            durations.append(max(int(im.info.get("duration", 220)), 80))
+            if long_edge > MAX_LONG:
+                scale = MAX_LONG / long_edge
+                fr = fr.resize(
+                    (max(1, int(round(w * scale))), max(1, int(round(h * scale)))),
+                    Image.Resampling.LANCZOS,
+                )
+            frames.append(fr.convert("P", palette=Image.ADAPTIVE, colors=128))
+            d = int(im.info.get("duration", 110))
+            # Slightly snappier playback without losing smoothness.
+            d = max(MIN_MS, min(MAX_MS, int(d * 0.85)))
+            durations.append(d)
             im.seek(im.tell() + 1)
     except EOFError:
         pass
     if not frames:
         continue
+    # Hold final frame a bit longer.
+    if durations:
+        durations[-1] = max(durations[-1], 450)
     frames[0].save(
         path,
         save_all=True,
@@ -151,7 +163,7 @@ for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
         optimize=True,
         disposal=2,
     )
-    print(f"  optimized {os.path.basename(path)} → {os.path.getsize(path)//1024} KB ({len(frames)} frames)")
+    print(f"  optimized {os.path.basename(path)} → {os.path.getsize(path)//1024} KB ({len(frames)} frames, {frames[0].size[0]}x{frames[0].size[1]})")
 PY
 fi
 

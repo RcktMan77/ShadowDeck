@@ -49,23 +49,16 @@ enum MarketingScreenshotExporter {
         case finished
     }
 
-    /// Playback delay between GIF frames (shorter = smoother with more frames).
-    private static let gifFrameDelay: Double = 0.22
+    /// Playback delay between GIF frames.
+    private static let gifFrameDelay: Double = 0.11
     /// Hold last frame a bit longer so the result is readable.
-    private static let gifLastFrameDelay: Double = 0.95
+    private static let gifLastFrameDelay: Double = 0.55
     /// Live captures per storyboard step (mid-scroll + settle).
-    private static let samplesPerStep = 4
-    /// Synthetic cross-dissolve frames inserted between each live capture.
-    private static let crossfadeIntermediates = 2
-    /// Long-edge cap for GIF frames (keeps files README-friendly).
-    private static let gifMaxLongEdge: CGFloat = 720
-
-    private enum CropMode {
-        /// Full window (run library list).
-        case full
-        /// Drop sidebar; keep main detail column.
-        case detail
-    }
+    private static let samplesPerStep = 3
+    /// Synthetic cross-dissolve frames between live captures (1 = short fade).
+    private static let crossfadeIntermediates = 1
+    /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
+    private static let gifMaxLongEdge: CGFloat = 800
 
     @MainActor
     static func runSequence() async {
@@ -111,13 +104,12 @@ enum MarketingScreenshotExporter {
     /// Library → create job → fill → team → active log → objectives → complete → library.
     @MainActor
     private static func captureRunFlowGIF(to dir: URL) async {
-        // Steps 0 and last are library list; middle steps are detail.
         let stepCount = 12
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.runGif, step: step)
-            let crop: CropMode = (step == 0 || step == stepCount - 1) ? .full : .detail
-            await appendSettlingFrames(to: &frames, crop: crop, firstStep: step == 0)
+            // Always full-window (preserves window aspect; no mixed full/detail stretch).
+            await appendSettlingFrames(to: &frames, firstStep: step == 0)
         }
         writeGIF(frames: frames, named: "07-run-mission-flow", to: dir)
     }
@@ -129,7 +121,7 @@ enum MarketingScreenshotExporter {
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.advanceGif, step: step)
-            await appendSettlingFrames(to: &frames, crop: .detail, firstStep: step == 0)
+            await appendSettlingFrames(to: &frames, firstStep: step == 0)
         }
         writeGIF(frames: frames, named: "08-advancement-planner", to: dir)
     }
@@ -138,45 +130,39 @@ enum MarketingScreenshotExporter {
     @MainActor
     private static func appendSettlingFrames(
         to frames: inout [NSImage],
-        crop: CropMode,
         firstStep: Bool
     ) async {
-        // Brief pause for scroll animation to start, then dense sampling.
-        let firstWait: UInt64 = firstStep ? 380_000_000 : 160_000_000
+        let firstWait: UInt64 = firstStep ? 300_000_000 : 120_000_000
         try? await Task.sleep(nanoseconds: firstWait)
         for sample in 0..<samplesPerStep {
             if sample > 0 {
-                try? await Task.sleep(nanoseconds: 160_000_000)
+                try? await Task.sleep(nanoseconds: 110_000_000)
             }
             if let full = await snapshotLargestWindow() {
-                let processed: NSImage?
-                switch crop {
-                case .full:
-                    processed = downscale(full, maxLongEdge: gifMaxLongEdge)
-                case .detail:
-                    processed = cropDetailPanel(full).flatMap { downscale($0, maxLongEdge: gifMaxLongEdge) }
-                }
-                if let frame = processed {
-                    frames.append(frame)
-                } else {
-                    frames.append(downscale(full, maxLongEdge: gifMaxLongEdge) ?? full)
-                }
+                // Full window only — aspect matches the live app chrome.
+                let frame = downscale(full, maxLongEdge: gifMaxLongEdge) ?? full
+                frames.append(frame)
             } else {
                 fputs("  ✗ GIF frame: no snapshot\n", stderr)
             }
         }
     }
 
-    /// Insert cross-dissolves between live frames so hard cuts read as fades.
+    /// Insert short cross-dissolves between live frames (same aspect; no stretch).
     private static func expandWithCrossfades(_ keyframes: [NSImage]) -> [NSImage] {
         guard keyframes.count >= 2, crossfadeIntermediates > 0 else { return keyframes }
+        // Normalize every keyframe to the first frame’s size (aspect-fit, letterbox).
+        guard let targetSize = keyframes.first.map(\.size) else { return keyframes }
+        let normalized = keyframes.compactMap { fit($0, into: targetSize) }
+        guard normalized.count == keyframes.count else { return keyframes }
+
         var out: [NSImage] = []
-        out.reserveCapacity(keyframes.count * (crossfadeIntermediates + 1))
-        for i in 0..<keyframes.count {
-            out.append(keyframes[i])
-            guard i + 1 < keyframes.count else { break }
-            let a = keyframes[i]
-            let b = keyframes[i + 1]
+        out.reserveCapacity(normalized.count * (crossfadeIntermediates + 1))
+        for i in 0..<normalized.count {
+            out.append(normalized[i])
+            guard i + 1 < normalized.count else { break }
+            let a = normalized[i]
+            let b = normalized[i + 1]
             for k in 1...crossfadeIntermediates {
                 let t = CGFloat(k) / CGFloat(crossfadeIntermediates + 1)
                 if let blended = crossDissolve(from: a, to: b, t: t) {
@@ -187,19 +173,48 @@ enum MarketingScreenshotExporter {
         return out
     }
 
-    /// Linear blend: result ≈ from·(1−t) + to·t (opaque bitmaps).
-    private static func crossDissolve(from: NSImage, to: NSImage, t: CGFloat) -> NSImage? {
-        let size = NSSize(
-            width: min(from.size.width, to.size.width),
-            height: min(from.size.height, to.size.height)
+    /// Aspect-preserving fit into `box` (letterbox with clear, never stretch).
+    private static func fit(_ image: NSImage, into box: NSSize) -> NSImage? {
+        guard box.width > 1, box.height > 1, image.size.width > 1, image.size.height > 1 else {
+            return nil
+        }
+        let sx = box.width / image.size.width
+        let sy = box.height / image.size.height
+        let scale = min(sx, sy)
+        let drawSize = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+        let origin = NSPoint(
+            x: (box.width - drawSize.width) / 2,
+            y: (box.height - drawSize.height) / 2
         )
-        guard size.width > 1, size.height > 1 else { return nil }
+        let out = NSImage(size: box)
+        out.lockFocus()
+        NSColor.windowBackgroundColor.setFill()
+        NSRect(origin: .zero, size: box).fill()
+        image.draw(
+            in: NSRect(origin: origin, size: drawSize),
+            from: NSRect(origin: .zero, size: image.size),
+            operation: .sourceOver,
+            fraction: 1
+        )
+        out.unlockFocus()
+        return out
+    }
+
+    /// Linear blend of two same-size frames (no geometry change).
+    private static func crossDissolve(from: NSImage, to: NSImage, t: CGFloat) -> NSImage? {
+        let size = from.size
+        guard abs(size.width - to.size.width) < 0.5,
+              abs(size.height - to.size.height) < 0.5,
+              size.width > 1, size.height > 1
+        else {
+            return fit(to, into: size) // fallback: snap without stretch
+        }
         let rect = NSRect(origin: .zero, size: size)
         let out = NSImage(size: size)
         out.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .medium
-        from.draw(in: rect, from: NSRect(origin: .zero, size: from.size), operation: .copy, fraction: 1)
-        to.draw(in: rect, from: NSRect(origin: .zero, size: to.size), operation: .sourceOver, fraction: t)
+        NSGraphicsContext.current?.imageInterpolation = .high
+        from.draw(in: rect, from: rect, operation: .copy, fraction: 1)
+        to.draw(in: rect, from: rect, operation: .sourceOver, fraction: t)
         out.unlockFocus()
         return out
     }
@@ -328,37 +343,21 @@ enum MarketingScreenshotExporter {
         return image
     }
 
-    /// Drop sidebar (~22% width) so action in the detail column is obvious.
-    private static func cropDetailPanel(_ image: NSImage) -> NSImage? {
-        let size = image.size
-        guard size.width > 100, size.height > 100 else { return image }
-        let outSize = NSSize(width: size.width * 0.78, height: size.height * 0.96)
-        let out = NSImage(size: outSize)
-        out.lockFocus()
-        let src = NSRect(
-            x: size.width * 0.22,
-            y: 0,
-            width: size.width * 0.78,
-            height: size.height * 0.96
-        )
-        image.draw(
-            in: NSRect(origin: .zero, size: outSize),
-            from: src,
-            operation: .copy,
-            fraction: 1
-        )
-        out.unlockFocus()
-        return out
-    }
-
+    /// Aspect-preserving downscale (uniform scale; never stretches).
     private static func downscale(_ image: NSImage, maxLongEdge: CGFloat) -> NSImage? {
         let size = image.size
+        guard size.width > 1, size.height > 1 else { return image }
         let longEdge = max(size.width, size.height)
         guard longEdge > maxLongEdge else { return image }
         let scale = maxLongEdge / longEdge
-        let newSize = NSSize(width: size.width * scale, height: size.height * scale)
+        let newSize = NSSize(
+            width: (size.width * scale).rounded(.down),
+            height: (size.height * scale).rounded(.down)
+        )
+        guard newSize.width > 1, newSize.height > 1 else { return image }
         let out = NSImage(size: newSize)
         out.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
         image.draw(
             in: NSRect(origin: .zero, size: newSize),
             from: NSRect(origin: .zero, size: size),
