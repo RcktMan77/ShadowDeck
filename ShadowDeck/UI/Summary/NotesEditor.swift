@@ -80,6 +80,212 @@ final class NotesTextBridge: ObservableObject {
         textView?.alignRight(nil)
     }
 
+    func toggleBulletedList() {
+        focus()
+        applyListToggle(kind: .bullet)
+    }
+
+    func toggleNumberedList() {
+        focus()
+        applyListToggle(kind: .numbered)
+    }
+
+    /// Rebuild the covered paragraphs as one attributed replacement.
+    /// Avoids multi-pass range math that could throw after the first edit.
+    private func applyListToggle(kind: NotesListKind) {
+        guard let textView, let storage = textView.textStorage else { return }
+
+        let font = (textView.typingAttributes[.font] as? NSFont)
+            ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let color = (textView.typingAttributes[.foregroundColor] as? NSColor) ?? .textColor
+        let listStyle = Self.hangingListParagraphStyle()
+        let plainStyle = NSParagraphStyle.default
+
+        // Empty document → insert one list line with a visible marker.
+        if storage.length == 0 {
+            let marker = kind.markerPrefix(index: 1)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: color,
+                .paragraphStyle: listStyle,
+            ]
+            storage.setAttributedString(NSAttributedString(string: marker, attributes: attrs))
+            textView.typingAttributes = attrs
+            textView.setSelectedRange(NSRange(location: (marker as NSString).length, length: 0))
+            textView.didChangeText()
+            return
+        }
+
+        let selection = textView.selectedRange().clamped(to: storage.length)
+        let ns = storage.string as NSString
+        let cover = Self.paragraphCover(for: selection, in: ns)
+        guard cover.length >= 0, cover.location + cover.length <= ns.length else { return }
+
+        // Split into paragraph bodies + whether each ended with a newline.
+        struct Para {
+            var body: String
+            var hadTrailingNewline: Bool
+        }
+        var paras: [Para] = []
+        var cursor = cover.location
+        let coverEnd = NSMaxRange(cover)
+        while cursor < coverEnd {
+            let pr = ns.paragraphRange(for: NSRange(location: cursor, length: 0))
+            let clamped = NSRange(
+                location: pr.location,
+                length: min(pr.length, coverEnd - pr.location)
+            )
+            guard clamped.length > 0 || paras.isEmpty else { break }
+            let raw = ns.substring(with: clamped)
+            let hadNL = raw.hasSuffix("\n") || raw.hasSuffix("\r\n") || raw.hasSuffix("\r")
+            var body = raw
+            if body.hasSuffix("\r\n") {
+                body = String(body.dropLast(2))
+            } else if body.hasSuffix("\n") || body.hasSuffix("\r") {
+                body = String(body.dropLast())
+            }
+            paras.append(Para(body: body, hadTrailingNewline: hadNL))
+            let next = pr.location + max(pr.length, 1)
+            if next <= cursor { break }
+            cursor = next
+        }
+
+        // Drop a trailing empty paragraph from a selection that ends on a newline.
+        if paras.count > 1, paras.last?.body.isEmpty == true, paras.last?.hadTrailingNewline == true {
+            paras.removeLast()
+        }
+        guard !paras.isEmpty else { return }
+
+        let alreadyListed = paras.allSatisfy { kind.matchesMarker(in: $0.body) }
+        let enabling = !alreadyListed
+
+        // Build replacement plain string first.
+        var newBodies: [String] = []
+        if enabling {
+            for (i, p) in paras.enumerated() {
+                let stripped = NotesListKind.stripAnyMarker(from: p.body)
+                newBodies.append(kind.markerPrefix(index: i + 1) + stripped)
+            }
+        } else {
+            newBodies = paras.map { NotesListKind.stripAnyMarker(from: $0.body) }
+        }
+
+        let replacement = NSMutableAttributedString()
+        let style = enabling ? listStyle : plainStyle
+        for (i, body) in newBodies.enumerated() {
+            var line = body
+            // Preserve structure: keep original trailing newlines; ensure separators between items.
+            if paras[i].hadTrailingNewline || i < newBodies.count - 1 {
+                if !line.hasSuffix("\n") { line += "\n" }
+            }
+            var attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: color,
+                .paragraphStyle: style,
+            ]
+            if storage.length > 0 {
+                let sampleLoc = min(cover.location, storage.length - 1)
+                let existing = storage.attributes(at: sampleLoc, effectiveRange: nil)
+                if let f = existing[.font] { attrs[.font] = f }
+                if let c = existing[.foregroundColor] { attrs[.foregroundColor] = c }
+            }
+            attrs[.paragraphStyle] = style
+            replacement.append(NSAttributedString(string: line, attributes: attrs))
+        }
+
+        // If cover ended mid-document without including final newline of last para, OK.
+        // Single atomic replace — no intermediate invalid ranges.
+        storage.beginEditing()
+        storage.replaceCharacters(in: cover, with: replacement)
+        storage.endEditing()
+
+        var typing = textView.typingAttributes
+        typing[.paragraphStyle] = style
+        typing[.font] = font
+        typing[.foregroundColor] = color
+        textView.typingAttributes = typing
+
+        let newLen = replacement.length
+        let caret = min(cover.location + newLen, storage.length)
+        textView.setSelectedRange(NSRange(location: caret, length: 0))
+        textView.didChangeText()
+    }
+
+    private enum NotesListKind: Equatable {
+        case bullet
+        case numbered
+
+        func markerPrefix(index: Int) -> String {
+            switch self {
+            case .bullet: return "• "
+            case .numbered: return "\(index). "
+            }
+        }
+
+        func matchesMarker(in body: String) -> Bool {
+            switch self {
+            case .bullet:
+                return NotesListKind.bulletRegex.firstMatch(
+                    in: body,
+                    options: [],
+                    range: NSRange(location: 0, length: (body as NSString).length)
+                ) != nil
+            case .numbered:
+                return NotesListKind.numberRegex.firstMatch(
+                    in: body,
+                    options: [],
+                    range: NSRange(location: 0, length: (body as NSString).length)
+                ) != nil
+            }
+        }
+
+        static func stripAnyMarker(from body: String) -> String {
+            let ns = body as NSString
+            let full = NSRange(location: 0, length: ns.length)
+            if let m = bulletRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: m.range.length)
+            }
+            if let m = numberRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: m.range.length)
+            }
+            // Also strip legacy tab-based markers from earlier attempts.
+            if let m = legacyTabBulletRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: m.range.length)
+            }
+            if let m = legacyTabNumberRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: m.range.length)
+            }
+            return body
+        }
+
+        static let bulletRegex = try! NSRegularExpression(pattern: #"^[•\-\*▪◦][ \t]+"#)
+        static let numberRegex = try! NSRegularExpression(pattern: #"^\d+\.[ \t]+"#)
+        static let legacyTabBulletRegex = try! NSRegularExpression(pattern: #"^[•\-\*▪◦]\t"#)
+        static let legacyTabNumberRegex = try! NSRegularExpression(pattern: #"^\d+\.\t"#)
+    }
+
+    private static func hangingListParagraphStyle() -> NSMutableParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.setParagraphStyle(.default)
+        style.firstLineHeadIndent = 0
+        style.headIndent = 22
+        style.textLists = []
+        return style
+    }
+
+    private static func paragraphCover(for selection: NSRange, in ns: NSString) -> NSRange {
+        guard ns.length > 0 else { return NSRange(location: 0, length: 0) }
+        let loc = max(0, min(selection.location, ns.length))
+        if selection.length == 0 {
+            let safe = min(loc, ns.length - 1)
+            return ns.paragraphRange(for: NSRange(location: safe, length: 0))
+        }
+        let end = min(NSMaxRange(selection), ns.length)
+        let startPara = ns.paragraphRange(for: NSRange(location: min(loc, ns.length - 1), length: 0))
+        let endPara = ns.paragraphRange(for: NSRange(location: max(min(end - 1, ns.length - 1), 0), length: 0))
+        return NSRange(location: startPara.location, length: NSMaxRange(endPara) - startPara.location)
+    }
+
     private func toggleFontTrait(_ trait: NSFontTraitMask) {
         guard let textView else { return }
         let manager = NSFontManager.shared
@@ -111,6 +317,14 @@ final class NotesTextBridge: ObservableObject {
         }
         storage.endEditing()
         textView.didChangeText()
+    }
+}
+
+private extension NSRange {
+    func clamped(to length: Int) -> NSRange {
+        let loc = max(0, min(location, length))
+        let len = max(0, min(self.length, length - loc))
+        return NSRange(location: loc, length: len)
     }
 }
 
@@ -153,15 +367,16 @@ struct NotesEditor: View {
 
             Divider().frame(height: 18).padding(.horizontal, 4)
 
+            formatButton("list.bullet", help: "Bulleted list", action: bridge.toggleBulletedList)
+            formatButton("list.number", help: "Numbered list", action: bridge.toggleNumberedList)
+
+            Divider().frame(height: 18).padding(.horizontal, 4)
+
             formatButton("text.alignleft", help: "Align left", action: bridge.alignLeft)
             formatButton("text.aligncenter", help: "Align center", action: bridge.alignCenter)
             formatButton("text.alignright", help: "Align right", action: bridge.alignRight)
 
             Spacer(minLength: 0)
-
-            Text("Select text, then format")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
     }
 

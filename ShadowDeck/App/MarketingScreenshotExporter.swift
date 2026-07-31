@@ -38,6 +38,8 @@ enum MarketingScreenshotExporter {
         case library
         case generationRole
         case characterSheet
+        case runLibrary
+        case runDetail
         case finished
     }
 
@@ -69,6 +71,14 @@ enum MarketingScreenshotExporter {
         post(.characterSheet)
         try? await Task.sleep(nanoseconds: 1_400_000_000)
         await capture(named: "04-character-sheet", to: dir)
+
+        post(.runLibrary)
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        await capture(named: "05-run-library", to: dir)
+
+        post(.runDetail)
+        try? await Task.sleep(nanoseconds: 1_400_000_000)
+        await capture(named: "06-run-detail", to: dir)
 
         post(.finished)
         fputs("Marketing screenshots complete.\n", stderr)
