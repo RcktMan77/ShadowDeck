@@ -59,12 +59,14 @@ struct RunsListView: View {
                 selectedRunID = forcedOpenRunID
             }
         }
-        .onChange(of: forcedOpenRunID) { _, newID in
+        .onChange(of: forcedOpenRunID) { oldID, newID in
             if let newID {
                 selectedRunID = newID
-            } else if selectedRunID != nil, forcedOpenRunID == nil {
-                // Parent cleared force-open (e.g. returning to list capture).
-                // Leave manual selection alone unless we're in marketing list mode.
+                refresh()
+            } else if oldID != nil, newID == nil {
+                // Parent cleared force-open (marketing GIF return-to-library).
+                selectedRunID = nil
+                refresh()
             }
         }
     }
