@@ -68,6 +68,8 @@ struct ContentView: View {
     @State private var newRunDetailID: UUID?
     /// Marketing screenshots: force-open a run inside the Runs library list host.
     @State private var marketingOpenRunID: UUID?
+    /// Marketing GIF: pin RunsListView to list mode (never detail).
+    @State private var marketingForceRunListOnly = false
 
     private var filteredSummaries: [CharacterSummary] {
         let q = libraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -205,7 +207,12 @@ struct ContentView: View {
     private var detail: some View {
         switch selection {
         case .runs:
-            RunsListView(forcedOpenRunID: marketingOpenRunID)
+            RunsListView(
+                forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
+                forceListOnly: marketingForceRunListOnly
+            )
+            // Remount when toggling list-only so detail cannot stick.
+            .id(marketingForceRunListOnly ? "runs-list-only" : "runs-\(marketingOpenRunID?.uuidString ?? "list")")
         case .newRun:
             // Detail only — creation happens once in beginNewRun(), never via onAppear.
             if let newRunDetailID {
@@ -639,7 +646,7 @@ struct ContentView: View {
     }
 
     /// Storyboard for `07-run-mission-flow.gif`:
-    /// library → create → fill → team → active/log → objectives → complete → library.
+    /// library → create → fill → team → active/log → objectives → complete → library list.
     private func applyRunGifStoryboard(step: Int) {
         selectedCharacterID = nil
         do {
@@ -648,6 +655,7 @@ struct ContentView: View {
                 // Empty Run Library (start of flow).
                 try clearMarketingRuns()
                 marketingOpenRunID = nil
+                marketingForceRunListOnly = true
                 selection = .runs
                 refresh()
                 return
@@ -655,6 +663,7 @@ struct ContentView: View {
             case 1:
                 // Create a new planning job and open detail.
                 try clearMarketingRuns()
+                marketingForceRunListOnly = false
                 var run = Run.makeDraft(title: "New Run")
                 run.status = .planning
                 run.participantCharacterIDs = []
@@ -687,6 +696,7 @@ struct ContentView: View {
             switch step {
             case 2:
                 // Fill briefing fields (still Planning).
+                marketingForceRunListOnly = false
                 run.title = "Datasteal on Renraku Arcology"
                 run.client = "Mr. Johnson (Ares cut-out)"
                 run.location = "Downtown Seattle · Renraku Arcology"
@@ -699,22 +709,22 @@ struct ContentView: View {
                 run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
                 focusAnchor = "overview"
             case 3:
-                // Scroll to Team (empty) before linking.
+                marketingForceRunListOnly = false
                 focusAnchor = "team"
                 focusHighlight = "team"
             case 4:
-                // Link sample runners.
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 focusAnchor = "team"
                 focusHighlight = "team"
             case 5:
-                // Move to Active + focus session log.
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 focusAnchor = "sessionLog"
                 focusHighlight = "sessionLog"
             case 6:
-                // Session log beat.
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
@@ -722,7 +732,7 @@ struct ContentView: View {
                 ]
                 focusAnchor = "sessionLog"
             case 7:
-                // Objectives in view (pending).
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
@@ -731,7 +741,7 @@ struct ContentView: View {
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
             case 8:
-                // Mark primary complete.
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
@@ -745,6 +755,7 @@ struct ContentView: View {
                 focusHighlight = "objectives"
             case 9:
                 // Outcome + Completed status (still on detail).
+                marketingForceRunListOnly = false
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
@@ -758,8 +769,8 @@ struct ContentView: View {
                 run.applyStatus(.completed)
                 focusAnchor = "outcome"
                 focusHighlight = "outcome"
-            case 10:
-                // Return to Run Library — row shows Completed + team/payout info.
+            default:
+                // Steps 10–11: force list mode with completed run row (status + team + payout).
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
@@ -772,21 +783,19 @@ struct ContentView: View {
                 run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
                 run.applyStatus(.completed)
                 returnToLibrary = true
-            default:
-                // Hold library list (extra beat so status is readable).
-                returnToLibrary = true
             }
 
             try libraryEnvironment.runLibrary.save(run)
             libraryEnvironment.refreshRunCount()
 
             if returnToLibrary {
-                // Clear force-open so RunsListView dismisses detail and shows the list.
                 marketingOpenRunID = nil
+                marketingForceRunListOnly = true
                 selection = .runs
                 libraryEnvironment.refreshRunCount()
                 refresh()
             } else {
+                marketingForceRunListOnly = false
                 marketingOpenRunID = runID
                 selection = .runs
                 refresh()
