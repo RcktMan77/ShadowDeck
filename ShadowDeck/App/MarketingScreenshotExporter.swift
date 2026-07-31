@@ -50,9 +50,9 @@ enum MarketingScreenshotExporter {
     }
 
     /// Seconds each GIF frame is shown.
-    private static let gifFrameDelay: Double = 1.15
+    private static let gifFrameDelay: Double = 0.95
     /// Hold last frame a bit longer so the result is readable.
-    private static let gifLastFrameDelay: Double = 1.6
+    private static let gifLastFrameDelay: Double = 1.45
 
     @MainActor
     static func runSequence() async {
@@ -99,14 +99,17 @@ enum MarketingScreenshotExporter {
 
     // MARK: - GIF storyboards
 
-    /// Run: open detail → link team → session log → complete objective → set outcome.
+    /// Run: scroll to team/log/objectives/outcome and show each interaction on-screen.
+    /// Steps pair focus → result so the GIF reads as a user walking the form.
     @MainActor
     private static func captureRunFlowGIF(to dir: URL) async {
-        let stepCount = 5
+        let stepCount = 9
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.runGif, step: step)
-            try? await Task.sleep(nanoseconds: step == 0 ? 1_200_000_000 : 900_000_000)
+            // Extra settle time for scroll animation + reload.
+            let wait: UInt64 = step == 0 ? 1_400_000_000 : 1_050_000_000
+            try? await Task.sleep(nanoseconds: wait)
             if let full = await snapshotLargestWindow(),
                let cropped = cropDetailPanel(full)
             {
@@ -118,14 +121,15 @@ enum MarketingScreenshotExporter {
         writeGIF(frames: frames, named: "07-run-mission-flow", to: dir)
     }
 
-    /// Advance: open planner → add raises → show totals → apply → ranks/karma update.
+    /// Advance: scroll to skills, highlight Add on each raise, then Apply Plan.
     @MainActor
     private static func captureAdvanceFlowGIF(to dir: URL) async {
-        let stepCount = 5
+        let stepCount = 8
         var frames: [NSImage] = []
         for step in 0..<stepCount {
             post(.advanceGif, step: step)
-            try? await Task.sleep(nanoseconds: step == 0 ? 1_300_000_000 : 950_000_000)
+            let wait: UInt64 = step == 0 ? 1_400_000_000 : 1_050_000_000
+            try? await Task.sleep(nanoseconds: wait)
             if let full = await snapshotLargestWindow(),
                let cropped = cropDetailPanel(full)
             {

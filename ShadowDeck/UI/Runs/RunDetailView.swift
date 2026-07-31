@@ -34,6 +34,9 @@ struct RunDetailView: View {
     /// Reference type so delete can flip this *immediately* (before `onDisappear`).
     /// `@State` bool updates can apply too late, letting auto-save re-insert a deleted run.
     @State private var session = RunDetailSession()
+    /// Marketing GIF: scroll + pulse a section so storyboard action is on-screen.
+    @State private var marketingAnchor: String?
+    @State private var marketingHighlight: String?
 
     var body: some View {
         Group {
@@ -48,6 +51,10 @@ struct RunDetailView: View {
         .onChange(of: runID) { _, _ in reload() }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingReloadRun)) { _ in
             reload()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingFocus)) { note in
+            marketingAnchor = note.userInfo?["anchor"] as? String
+            marketingHighlight = note.userInfo?["highlight"] as? String
         }
         .onDisappear {
             guard session.allowAutoSave else { return }
@@ -108,22 +115,40 @@ struct RunDetailView: View {
 
             Divider()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    titleField
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        titleField
+                            .id("overview")
 
-                    overviewSection
-                    objectivesSection
-                    oppositionSection
-                    payoutSection
-                    teamSection
-                    sessionLogSection
-                    outcomeSection
+                        overviewSection
+                            .id("overviewBody")
+                        objectivesSection
+                            .id("objectives")
+                            .modifier(MarketingHighlightPulse(active: marketingHighlight == "objectives"))
+                        oppositionSection
+                        payoutSection
+                        teamSection
+                            .id("team")
+                            .modifier(MarketingHighlightPulse(active: marketingHighlight == "team"))
+                        sessionLogSection
+                            .id("sessionLog")
+                            .modifier(MarketingHighlightPulse(active: marketingHighlight == "sessionLog"))
+                        outcomeSection
+                            .id("outcome")
+                            .modifier(MarketingHighlightPulse(active: marketingHighlight == "outcome"))
+                    }
+                    .padding(24)
+                    .frame(maxWidth: 960, alignment: .leading)
                 }
-                .padding(24)
-                .frame(maxWidth: 960, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .onChange(of: marketingAnchor) { _, anchor in
+                    guard let anchor else { return }
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        proxy.scrollTo(anchor, anchor: .center)
+                    }
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))

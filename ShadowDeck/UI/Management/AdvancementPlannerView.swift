@@ -18,6 +18,9 @@ struct AdvancementPlannerView: View {
     @State private var confirmApplyPlan = false
     @State private var pendingBuy: AdvancementPlanItem?
     @State private var showNewSkill = false
+    /// Marketing GIF scroll / pulse targets.
+    @State private var marketingAnchor: String?
+    @State private var marketingHighlight: String?
 
     /// Draft plan is stored on the character so it survives tab switches and app restarts.
     private var cart: [AdvancementPlanItem] {
@@ -112,13 +115,25 @@ struct AdvancementPlannerView: View {
 
                 // Sticky metrics + plan side-by-side (do not scroll away).
                 stickyPlannerChrome
+                    .id("planHeader")
+                    .modifier(MarketingHighlightPulse(active: marketingHighlight == "applyPlan"))
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        suggestionsSection
-                        attributesSection
-                        skillsSection
-                        ledgerSection
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            suggestionsSection
+                            attributesSection
+                            skillsSection
+                                .id("skills")
+                            ledgerSection
+                                .id("ledger")
+                        }
+                    }
+                    .onChange(of: marketingAnchor) { _, anchor in
+                        guard let anchor else { return }
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            proxy.scrollTo(anchor, anchor: .center)
+                        }
                     }
                 }
             }
@@ -127,6 +142,15 @@ struct AdvancementPlannerView: View {
             .onChange(of: character.karmaAvailable) { _, _ in refreshStaleCart() }
             .onChange(of: character.skills) { _, _ in refreshStaleCart() }
             .onChange(of: character.attributes) { _, _ in refreshStaleCart() }
+            .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingFocus)) { note in
+                marketingAnchor = note.userInfo?["anchor"] as? String
+                marketingHighlight = note.userInfo?["highlight"] as? String
+                // Skills list often needs an explicit scroll after reload.
+                if marketingAnchor == "skills" {
+                    skillFilter = .all
+                    skillSort = .name
+                }
+            }
         }
         .sheet(isPresented: $showNewSkill) {
             CatalogBrowserView(
@@ -213,6 +237,7 @@ struct AdvancementPlannerView: View {
                             ? "Plan exceeds available karma — keep it as a goal, or remove items / earn more karma"
                             : "Apply all planned raises"
                     )
+                    .modifier(MarketingHighlightPulse(active: marketingHighlight == "applyPlan"))
                 }
 
                 if remainingAfterPlan < 0, !cart.isEmpty {
@@ -487,6 +512,7 @@ struct AdvancementPlannerView: View {
     private func raiseRow(_ preview: AdvancementRaisePreview) -> some View {
         let inCart = cartTargetKeys.contains(preview.targetKey)
         let impact = AdvancementGuidance.impact(for: preview, character: character, rules: rules)
+        let highlightID = "skill-\(preview.targetKey)"
         return HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(preview.displayName)
@@ -524,6 +550,7 @@ struct AdvancementPlannerView: View {
                 }
                 .disabled(inCart)
                 .controlSize(.small)
+                .modifier(MarketingHighlightPulse(active: marketingHighlight == highlightID && !inCart))
 
                 Button("Buy") {
                     if let item = planItem(from: preview) {
@@ -540,6 +567,8 @@ struct AdvancementPlannerView: View {
         .opacity(preview.canRaise ? 1 : 0.55)
         .help(impact?.detail ?? "")
         .accessibilityHint(impact?.detail ?? "")
+        .id(highlightID)
+        .modifier(MarketingHighlightPulse(active: marketingHighlight == highlightID))
     }
 
     private func progressBar(current: Int, maximum: Int) -> some View {
