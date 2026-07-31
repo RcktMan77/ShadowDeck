@@ -744,7 +744,7 @@ struct ContentView: View {
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
             case 9:
-                // Outcome + Completed status.
+                // Outcome + Completed status (still on detail).
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
@@ -758,15 +758,22 @@ struct ContentView: View {
                 run.applyStatus(.completed)
                 focusAnchor = "outcome"
                 focusHighlight = "outcome"
-            default:
-                // Back to library — completed badge visible on the row.
+            case 10:
+                // Return to Run Library — row shows Completed + team/payout info.
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
                 }
+                run.sessionLog = [
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                ]
                 run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
                 run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
                 run.applyStatus(.completed)
+                returnToLibrary = true
+            default:
+                // Hold library list (extra beat so status is readable).
                 returnToLibrary = true
             }
 
@@ -774,8 +781,10 @@ struct ContentView: View {
             libraryEnvironment.refreshRunCount()
 
             if returnToLibrary {
+                // Clear force-open so RunsListView dismisses detail and shows the list.
                 marketingOpenRunID = nil
                 selection = .runs
+                libraryEnvironment.refreshRunCount()
                 refresh()
             } else {
                 marketingOpenRunID = runID

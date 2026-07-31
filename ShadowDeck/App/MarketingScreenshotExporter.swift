@@ -51,8 +51,8 @@ enum MarketingScreenshotExporter {
 
     /// How long each storyboard keyframe is held (same for every step).
     private static let keyframeHoldSeconds: Double = 1.35
-    /// Extra hold on the final keyframe.
-    private static let lastKeyframeHoldSeconds: Double = 1.8
+    /// Extra hold on the final keyframe (library list with completed status).
+    private static let lastKeyframeHoldSeconds: Double = 2.0
     /// Cross-dissolve frames between keyframes (short; must not dominate hold time).
     private static let crossfadeIntermediates = 2
     /// Delay for each crossfade intermediate.
@@ -60,6 +60,8 @@ enum MarketingScreenshotExporter {
     /// Wait after posting a step before capture (scroll + highlight settle).
     private static let stepSettleNanoseconds: UInt64 = 900_000_000
     private static let firstStepSettleNanoseconds: UInt64 = 1_100_000_000
+    /// Extra settle when returning to a list (detail teardown).
+    private static let libraryReturnSettleNanoseconds: UInt64 = 1_200_000_000
     /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
     private static let gifMaxLongEdge: CGFloat = 800
 
@@ -110,13 +112,20 @@ enum MarketingScreenshotExporter {
     // MARK: - GIF storyboards
 
     /// Library → create job → fill → team → active log → objectives → complete → library.
+    /// Steps 0…11; last two hold the completed run on the library list.
     @MainActor
     private static func captureRunFlowGIF(to dir: URL) async {
         let stepCount = 12
         var keyframes: [NSImage] = []
         for step in 0..<stepCount {
             post(.runGif, step: step)
-            if let frame = await captureKeyframe(firstStep: step == 0) {
+            // Steps 10–11 return to the list after detail dismiss — allow extra layout time.
+            let settle: UInt64 = {
+                if step == 0 { return firstStepSettleNanoseconds }
+                if step >= 10 { return libraryReturnSettleNanoseconds }
+                return stepSettleNanoseconds
+            }()
+            if let frame = await captureKeyframe(settleNanoseconds: settle) {
                 keyframes.append(frame)
             }
         }
@@ -130,7 +139,8 @@ enum MarketingScreenshotExporter {
         var keyframes: [NSImage] = []
         for step in 0..<stepCount {
             post(.advanceGif, step: step)
-            if let frame = await captureKeyframe(firstStep: step == 0) {
+            let settle = step == 0 ? firstStepSettleNanoseconds : stepSettleNanoseconds
+            if let frame = await captureKeyframe(settleNanoseconds: settle) {
                 keyframes.append(frame)
             }
         }
@@ -139,9 +149,8 @@ enum MarketingScreenshotExporter {
 
     /// One settled full-window frame per storyboard step (consistent timing).
     @MainActor
-    private static func captureKeyframe(firstStep: Bool) async -> NSImage? {
-        let settle = firstStep ? firstStepSettleNanoseconds : stepSettleNanoseconds
-        try? await Task.sleep(nanoseconds: settle)
+    private static func captureKeyframe(settleNanoseconds: UInt64) async -> NSImage? {
+        try? await Task.sleep(nanoseconds: settleNanoseconds)
         guard let full = await snapshotLargestWindow() else {
             fputs("  ✗ GIF keyframe: no snapshot\n", stderr)
             return nil
