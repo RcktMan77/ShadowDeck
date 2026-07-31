@@ -2,7 +2,11 @@
 
 **Create, import, and run Shadowrun characters on your Mac** — for Shadowrun 4th, 5th, and 6th edition.
 
+**Status:** Active development. Character generation, library, Run tracker, Lifestyle, and Advancement Planner are usable. Shared online campaign features are planned.
+
 ShadowDeck is an unofficial fan-made character and **campaign** companion for tabletop Shadowrun. Build runners with a guided wizard, pull in sheets from Chummer, keep a living library of characters, plan and track missions for your table, and export what your GM or online hub needs.
+
+**Why ShadowDeck?** Built as a native macOS campaign companion—not just chargen—with mission tracking, lifestyle upkeep, and karma planning in one place (Chummer remains excellent for builds and data; ShadowDeck is for running the table).
 
 > Shadowrun is a trademark of its respective owners. ShadowDeck is **not** affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
 
@@ -34,20 +38,24 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
   </tr>
 </table>
 
-<!-- Campaign / Runs UI thumbs -->
+<!-- Run library still -->
+<p align="center">
+  <a href="Screenshots/05-run-library.jpg">
+    <img src="Screenshots/thumbs/05-run-library.jpg" alt="Run library" width="560" />
+  </a><br />
+  <sub>Run Library</sub>
+</p>
+
+<!-- Feature GIFs -->
 <table align="center" width="900">
   <tr>
     <td width="50%" align="center" valign="top">
-      <a href="Screenshots/05-run-library.jpg">
-        <img src="Screenshots/thumbs/05-run-library.jpg" alt="Run library" width="420" />
-      </a><br />
-      <sub>Run Library</sub>
+      <img src="Screenshots/07-run-mission-flow.gif" alt="Run mission flow" width="420" /><br />
+      <sub><strong>Run / mission flow</strong> — open a job, link runners, add a session log beat, complete objectives, and set the outcome.</sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <a href="Screenshots/06-run-detail.jpg">
-        <img src="Screenshots/thumbs/06-run-detail.jpg" alt="Run detail planner" width="420" />
-      </a><br />
-      <sub>Run detail · mission planner</sub>
+      <img src="Screenshots/08-advancement-planner.gif" alt="Advancement planner flow" width="420" /><br />
+      <sub><strong>Advancement Planner</strong> — add raises to the plan, watch karma totals, then apply and see ranks and available karma update.</sub>
     </td>
   </tr>
 </table>

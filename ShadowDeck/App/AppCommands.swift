@@ -22,6 +22,10 @@ public enum AppCommand {
     public static let wizardShowRoleStep = Notification.Name("com.shadowdeck.marketing.wizardRole")
     /// Marketing screenshot runner: select the Advance tab on the open character sheet.
     public static let characterSheetShowAdvanceTab = Notification.Name("com.shadowdeck.marketing.characterSheetAdvance")
+    /// Marketing: force RunDetailView to reload from the library after storyboard mutations.
+    public static let marketingReloadRun = Notification.Name("com.shadowdeck.marketing.reloadRun")
+    /// Marketing: force character sheet to reload after storyboard mutations.
+    public static let marketingReloadCharacter = Notification.Name("com.shadowdeck.marketing.reloadCharacter")
 }
 
 import UniformTypeIdentifiers

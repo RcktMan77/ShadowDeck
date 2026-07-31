@@ -171,7 +171,8 @@ struct ContentView: View {
             guard let raw = note.object as? String,
                   let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
             else { return }
-            handleMarketingPhase(phase)
+            let step = note.userInfo?["step"] as? Int
+            handleMarketingPhase(phase, step: step)
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openCharacterForScreenshots)) { note in
             if let id = note.object as? UUID {
@@ -599,7 +600,7 @@ struct ContentView: View {
 
     /// Drive UI into known-good states for README marquee captures.
     /// Capture launches with an in-memory sample-only library (`LibraryEnvironment.marketingCapture()`).
-    private func handleMarketingPhase(_ phase: MarketingScreenshotExporter.Phase) {
+    private func handleMarketingPhase(_ phase: MarketingScreenshotExporter.Phase, step: Int?) {
         switch phase {
         case .splash:
             break
@@ -613,7 +614,6 @@ struct ContentView: View {
             marketingOpenRunID = nil
             selection = .newCharacter
             selectedCharacterID = nil
-            // Wizard observes and jumps to Concept & Role.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NotificationCenter.default.post(name: AppCommand.wizardShowRoleStep, object: nil)
             }
@@ -621,7 +621,6 @@ struct ContentView: View {
             marketingOpenRunID = nil
             selection = .characters
             refresh()
-            // Always the SR5 sample combat mage (seeded in marketingCapture library).
             // Marquee “play sheet” stays on Summary (default tab).
             selectedCharacterID = SampleCharacters.sr5ID
         case .runLibrary:
@@ -630,11 +629,10 @@ struct ContentView: View {
             openMarketingSampleRun(detail: false)
             selection = .runs
             refresh()
-        case .runDetail:
-            selectedCharacterID = nil
-            openMarketingSampleRun(detail: true)
-            selection = .runs
-            refresh()
+        case .runGif:
+            applyRunGifStoryboard(step: step ?? 0)
+        case .advanceGif:
+            applyAdvanceGifStoryboard(step: step ?? 0)
         case .finished:
             break
         }
@@ -648,6 +646,137 @@ struct ContentView: View {
             libraryEnvironment.refreshRunCount()
         } catch {
             statusMessage = "Screenshot run open failed: \(error.localizedDescription)"
+        }
+    }
+
+    /// Storyboard for `07-run-mission-flow.gif`.
+    private func applyRunGifStoryboard(step: Int) {
+        selectedCharacterID = nil
+        selection = .runs
+        do {
+            guard let runID = try libraryEnvironment.runLibrary.listSummaries().first?.id else {
+                statusMessage = "Screenshot run GIF: no sample run"
+                return
+            }
+            var run = try libraryEnvironment.runLibrary.require(runID)
+
+            switch step {
+            case 0:
+                // Planning: empty team, open detail.
+                run.status = .planning
+                run.participantCharacterIDs = []
+                run.sessionLog = []
+                run.outcomeSummary = ""
+                run.objectives = [
+                    RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
+                    RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
+                ]
+            case 1:
+                // Link sample runners to the job.
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+            case 2:
+                // Activate + session log beat.
+                run.applyStatus(.active)
+                run.sessionLog = [
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                ]
+            case 3:
+                // Mark primary objective complete.
+                if let i = run.objectives.firstIndex(where: \.isPrimary) {
+                    run.objectives[i].status = .complete
+                }
+                run.sessionLog = [
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                ]
+            default:
+                // Outcome + wrap.
+                run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
+                run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
+                run.applyStatus(.completed)
+            }
+
+            try libraryEnvironment.runLibrary.save(run)
+            libraryEnvironment.refreshRunCount()
+            marketingOpenRunID = runID
+            refresh()
+            NotificationCenter.default.post(name: AppCommand.marketingReloadRun, object: nil)
+        } catch {
+            statusMessage = "Screenshot run GIF failed: \(error.localizedDescription)"
+        }
+    }
+
+    /// Storyboard for `08-advancement-planner.gif`.
+    private func applyAdvanceGifStoryboard(step: Int) {
+        marketingOpenRunID = nil
+        selection = .characters
+        selectedCharacterID = SampleCharacters.sr5ID
+        do {
+            var c = try libraryEnvironment.library.require(SampleCharacters.sr5ID)
+            let rules = RulesRegistry.rules(for: c.edition)
+
+            switch step {
+            case 0:
+                // Fresh planner: clear plan, give demo karma budget.
+                c.karmaAvailable = 40
+                c.karmaTotal = max(c.karmaTotal, 40)
+                c.advancementPlanItems = []
+                // Restore a known skill rank so re-runs of capture stay stable.
+                if let i = c.skills.firstIndex(where: { $0.catalogKey == "perception" }) {
+                    c.skills[i].rating = 3
+                }
+                if let i = c.skills.firstIndex(where: { $0.catalogKey == "assensing" }) {
+                    c.skills[i].rating = 4
+                }
+            case 1:
+                c.karmaAvailable = 40
+                c.advancementPlanItems = []
+                if let item = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) {
+                    c.advancementPlanItems = [item]
+                }
+            case 2:
+                c.karmaAvailable = 40
+                var plan: [AdvancementPlanItem] = []
+                if let a = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) { plan.append(a) }
+                if let b = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "assensing", rules: rules
+                ) { plan.append(b) }
+                c.advancementPlanItems = plan
+            case 3:
+                // Still pre-apply: same plan, ready to spend (metrics visible).
+                c.karmaAvailable = 40
+                var plan: [AdvancementPlanItem] = []
+                if let a = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) { plan.append(a) }
+                if let b = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "assensing", rules: rules
+                ) { plan.append(b) }
+                c.advancementPlanItems = plan
+            default:
+                // Apply plan: karma drops, ranks rise, ledger fills, cart clears.
+                c.karmaAvailable = 40
+                var plan: [AdvancementPlanItem] = []
+                if let a = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) { plan.append(a) }
+                if let b = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "assensing", rules: rules
+                ) { plan.append(b) }
+                try AdvancementEngine.apply(items: plan, to: &c, rules: rules)
+                c.advancementPlanItems = []
+            }
+
+            try libraryEnvironment.library.save(c)
+            refresh()
+            NotificationCenter.default.post(name: AppCommand.characterSheetShowAdvanceTab, object: nil)
+            NotificationCenter.default.post(name: AppCommand.marketingReloadCharacter, object: nil)
+        } catch {
+            statusMessage = "Screenshot advance GIF failed: \(error.localizedDescription)"
         }
     }
 
