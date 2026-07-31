@@ -20,6 +20,8 @@ public enum AppCommand {
     public static let openCharacterForScreenshots = Notification.Name("com.shadowdeck.marketing.openCharacter")
     /// Marketing screenshot runner: jump generation wizard to Concept & Role.
     public static let wizardShowRoleStep = Notification.Name("com.shadowdeck.marketing.wizardRole")
+    /// Marketing screenshot runner: select the Advance tab on the open character sheet.
+    public static let characterSheetShowAdvanceTab = Notification.Name("com.shadowdeck.marketing.characterSheetAdvance")
 }
 
 import UniformTypeIdentifiers

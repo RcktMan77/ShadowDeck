@@ -35,131 +35,135 @@ struct LaunchSplashView: View {
     private static let introDelay: Double = 0.55
 
     var body: some View {
-        // Fully opaque layer so the main window never shows through edges.
+        // Solid black stays fully opaque for the whole lifetime of this view so the
+        // main window (sidebar accent separator, toolbars) never peeks through during
+        // intro/dismiss fades — that flash looked like a green “menu separator” bar.
         ZStack {
             Color.black
 
-            if let image = BrandArtLoader.splashImage {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .scaleEffect(0.9)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-            } else {
+            ZStack {
+                if let image = BrandArtLoader.splashImage {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(0.9)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                } else {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.05, green: 0.08, blue: 0.16),
+                            Color(red: 0.12, green: 0.04, blue: 0.18),
+                            Color.black,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+
+                // Vignette over the art only (keeps corners solid black).
                 LinearGradient(
                     colors: [
-                        Color(red: 0.05, green: 0.08, blue: 0.16),
-                        Color(red: 0.12, green: 0.04, blue: 0.18),
-                        Color.black,
+                        .black.opacity(0.55),
+                        .black.opacity(0.08),
+                        .black.opacity(0.72),
                     ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            }
+                .allowsHitTesting(false)
 
-            // Vignette over the art only (keeps corners solid black).
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.55),
-                    .black.opacity(0.08),
-                    .black.opacity(0.72),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-
-            TimelineView(.animation(minimumInterval: 1.0 / 24.0, paused: false)) { context in
-                Canvas { ctx, size in
-                    let t = context.date.timeIntervalSinceReferenceDate
-                    for i in 0..<36 {
-                        let seed = Double(i) * 17.13
-                        let x = (seed * 37).truncatingRemainder(dividingBy: size.width)
-                        let speed = 80 + Double(i % 7) * 18
-                        let y = (t * speed + seed * 40).truncatingRemainder(dividingBy: size.height + 40) - 20
-                        var path = Path()
-                        path.move(to: CGPoint(x: x, y: y))
-                        path.addLine(to: CGPoint(x: x - 2, y: y + 14))
-                        ctx.stroke(
-                            path,
-                            with: .color(.white.opacity(0.07 + Double(i % 3) * 0.03)),
-                            lineWidth: 1
-                        )
+                TimelineView(.animation(minimumInterval: 1.0 / 24.0, paused: false)) { context in
+                    Canvas { ctx, size in
+                        let t = context.date.timeIntervalSinceReferenceDate
+                        for i in 0..<36 {
+                            let seed = Double(i) * 17.13
+                            let x = (seed * 37).truncatingRemainder(dividingBy: size.width)
+                            let speed = 80 + Double(i % 7) * 18
+                            let y = (t * speed + seed * 40).truncatingRemainder(dividingBy: size.height + 40) - 20
+                            var path = Path()
+                            path.move(to: CGPoint(x: x, y: y))
+                            path.addLine(to: CGPoint(x: x - 2, y: y + 14))
+                            ctx.stroke(
+                                path,
+                                with: .color(.white.opacity(0.07 + Double(i % 3) * 0.03)),
+                                lineWidth: 1
+                            )
+                        }
                     }
                 }
-            }
-            .allowsHitTesting(false)
+                .allowsHitTesting(false)
 
-            VStack(spacing: 0) {
-                Spacer()
+                VStack(spacing: 0) {
+                    Spacer()
 
-                Text("ShadowDeck")
-                    .font(BrandFonts.title(size: 58))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.45, green: 0.95, blue: 1.0),
-                                Color(red: 0.85, green: 0.35, blue: 0.95),
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                    Text("ShadowDeck")
+                        .font(BrandFonts.title(size: 58))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.45, green: 0.95, blue: 1.0),
+                                    Color(red: 0.85, green: 0.35, blue: 0.95),
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .shadow(color: .cyan.opacity(0.55), radius: 14)
-                    .shadow(color: .purple.opacity(0.35), radius: 8)
-                    .scaleEffect(titleScale)
-                    .tracking(3)
+                        .shadow(color: .cyan.opacity(0.55), radius: 14)
+                        .shadow(color: .purple.opacity(0.35), radius: 8)
+                        .scaleEffect(titleScale)
+                        .tracking(3)
 
-                Text("Character · Campaign · Deck")
-                    .font(BrandFonts.subtitle(size: 16))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .tracking(2.5)
-                    .padding(.top, 10)
+                    Text("Character · Campaign · Deck")
+                        .font(BrandFonts.subtitle(size: 16))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .tracking(2.5)
+                        .padding(.top, 10)
 
-                Text("Unofficial Shadowrun fan tool for macOS")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
-                    .padding(.top, 6)
+                    Text("Unofficial Shadowrun fan tool for macOS")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
+                        .padding(.top, 6)
 
-                Spacer()
+                    Spacer()
 
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        // Static chrome — never participates in quip opacity animation.
-                        Text("CYBERDECK // BOOT")
-                            .font(BrandFonts.mono(size: 10))
-                            .foregroundStyle(Color.cyan.opacity(0.65))
-                            .tracking(1.5)
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            // Static chrome — never participates in quip opacity animation.
+                            Text("CYBERDECK // BOOT")
+                                .font(BrandFonts.mono(size: 10))
+                                .foregroundStyle(Color.cyan.opacity(0.65))
+                                .tracking(1.5)
+                                .transaction { $0.animation = nil }
+
+                            // Fixed-height slot so swapping quips never reflows this row.
+                            // Opacity animation is scoped here only (not a global withAnimation).
+                            Text(Self.quips[quipIndex % Self.quips.count])
+                                .font(BrandFonts.mono(size: 13))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .opacity(quipOpacity)
+                                .animation(.easeInOut(duration: 0.28), value: quipOpacity)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: 420, minHeight: 36, maxHeight: 36, alignment: .topLeading)
+                        }
+
+                        Spacer(minLength: 12)
+
+                        Text("Click or any key to skip")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.4))
                             .transaction { $0.animation = nil }
-
-                        // Fixed-height slot so swapping quips never reflows this row.
-                        // Opacity animation is scoped here only (not a global withAnimation).
-                        Text(Self.quips[quipIndex % Self.quips.count])
-                            .font(BrandFonts.mono(size: 13))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .opacity(quipOpacity)
-                            .animation(.easeInOut(duration: 0.28), value: quipOpacity)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: 420, minHeight: 36, maxHeight: 36, alignment: .topLeading)
                     }
-
-                    Spacer(minLength: 12)
-
-                    Text("Click or any key to skip")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.4))
-                        .transaction { $0.animation = nil }
+                    .padding(.horizontal, 36)
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 36)
-                .padding(.bottom, 28)
             }
+            .opacity(opacity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
         .ignoresSafeArea()
-        .opacity(opacity)
         .contentShape(Rectangle())
         .onTapGesture { dismiss() }
         .focusable()
@@ -169,6 +173,7 @@ struct LaunchSplashView: View {
         }
         .onAppear {
             BrandFonts.registerIfNeeded()
+            // Intro fade is local only; dismiss never relies on reversing it.
             withAnimation(.easeOut(duration: 0.55)) {
                 opacity = 1
                 titleScale = 1
@@ -209,10 +214,12 @@ struct LaunchSplashView: View {
         guard !didDismiss else { return }
         didDismiss = true
         quipTask?.cancel()
-        withAnimation(.easeIn(duration: 0.35)) {
+        // Hand off to the app-level black veil immediately. Do not animate this view
+        // away — the parent removes us under a separate always-opaque cover.
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
             opacity = 0
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             onDismiss()
         }
     }

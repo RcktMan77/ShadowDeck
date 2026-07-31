@@ -41,7 +41,12 @@ public enum CharacterMapper {
         record.id = character.id
         record.name = character.name
         record.streetName = character.streetName
-        record.concept = character.concept
+        // Denormalized short label for library rows (may derive from long concept/background).
+        record.concept = ConceptTagline.libraryLabel(
+            concept: character.concept,
+            background: character.background,
+            awakened: character.awakened
+        )
         record.editionRaw = character.edition.rawValue
         record.metatypeRaw = character.metatype.rawValue
         record.schemaVersion = character.schemaVersion
