@@ -26,6 +26,8 @@ public enum AppCommand {
     public static let marketingReloadRun = Notification.Name("com.shadowdeck.marketing.reloadRun")
     /// Marketing: force character sheet to reload after storyboard mutations.
     public static let marketingReloadCharacter = Notification.Name("com.shadowdeck.marketing.reloadCharacter")
+    /// Marketing GIF focus: `userInfo` keys `anchor` (scroll id) and optional `highlight` (control id).
+    public static let marketingFocus = Notification.Name("com.shadowdeck.marketing.focus")
 }
 
 import UniformTypeIdentifiers
