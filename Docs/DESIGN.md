@@ -47,6 +47,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | `Character` | Full character aggregate (Codable, schemaVersion) |
 | `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs) |
 | `RunLibrary` / `RunRecord` | Parallel to character library (JSON payload + denormalized list fields) |
+| `Lifestyle` + `LifestyleTracker` | Per-character monthly burn, prepaid months, reserve, process 1–3 months, ledger |
 | `AttributeRatings` / `AttributeID` | Physical, mental, special (incl. essence) |
 | `MetatypeID` + `MetatypeCatalog` | Core five metatypes + bounds |
 | `SkillRating` / `SkillGroupRating` | Active, knowledge, language |

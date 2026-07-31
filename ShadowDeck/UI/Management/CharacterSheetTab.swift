@@ -14,6 +14,7 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
     case augmentations
     case qualities
     case contacts
+    case lifestyle
     case magic
 
     var id: String { rawValue }
@@ -26,6 +27,7 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
         case .augmentations: "Augs"
         case .qualities: "Qualities"
         case .contacts: "Contacts"
+        case .lifestyle: "Lifestyle"
         case .magic: "Magic"
         }
     }
@@ -38,6 +40,7 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
         case .augmentations: "cpu"
         case .qualities: "star.circle"
         case .contacts: "person.2"
+        case .lifestyle: "house"
         case .magic: "sparkles"
         }
     }
