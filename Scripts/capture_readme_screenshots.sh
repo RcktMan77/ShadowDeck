@@ -124,9 +124,8 @@ if compgen -G "$OUT"/0*.gif > /dev/null 2>&1; then
 from PIL import Image
 import glob, os, sys
 root = sys.argv[1]
-# Cap long edge; keep aspect. Speed up very slow frames a touch when optimizing.
+# Cap long edge; keep aspect. Preserve per-frame delays (do not clamp holds).
 MAX_LONG = 720
-MIN_MS, MAX_MS = 70, 200
 for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
     im = Image.open(path)
     frames, durations = [], []
@@ -142,18 +141,14 @@ for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
                     Image.Resampling.LANCZOS,
                 )
             frames.append(fr.convert("P", palette=Image.ADAPTIVE, colors=128))
-            d = int(im.info.get("duration", 110))
-            # Slightly snappier playback without losing smoothness.
-            d = max(MIN_MS, min(MAX_MS, int(d * 0.85)))
-            durations.append(d)
+            # Keep authoring delays (keyframe holds ~1.3s, crossfades ~70ms).
+            d = int(im.info.get("duration", 1350))
+            durations.append(max(d, 50))
             im.seek(im.tell() + 1)
     except EOFError:
         pass
     if not frames:
         continue
-    # Hold final frame a bit longer.
-    if durations:
-        durations[-1] = max(durations[-1], 450)
     frames[0].save(
         path,
         save_all=True,
