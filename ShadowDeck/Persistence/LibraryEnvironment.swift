@@ -14,17 +14,23 @@ import SwiftUI
 public final class LibraryEnvironment {
     public let container: ModelContainer
     public let library: CharacterLibrary
+    public let runLibrary: RunLibrary
     public var lastErrorMessage: String?
+    /// Sidebar badge — kept in sync via `refreshRunCount()`.
+    public private(set) var runCount: Int = 0
 
-    public init(container: ModelContainer, library: CharacterLibrary) {
+    public init(container: ModelContainer, library: CharacterLibrary, runLibrary: RunLibrary) {
         self.container = container
         self.library = library
+        self.runLibrary = runLibrary
+        refreshRunCount()
     }
 
     public static func live() throws -> LibraryEnvironment {
         let container = try PersistenceController.makeContainer(inMemory: false)
         let library = try PersistenceController.makeLibrary(container: container)
-        return LibraryEnvironment(container: container, library: library)
+        let runLibrary = PersistenceController.makeRunLibrary(container: container)
+        return LibraryEnvironment(container: container, library: library, runLibrary: runLibrary)
     }
 
     /// Empty in-memory library (no disk, no seed data).
@@ -33,7 +39,8 @@ public final class LibraryEnvironment {
         let temp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ShadowDeck-Ephemeral-Avatars-\(UUID().uuidString)", isDirectory: true)
         let library = try PersistenceController.makeLibrary(container: container, avatarRoot: temp)
-        return LibraryEnvironment(container: container, library: library)
+        let runLibrary = PersistenceController.makeRunLibrary(container: container)
+        return LibraryEnvironment(container: container, library: library, runLibrary: runLibrary)
     }
 
     public static func preview(seedSamples: Bool = true) -> LibraryEnvironment {
@@ -52,5 +59,9 @@ public final class LibraryEnvironment {
 
     public func refreshCount() -> Int {
         (try? library.count()) ?? 0
+    }
+
+    public func refreshRunCount() {
+        runCount = (try? runLibrary.count()) ?? 0
     }
 }
