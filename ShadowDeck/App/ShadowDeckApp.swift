@@ -24,7 +24,12 @@ struct ShadowDeckApp: App {
         UserDefaults.standard.removeObject(forKey: "hasSeenLaunchSplash")
         UserDefaults.standard.set(Self.splashRevision, forKey: "launchSplashRevision")
         do {
-            libraryEnvironment = try LibraryEnvironment.live()
+            // Marketing captures never open the on-disk personal library.
+            if MarketingScreenshotExporter.isEnabled {
+                libraryEnvironment = try LibraryEnvironment.marketingCapture()
+            } else {
+                libraryEnvironment = try LibraryEnvironment.live()
+            }
         } catch {
             // Fall back to empty in-memory so the window still launches if disk setup fails.
             do {
