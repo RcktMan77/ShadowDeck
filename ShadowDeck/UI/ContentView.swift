@@ -622,11 +622,8 @@ struct ContentView: View {
             selection = .characters
             refresh()
             // Always the SR5 sample combat mage (seeded in marketingCapture library).
+            // Marquee “play sheet” stays on Summary (default tab).
             selectedCharacterID = SampleCharacters.sr5ID
-            // Showcase Advancement Planner on the marquee character-sheet shot.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                NotificationCenter.default.post(name: AppCommand.characterSheetShowAdvanceTab, object: nil)
-            }
         case .runLibrary:
             selectedCharacterID = nil
             marketingOpenRunID = nil
