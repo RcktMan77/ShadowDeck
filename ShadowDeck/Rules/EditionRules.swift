@@ -43,6 +43,7 @@ public protocol EditionRules: Sendable {
     func karmaCostToRaiseAttribute(from current: Int) -> Int
 
     /// Karma cost to raise a skill from `from` to `from+1` after chargen.
+    /// Active skills; knowledge/language may use cheaper edition tables.
     func karmaCostToRaiseSkill(from current: Int) -> Int
 
     /// Compute derived stats for a character snapshot.
@@ -71,6 +72,28 @@ public extension EditionRules {
             return 5
         }
         return karmaCostToRaiseAttribute(from: current)
+    }
+
+    /// Knowledge skill raise cost. Default: new rating × 1 (SR5-style).
+    func karmaCostToRaiseKnowledgeSkill(from current: Int) -> Int {
+        max(1, current + 1)
+    }
+
+    /// Language skill raise cost. Default: same as knowledge (new rating × 1).
+    func karmaCostToRaiseLanguageSkill(from current: Int) -> Int {
+        max(1, current + 1)
+    }
+
+    /// Karma cost to raise a skill of the given category from `current` → `current+1`.
+    func karmaCostToRaiseSkill(from current: Int, category: SkillCategory) -> Int {
+        switch category {
+        case .active:
+            return karmaCostToRaiseSkill(from: current)
+        case .knowledge:
+            return karmaCostToRaiseKnowledgeSkill(from: current)
+        case .language:
+            return karmaCostToRaiseLanguageSkill(from: current)
+        }
     }
 }
 
