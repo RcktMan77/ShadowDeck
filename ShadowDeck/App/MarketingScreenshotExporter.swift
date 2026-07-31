@@ -52,7 +52,7 @@ enum MarketingScreenshotExporter {
     /// How long each storyboard keyframe is held (same for every step).
     private static let keyframeHoldSeconds: Double = 1.35
     /// Extra hold on the final keyframe (library list with completed status).
-    private static let lastKeyframeHoldSeconds: Double = 2.0
+    private static let lastKeyframeHoldSeconds: Double = 2.6
     /// Cross-dissolve frames between keyframes (short; must not dominate hold time).
     private static let crossfadeIntermediates = 2
     /// Delay for each crossfade intermediate.
@@ -61,7 +61,7 @@ enum MarketingScreenshotExporter {
     private static let stepSettleNanoseconds: UInt64 = 900_000_000
     private static let firstStepSettleNanoseconds: UInt64 = 1_100_000_000
     /// Extra settle when returning to a list (detail teardown).
-    private static let libraryReturnSettleNanoseconds: UInt64 = 1_200_000_000
+    private static let libraryReturnSettleNanoseconds: UInt64 = 1_400_000_000
     /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
     private static let gifMaxLongEdge: CGFloat = 800
 
@@ -129,7 +129,17 @@ enum MarketingScreenshotExporter {
                 keyframes.append(frame)
             }
         }
-        writeGIF(keyframes: keyframes, named: "07-run-mission-flow", to: dir)
+        // Hard-cut after the outcome detail step (index 9) into the library list —
+        // crossfading detail→list looked like a mess and hid the completed row.
+        // Duplicate the final library keyframe so the completed list is unmistakable.
+        writeGIF(
+            keyframes: keyframes,
+            named: "07-run-mission-flow",
+            to: dir,
+            hardCutAfterIndices: [9],
+            duplicateLastCount: 2,
+            duplicateLastHoldSeconds: 2.2
+        )
     }
 
     /// Advance: scroll skills, highlight Add on each raise, Apply Plan, show result.
@@ -159,7 +169,14 @@ enum MarketingScreenshotExporter {
     }
 
     /// Keyframe holds + short crossfades. Every storyboard step gets the same on-screen time.
-    private static func buildTimedFrames(from keyframes: [NSImage]) -> [TimedFrame] {
+    /// - Parameter hardCutAfterIndices: keyframe indices after which we skip the dissolve (clean scene change).
+    /// - Parameter duplicateLastCount: extra copies of the final keyframe (e.g. library list beat).
+    private static func buildTimedFrames(
+        from keyframes: [NSImage],
+        hardCutAfterIndices: Set<Int> = [],
+        duplicateLastCount: Int = 0,
+        duplicateLastHoldSeconds: Double = 2.0
+    ) -> [TimedFrame] {
         guard !keyframes.isEmpty else { return [] }
         guard let targetSize = keyframes.first.map(\.size) else { return [] }
         let normalized = keyframes.compactMap { fit($0, into: targetSize) }
@@ -171,7 +188,11 @@ enum MarketingScreenshotExporter {
         for i in 0..<normalized.count {
             let hold = (i == normalized.count - 1) ? lastKeyframeHoldSeconds : keyframeHoldSeconds
             out.append(TimedFrame(image: normalized[i], delaySeconds: hold))
-            guard i + 1 < normalized.count, crossfadeIntermediates > 0 else { continue }
+            guard i + 1 < normalized.count else { continue }
+            if hardCutAfterIndices.contains(i) {
+                continue // snap to next keyframe (e.g. detail → library list)
+            }
+            guard crossfadeIntermediates > 0 else { continue }
             let a = normalized[i]
             let b = normalized[i + 1]
             for k in 1...crossfadeIntermediates {
@@ -179,6 +200,12 @@ enum MarketingScreenshotExporter {
                 if let blended = crossDissolve(from: a, to: b, t: t) {
                     out.append(TimedFrame(image: blended, delaySeconds: crossfadeFrameSeconds))
                 }
+            }
+        }
+
+        if let last = normalized.last, duplicateLastCount > 0 {
+            for _ in 0..<duplicateLastCount {
+                out.append(TimedFrame(image: last, delaySeconds: duplicateLastHoldSeconds))
             }
         }
         return out
@@ -379,8 +406,20 @@ enum MarketingScreenshotExporter {
         return out
     }
 
-    private static func writeGIF(keyframes: [NSImage], named name: String, to directory: URL) {
-        let timed = buildTimedFrames(from: keyframes)
+    private static func writeGIF(
+        keyframes: [NSImage],
+        named name: String,
+        to directory: URL,
+        hardCutAfterIndices: Set<Int> = [],
+        duplicateLastCount: Int = 0,
+        duplicateLastHoldSeconds: Double = 2.0
+    ) {
+        let timed = buildTimedFrames(
+            from: keyframes,
+            hardCutAfterIndices: hardCutAfterIndices,
+            duplicateLastCount: duplicateLastCount,
+            duplicateLastHoldSeconds: duplicateLastHoldSeconds
+        )
         guard !timed.isEmpty else {
             fputs("  ✗ \(name).gif: no frames\n", stderr)
             return
