@@ -365,8 +365,9 @@ struct CharacterAtAGlanceView: View {
 
     /// Fixed box so the hero portrait cannot overflow Attributes or expand toward the sidebar.
     private enum PortraitMetrics {
-        static let width: CGFloat = 176
-        static let height: CGFloat = 220
+        /// Slightly larger than the initial cap so the face reads well without crowding Attributes.
+        static let width: CGFloat = 204
+        static let height: CGFloat = 255
         static let cornerRadius: CGFloat = 14
     }
 
