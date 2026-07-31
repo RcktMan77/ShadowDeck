@@ -260,17 +260,17 @@ struct CharacterAtAGlanceView: View {
                     storySection(c)
                 }
 
-                // Hero: portrait | attributes
+                // Hero: portrait | attributes (portrait is width-capped so it never
+                // spills into Attributes or stretches toward the nav sidebar).
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 20) {
                         portraitColumn(c)
-                            .frame(width: 240)
                         attributesColumn(c)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
                     }
                     VStack(alignment: .leading, spacing: 16) {
                         portraitColumn(c)
-                            .frame(maxWidth: 280)
                         attributesColumn(c)
                     }
                 }
@@ -363,18 +363,25 @@ struct CharacterAtAGlanceView: View {
 
     // MARK: - Portrait
 
+    /// Fixed box so the hero portrait cannot overflow Attributes or expand toward the sidebar.
+    private enum PortraitMetrics {
+        static let width: CGFloat = 176
+        static let height: CGFloat = 220
+        static let cornerRadius: CGFloat = 14
+    }
+
     private func portraitColumn(_ c: Character) -> some View {
         VStack(spacing: 10) {
             portraitView(c)
-                .frame(maxWidth: .infinity)
-                .frame(height: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(width: PortraitMetrics.width, height: PortraitMetrics.height)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous)
                         .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+                .contentShape(RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous))
                 .onTapGesture { isPortraitImporterPresented = true }
                 .help("Click to change portrait")
 
@@ -394,30 +401,45 @@ struct CharacterAtAGlanceView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .frame(maxWidth: PortraitMetrics.width)
         }
+        .frame(width: PortraitMetrics.width, alignment: .top)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     @ViewBuilder
     private func portraitView(_ c: Character) -> some View {
-        if let data = c.avatar.inlineData, let nsImage = NSImage(data: data) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
+        if let data = c.avatar.inlineData, !data.isEmpty {
+            // Animated GIFs (and multi-frame APNG) need ImageIO playback;
+            // SwiftUI Image(nsImage:) only shows the first frame.
+            if c.avatar.isAnimated || GIFDecoder.isAnimatedImageData(data) {
+                AnimatedImageView(data: data, contentMode: .fill)
+            } else if let nsImage = NSImage(data: data) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                portraitPlaceholder
+            }
         } else if let meta = ChargenArtLoader.nsImage(named: ChargenArtLoader.metatypeImageName(c.metatype)) {
             Image(nsImage: meta)
                 .resizable()
                 .scaledToFill()
         } else {
-            ZStack {
-                LinearGradient(
-                    colors: [.secondary.opacity(0.2), .secondary.opacity(0.05)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Image(systemName: "person.crop.rectangle")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.secondary)
-            }
+            portraitPlaceholder
+        }
+    }
+
+    private var portraitPlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [.secondary.opacity(0.2), .secondary.opacity(0.05)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "person.crop.rectangle")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -1283,7 +1305,8 @@ struct CharacterAtAGlanceView: View {
             let ext = url.pathExtension.lowercased()
             c.avatar.inlineData = data
             c.avatar.mimeType = AvatarStoragePolicy.mimeType(forFileExtension: ext)
-            c.avatar.isAnimated = ext == "gif"
+            // Prefer real multi-frame detection over extension alone (covers APNG / mislabeled files).
+            c.avatar.isAnimated = GIFDecoder.isAnimatedImageData(data) || ext == "gif"
             c.touch()
             try libraryEnvironment.library.save(c, avatarData: data)
             character = try libraryEnvironment.library.fetch(id: characterID)
