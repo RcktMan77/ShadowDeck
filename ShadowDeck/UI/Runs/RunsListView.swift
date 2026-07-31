@@ -12,6 +12,8 @@ struct RunsListView: View {
 
     /// Optional run to open immediately (marketing screenshots / deep links).
     var forcedOpenRunID: UUID? = nil
+    /// When true, never open detail — always show the list (marketing return-to-library).
+    var forceListOnly: Bool = false
 
     @State private var summaries: [RunSummary] = []
     @State private var characterSummaries: [CharacterSummary] = []
@@ -36,7 +38,9 @@ struct RunsListView: View {
 
     var body: some View {
         Group {
-            if let selectedRunID {
+            if forceListOnly {
+                listRoot
+            } else if let selectedRunID {
                 RunDetailView(
                     runID: selectedRunID,
                     onBack: {
@@ -55,16 +59,26 @@ struct RunsListView: View {
         }
         .onAppear {
             refresh()
-            if let forcedOpenRunID {
+            if forceListOnly {
+                selectedRunID = nil
+            } else if let forcedOpenRunID {
                 selectedRunID = forcedOpenRunID
             }
         }
-        .onChange(of: forcedOpenRunID) { oldID, newID in
-            if let newID {
+        .onChange(of: forcedOpenRunID) { _, newID in
+            if forceListOnly {
+                selectedRunID = nil
+                refresh()
+            } else if let newID {
                 selectedRunID = newID
                 refresh()
-            } else if oldID != nil, newID == nil {
-                // Parent cleared force-open (marketing GIF return-to-library).
+            } else {
+                selectedRunID = nil
+                refresh()
+            }
+        }
+        .onChange(of: forceListOnly) { _, listOnly in
+            if listOnly {
                 selectedRunID = nil
                 refresh()
             }
