@@ -43,7 +43,7 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="Docs/Screenshots/07-run-mission-flow.gif" alt="Run mission flow" width="420" /><br />
-      <sub><strong>Run / mission flow</strong> — from the Run Library, create a job, fill the briefing, link runners, log a session, complete objectives, mark the run complete, and return to the library with the new status.</sub>
+      <sub><strong>Run / mission flow</strong> — from the Run Library, create a job, fill the briefing, link runners, log a session, complete objectives, set the outcome, then return to the library with the completed status on the run row.</sub>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="Docs/Screenshots/08-advancement-planner.gif" alt="Advancement planner flow" width="420" /><br />
