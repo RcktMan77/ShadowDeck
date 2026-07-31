@@ -18,8 +18,7 @@ struct ShadowDeckApp: App {
     @State private var showSplash: Bool
 
     init() {
-        // Show splash on every cold launch (skip with click/key). Previously a
-        // permanent "hasSeen" flag hid the splash after the first run.
+        // Show splash on every cold launch (skip with click/key).
         _showSplash = State(initialValue: true)
         // Clear legacy key so Settings / docs stay accurate.
         UserDefaults.standard.removeObject(forKey: "hasSeenLaunchSplash")
@@ -47,9 +46,12 @@ struct ShadowDeckApp: App {
 
                 if showSplash {
                     LaunchSplashView {
-                        showSplash = false
+                        var t = Transaction()
+                        t.disablesAnimations = true
+                        withTransaction(t) {
+                            showSplash = false
+                        }
                     }
-                    .transition(.opacity)
                     .zIndex(1)
                 }
             }
@@ -66,11 +68,15 @@ struct ShadowDeckApp: App {
                 guard let raw = note.object as? String,
                       let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
                 else { return }
-                switch phase {
-                case .splash:
-                    showSplash = true
-                case .library, .generationRole, .characterSheet, .runLibrary, .runDetail, .finished:
-                    showSplash = false
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) {
+                    switch phase {
+                    case .splash:
+                        showSplash = true
+                    case .library, .generationRole, .characterSheet, .runLibrary, .runDetail, .finished:
+                        showSplash = false
+                    }
                 }
             }
         }
