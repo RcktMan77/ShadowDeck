@@ -49,16 +49,24 @@ enum MarketingScreenshotExporter {
         case finished
     }
 
-    /// Playback delay between GIF frames.
-    private static let gifFrameDelay: Double = 0.11
-    /// Hold last frame a bit longer so the result is readable.
-    private static let gifLastFrameDelay: Double = 0.55
-    /// Live captures per storyboard step (mid-scroll + settle).
-    private static let samplesPerStep = 3
-    /// Synthetic cross-dissolve frames between live captures (1 = short fade).
-    private static let crossfadeIntermediates = 1
+    /// How long each storyboard keyframe is held (same for every step).
+    private static let keyframeHoldSeconds: Double = 1.35
+    /// Extra hold on the final keyframe.
+    private static let lastKeyframeHoldSeconds: Double = 1.8
+    /// Cross-dissolve frames between keyframes (short; must not dominate hold time).
+    private static let crossfadeIntermediates = 2
+    /// Delay for each crossfade intermediate.
+    private static let crossfadeFrameSeconds: Double = 0.07
+    /// Wait after posting a step before capture (scroll + highlight settle).
+    private static let stepSettleNanoseconds: UInt64 = 900_000_000
+    private static let firstStepSettleNanoseconds: UInt64 = 1_100_000_000
     /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
     private static let gifMaxLongEdge: CGFloat = 800
+
+    private struct TimedFrame {
+        let image: NSImage
+        let delaySeconds: Double
+    }
 
     @MainActor
     static func runSequence() async {
@@ -105,68 +113,62 @@ enum MarketingScreenshotExporter {
     @MainActor
     private static func captureRunFlowGIF(to dir: URL) async {
         let stepCount = 12
-        var frames: [NSImage] = []
+        var keyframes: [NSImage] = []
         for step in 0..<stepCount {
             post(.runGif, step: step)
-            // Always full-window (preserves window aspect; no mixed full/detail stretch).
-            await appendSettlingFrames(to: &frames, firstStep: step == 0)
+            if let frame = await captureKeyframe(firstStep: step == 0) {
+                keyframes.append(frame)
+            }
         }
-        writeGIF(frames: frames, named: "07-run-mission-flow", to: dir)
+        writeGIF(keyframes: keyframes, named: "07-run-mission-flow", to: dir)
     }
 
     /// Advance: scroll skills, highlight Add on each raise, Apply Plan, show result.
     @MainActor
     private static func captureAdvanceFlowGIF(to dir: URL) async {
         let stepCount = 8
-        var frames: [NSImage] = []
+        var keyframes: [NSImage] = []
         for step in 0..<stepCount {
             post(.advanceGif, step: step)
-            await appendSettlingFrames(to: &frames, firstStep: step == 0)
+            if let frame = await captureKeyframe(firstStep: step == 0) {
+                keyframes.append(frame)
+            }
         }
-        writeGIF(frames: frames, named: "08-advancement-planner", to: dir)
+        writeGIF(keyframes: keyframes, named: "08-advancement-planner", to: dir)
     }
 
-    /// Capture several frames while UI scrolls/settles for smoother playback.
+    /// One settled full-window frame per storyboard step (consistent timing).
     @MainActor
-    private static func appendSettlingFrames(
-        to frames: inout [NSImage],
-        firstStep: Bool
-    ) async {
-        let firstWait: UInt64 = firstStep ? 300_000_000 : 120_000_000
-        try? await Task.sleep(nanoseconds: firstWait)
-        for sample in 0..<samplesPerStep {
-            if sample > 0 {
-                try? await Task.sleep(nanoseconds: 110_000_000)
-            }
-            if let full = await snapshotLargestWindow() {
-                // Full window only — aspect matches the live app chrome.
-                let frame = downscale(full, maxLongEdge: gifMaxLongEdge) ?? full
-                frames.append(frame)
-            } else {
-                fputs("  ✗ GIF frame: no snapshot\n", stderr)
-            }
+    private static func captureKeyframe(firstStep: Bool) async -> NSImage? {
+        let settle = firstStep ? firstStepSettleNanoseconds : stepSettleNanoseconds
+        try? await Task.sleep(nanoseconds: settle)
+        guard let full = await snapshotLargestWindow() else {
+            fputs("  ✗ GIF keyframe: no snapshot\n", stderr)
+            return nil
         }
+        return downscale(full, maxLongEdge: gifMaxLongEdge) ?? full
     }
 
-    /// Insert short cross-dissolves between live frames (same aspect; no stretch).
-    private static func expandWithCrossfades(_ keyframes: [NSImage]) -> [NSImage] {
-        guard keyframes.count >= 2, crossfadeIntermediates > 0 else { return keyframes }
-        // Normalize every keyframe to the first frame’s size (aspect-fit, letterbox).
-        guard let targetSize = keyframes.first.map(\.size) else { return keyframes }
+    /// Keyframe holds + short crossfades. Every storyboard step gets the same on-screen time.
+    private static func buildTimedFrames(from keyframes: [NSImage]) -> [TimedFrame] {
+        guard !keyframes.isEmpty else { return [] }
+        guard let targetSize = keyframes.first.map(\.size) else { return [] }
         let normalized = keyframes.compactMap { fit($0, into: targetSize) }
-        guard normalized.count == keyframes.count else { return keyframes }
+        guard normalized.count == keyframes.count else {
+            return keyframes.map { TimedFrame(image: $0, delaySeconds: keyframeHoldSeconds) }
+        }
 
-        var out: [NSImage] = []
-        out.reserveCapacity(normalized.count * (crossfadeIntermediates + 1))
+        var out: [TimedFrame] = []
         for i in 0..<normalized.count {
-            out.append(normalized[i])
-            guard i + 1 < normalized.count else { break }
+            let hold = (i == normalized.count - 1) ? lastKeyframeHoldSeconds : keyframeHoldSeconds
+            out.append(TimedFrame(image: normalized[i], delaySeconds: hold))
+            guard i + 1 < normalized.count, crossfadeIntermediates > 0 else { continue }
             let a = normalized[i]
             let b = normalized[i + 1]
             for k in 1...crossfadeIntermediates {
                 let t = CGFloat(k) / CGFloat(crossfadeIntermediates + 1)
                 if let blended = crossDissolve(from: a, to: b, t: t) {
-                    out.append(blended)
+                    out.append(TimedFrame(image: blended, delaySeconds: crossfadeFrameSeconds))
                 }
             }
         }
@@ -368,19 +370,17 @@ enum MarketingScreenshotExporter {
         return out
     }
 
-    private static func writeGIF(frames: [NSImage], named name: String, to directory: URL) {
-        guard !frames.isEmpty else {
+    private static func writeGIF(keyframes: [NSImage], named name: String, to directory: URL) {
+        let timed = buildTimedFrames(from: keyframes)
+        guard !timed.isEmpty else {
             fputs("  ✗ \(name).gif: no frames\n", stderr)
             return
         }
-        // Cross-dissolve between live captures so scene changes don't hard-cut.
-        let expanded = expandWithCrossfades(frames)
         let url = directory.appendingPathComponent("\(name).gif")
-        let count = expanded.count
         guard let dest = CGImageDestinationCreateWithURL(
             url as CFURL,
             UTType.gif.identifier as CFString,
-            count,
+            timed.count,
             nil
         ) else {
             fputs("  ✗ \(name).gif: destination failed\n", stderr)
@@ -394,9 +394,9 @@ enum MarketingScreenshotExporter {
         ]
         CGImageDestinationSetProperties(dest, fileProps as CFDictionary)
 
-        for (index, frame) in expanded.enumerated() {
-            guard let cg = cgImage(from: frame) else { continue }
-            let delay = index == expanded.count - 1 ? gifLastFrameDelay : gifFrameDelay
+        for frame in timed {
+            guard let cg = cgImage(from: frame.image) else { continue }
+            let delay = frame.delaySeconds
             let frameProps: [CFString: Any] = [
                 kCGImagePropertyGIFDictionary: [
                     kCGImagePropertyGIFDelayTime: delay,
@@ -408,8 +408,9 @@ enum MarketingScreenshotExporter {
 
         if CGImageDestinationFinalize(dest) {
             let kb = (try? Data(contentsOf: url).count).map { $0 / 1024 } ?? 0
+            let hold = String(format: "%.2f", keyframeHoldSeconds)
             fputs(
-                "  ✓ \(name).gif (\(kb) KB, \(expanded.count) frames; \(frames.count) live + crossfades)\n",
+                "  ✓ \(name).gif (\(kb) KB, \(keyframes.count) steps × \(hold)s hold, \(timed.count) frames w/ fades)\n",
                 stderr
             )
         } else {
