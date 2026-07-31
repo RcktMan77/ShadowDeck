@@ -11,24 +11,45 @@ import UniformTypeIdentifiers
 
 private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case characters
-    case importCharacter
+    case runs
     case newCharacter
+    case newRun
+    case importCharacter
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .characters: "Characters"
-        case .importCharacter: "Import…"
+        case .runs: "Runs"
         case .newCharacter: "New Character"
+        case .newRun: "New Run"
+        case .importCharacter: "Import Character…"
         }
     }
 
     var systemImage: String {
         switch self {
         case .characters: "person.3"
-        case .importCharacter: "square.and.arrow.down"
+        case .runs: "list.clipboard"
         case .newCharacter: "plus.circle"
+        case .newRun: "plus.rectangle.on.folder"
+        case .importCharacter: "square.and.arrow.down"
+        }
+    }
+
+    var help: String? {
+        switch self {
+        case .importCharacter:
+            return "Import a character from Chummer (.json / .chum5) or a .shadowdeck package"
+        case .newRun:
+            return "Create a new mission / job in the Runs library"
+        case .newCharacter:
+            return "Start the character generation wizard"
+        case .characters:
+            return "Browse characters in your library"
+        case .runs:
+            return "Browse missions and jobs"
         }
     }
 }
@@ -43,6 +64,10 @@ struct ContentView: View {
     @State private var characterPendingDelete: CharacterSummary?
     @State private var libraryQuery = ""
     @State private var isLibraryDropTargeted = false
+    /// Run opened via Create → New Run / File → New Run (detail only; never a list host).
+    @State private var newRunDetailID: UUID?
+    /// Marketing screenshots: force-open a run inside the Runs library list host.
+    @State private var marketingOpenRunID: UUID?
 
     private var filteredSummaries: [CharacterSummary] {
         let q = libraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -64,12 +89,22 @@ struct ContentView: View {
                     Label(SidebarItem.characters.title, systemImage: SidebarItem.characters.systemImage)
                         .badge(summaries.count)
                         .tag(SidebarItem.characters)
-                    Label(SidebarItem.importCharacter.title, systemImage: SidebarItem.importCharacter.systemImage)
-                        .tag(SidebarItem.importCharacter)
+                        .help(SidebarItem.characters.help ?? "")
+                    Label(SidebarItem.runs.title, systemImage: SidebarItem.runs.systemImage)
+                        .badge(libraryEnvironment.runCount)
+                        .tag(SidebarItem.runs)
+                        .help(SidebarItem.runs.help ?? "")
                 }
                 Section("Create") {
                     Label(SidebarItem.newCharacter.title, systemImage: SidebarItem.newCharacter.systemImage)
                         .tag(SidebarItem.newCharacter)
+                        .help(SidebarItem.newCharacter.help ?? "")
+                    Label(SidebarItem.newRun.title, systemImage: SidebarItem.newRun.systemImage)
+                        .tag(SidebarItem.newRun)
+                        .help(SidebarItem.newRun.help ?? "")
+                    Label(SidebarItem.importCharacter.title, systemImage: SidebarItem.importCharacter.systemImage)
+                        .tag(SidebarItem.importCharacter)
+                        .help(SidebarItem.importCharacter.help ?? "")
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240)
@@ -91,17 +126,32 @@ struct ContentView: View {
         }
         .navigationTitle("ShadowDeck")
         .onAppear { refresh() }
-        .onChange(of: selection) { _, newValue in
+        .onChange(of: selection) { oldValue, newValue in
             if newValue == .characters {
                 // Stay on summary if a character is selected; refresh list data.
                 refresh()
             } else {
                 selectedCharacterID = nil
             }
+            if newValue == .runs {
+                // Keep the Runs badge / list in sync after create/delete from other routes.
+                refresh()
+            }
+            // Sidebar Create → New Run: create once when entering this item.
+            // (File menu path calls beginNewRun() itself before setting selection.)
+            if newValue == .newRun, oldValue != .newRun, newRunDetailID == nil {
+                beginNewRun()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newCharacter)) { _ in
             selection = .newCharacter
             selectedCharacterID = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
+            selectedCharacterID = nil
+            // Always mint a new run (even if already on .newRun).
+            beginNewRun()
+            selection = .newRun
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.importCharacter)) { _ in
             selection = .importCharacter
@@ -153,6 +203,29 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         switch selection {
+        case .runs:
+            RunsListView(forcedOpenRunID: marketingOpenRunID)
+        case .newRun:
+            // Detail only — creation happens once in beginNewRun(), never via onAppear.
+            if let newRunDetailID {
+                RunDetailView(
+                    runID: newRunDetailID,
+                    onBack: {
+                        self.newRunDetailID = nil
+                        selection = .runs
+                        refresh()
+                    },
+                    onDeleted: {
+                        self.newRunDetailID = nil
+                        selection = .runs
+                        refresh()
+                    }
+                )
+                .id(newRunDetailID)
+            } else {
+                ProgressView("Creating run…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case .importCharacter:
             ImportView { importedID in
                 finishImport(importedID: importedID)
@@ -454,18 +527,39 @@ struct ContentView: View {
     private func refresh() {
         do {
             summaries = try libraryEnvironment.library.listSummaries()
+            libraryEnvironment.refreshRunCount()
             if selectedCharacterID != nil,
                !summaries.contains(where: { $0.id == selectedCharacterID })
             {
                 selectedCharacterID = nil
             }
-            if selectedCharacterID == nil {
+            if selectedCharacterID == nil, selection == .characters || selection == nil {
                 statusMessage = summaries.isEmpty
                     ? "Library is empty."
                     : "\(summaries.count) character(s) in library."
             }
         } catch {
             statusMessage = "Failed to load library: \(error.localizedDescription)"
+        }
+    }
+
+    /// Mint exactly one run and show its detail under Create → New Run.
+    private func beginNewRun() {
+        var run = Run.makeDraft(title: "New Run")
+        let count = (try? libraryEnvironment.runLibrary.count()) ?? 0
+        // Next ordinal: 1 existing → "New Run 2", etc.
+        if count > 0 {
+            run.title = "New Run \(count + 1)"
+        }
+        do {
+            try libraryEnvironment.runLibrary.save(run)
+            libraryEnvironment.refreshRunCount()
+            newRunDetailID = run.id
+            statusMessage = nil
+        } catch {
+            newRunDetailID = nil
+            statusMessage = "Could not create run: \(error.localizedDescription)"
+            selection = .runs
         }
     }
 
@@ -491,6 +585,7 @@ struct ContentView: View {
         case .splash:
             break
         case .library:
+            marketingOpenRunID = nil
             // Ensure the library has something photogenic.
             do {
                 if try libraryEnvironment.library.count() == 0 {
@@ -506,6 +601,7 @@ struct ContentView: View {
             libraryQuery = ""
             refresh()
         case .generationRole:
+            marketingOpenRunID = nil
             selection = .newCharacter
             selectedCharacterID = nil
             // Wizard observes and jumps to Concept & Role.
@@ -513,6 +609,7 @@ struct ContentView: View {
                 NotificationCenter.default.post(name: AppCommand.wizardShowRoleStep, object: nil)
             }
         case .characterSheet:
+            marketingOpenRunID = nil
             selection = .characters
             refresh()
             // Prefer the SR5 sample combat mage if present; else first library row.
@@ -533,8 +630,63 @@ struct ContentView: View {
                     statusMessage = "Screenshot open failed: \(error.localizedDescription)"
                 }
             }
+        case .runLibrary:
+            selectedCharacterID = nil
+            marketingOpenRunID = nil
+            ensureSampleRunForScreenshots(openDetail: false)
+            selection = .runs
+            refresh()
+        case .runDetail:
+            selectedCharacterID = nil
+            ensureSampleRunForScreenshots(openDetail: true)
+            selection = .runs
+            refresh()
         case .finished:
             break
+        }
+    }
+
+    /// Prefer an existing run (user library); otherwise seed a photogenic sample job.
+    private func ensureSampleRunForScreenshots(openDetail: Bool) {
+        do {
+            let existing = try libraryEnvironment.runLibrary.listSummaries()
+            if let first = existing.first {
+                marketingOpenRunID = openDetail ? first.id : nil
+                return
+            }
+            // Seed characters if needed so the run can list a team.
+            if try libraryEnvironment.library.count() == 0 {
+                for sample in SampleCharacters.makeAll() {
+                    try libraryEnvironment.library.save(sample)
+                }
+                refresh()
+            }
+            let team = try libraryEnvironment.library.listSummaries()
+            var run = Run.makeDraft(title: "Datasteal on Renraku Arcology")
+            run.tags = ["Datasteal", "Seattle"]
+            run.status = .active
+            run.client = "Mr. Johnson (Ares cut-out)"
+            run.location = "Downtown Seattle · Renraku Arcology"
+            run.objectives = [
+                RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
+                RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
+            ]
+            run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
+            run.complicationsNotes = "Johnson may double-cross once the data leaves the building."
+            run.expectedPayout = RunPayout(nuyen: 18_000, karma: 6)
+            run.heatDelta = 2
+            run.participantCharacterIDs = team.prefix(2).map(\.id)
+            run.sessionLog = [
+                RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete."),
+                RunLogEntry(kind: .complication, text: "Spider noticed the probe; clock is ticking."),
+            ]
+            run.gmNotes = "Keep decker spotlight; Face softens the Johnson if things go south."
+            run.applyStatus(.active)
+            try libraryEnvironment.runLibrary.save(run)
+            libraryEnvironment.refreshRunCount()
+            marketingOpenRunID = openDetail ? run.id : nil
+        } catch {
+            statusMessage = "Screenshot run seed failed: \(error.localizedDescription)"
         }
     }
 
