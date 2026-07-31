@@ -29,12 +29,13 @@ private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     }
 
     var systemImage: String {
+        // Filled variants read more like Finder / System Settings sidebar glyphs.
         switch self {
-        case .characters: "person.3"
-        case .runs: "list.clipboard"
-        case .newCharacter: "plus.circle"
-        case .newRun: "plus.rectangle.on.folder"
-        case .importCharacter: "square.and.arrow.down"
+        case .characters: "person.3.fill"
+        case .runs: "list.clipboard.fill"
+        case .newCharacter: "plus.circle.fill"
+        case .newRun: "plus.rectangle.on.folder.fill"
+        case .importCharacter: "square.and.arrow.down.fill"
         }
     }
 
@@ -84,33 +85,50 @@ struct ContentView: View {
         }
     }
 
+    /// Finder-like sidebar row: larger hierarchical SF Symbol + body label.
+    private func sidebarLabel(_ item: SidebarItem) -> some View {
+        Label {
+            Text(item.title)
+                .font(.body)
+        } icon: {
+            Image(systemName: item.systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.primary)
+                .frame(width: 24, height: 20, alignment: .center)
+        }
+        .labelStyle(.titleAndIcon)
+    }
+
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section("Library") {
-                    Label(SidebarItem.characters.title, systemImage: SidebarItem.characters.systemImage)
+                    sidebarLabel(SidebarItem.characters)
                         .badge(summaries.count)
                         .tag(SidebarItem.characters)
                         .help(SidebarItem.characters.help ?? "")
-                    Label(SidebarItem.runs.title, systemImage: SidebarItem.runs.systemImage)
+                    sidebarLabel(SidebarItem.runs)
                         .badge(libraryEnvironment.runCount)
                         .tag(SidebarItem.runs)
                         .help(SidebarItem.runs.help ?? "")
                 }
                 Section("Create") {
-                    Label(SidebarItem.newCharacter.title, systemImage: SidebarItem.newCharacter.systemImage)
+                    sidebarLabel(SidebarItem.newCharacter)
                         .tag(SidebarItem.newCharacter)
                         .help(SidebarItem.newCharacter.help ?? "")
-                    Label(SidebarItem.newRun.title, systemImage: SidebarItem.newRun.systemImage)
+                    sidebarLabel(SidebarItem.newRun)
                         .tag(SidebarItem.newRun)
                         .help(SidebarItem.newRun.help ?? "")
-                    Label(SidebarItem.importCharacter.title, systemImage: SidebarItem.importCharacter.systemImage)
+                    sidebarLabel(SidebarItem.importCharacter)
                         .tag(SidebarItem.importCharacter)
                         .help(SidebarItem.importCharacter.help ?? "")
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240)
             .listStyle(.sidebar)
+            // Finder-like row density: slightly roomier rows for the larger glyphs.
+            .environment(\.defaultMinListRowHeight, 28)
         } detail: {
             // NavigationStack keeps the detail column a proper primary column;
             // shared min frame prevents collapse under contentMinSize sizing.

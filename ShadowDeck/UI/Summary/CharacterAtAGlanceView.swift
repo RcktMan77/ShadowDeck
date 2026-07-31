@@ -260,18 +260,19 @@ struct CharacterAtAGlanceView: View {
                     storySection(c)
                 }
 
-                // Hero: portrait | attributes (portrait is width-capped so it never
-                // spills into Attributes or stretches toward the nav sidebar).
+                // Hero: portrait | attributes — bottoms aligned (caption baseline ≈ card edge).
+                // Portrait is intentionally large; attributes stay compact so they share a baseline.
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 20) {
+                    HStack(alignment: .bottom, spacing: 18) {
                         portraitColumn(c)
                         attributesColumn(c)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .layoutPriority(1)
+                            .frame(maxWidth: PortraitMetrics.attributesMaxWidth, alignment: .leading)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .leading, spacing: 16) {
                         portraitColumn(c)
                         attributesColumn(c)
+                            .frame(maxWidth: PortraitMetrics.attributesMaxWidth, alignment: .leading)
                     }
                 }
 
@@ -363,16 +364,17 @@ struct CharacterAtAGlanceView: View {
 
     // MARK: - Portrait
 
-    /// Fixed box so the hero portrait cannot overflow Attributes or expand toward the sidebar.
+    /// Hero portrait sizing. Attributes max width keeps the grid compact so the portrait can grow.
     private enum PortraitMetrics {
-        /// Slightly larger than the initial cap so the face reads well without crowding Attributes.
-        static let width: CGFloat = 204
-        static let height: CGFloat = 255
-        static let cornerRadius: CGFloat = 14
+        static let width: CGFloat = 280
+        static let height: CGFloat = 350
+        static let cornerRadius: CGFloat = 16
+        /// Cap so attribute tiles stay dense; leftover width goes to the portrait, not empty tile padding.
+        static let attributesMaxWidth: CGFloat = 440
     }
 
     private func portraitColumn(_ c: Character) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             portraitView(c)
                 .frame(width: PortraitMetrics.width, height: PortraitMetrics.height)
                 .clipped()
@@ -381,7 +383,7 @@ struct CharacterAtAGlanceView: View {
                     RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous)
                         .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+                .shadow(color: .black.opacity(0.14), radius: 12, y: 4)
                 .contentShape(RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous))
                 .onTapGesture { isPortraitImporterPresented = true }
                 .help("Click to change portrait")
@@ -403,9 +405,10 @@ struct CharacterAtAGlanceView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: PortraitMetrics.width)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(width: PortraitMetrics.width, alignment: .top)
-        .fixedSize(horizontal: true, vertical: false)
+        .frame(width: PortraitMetrics.width, alignment: .bottom)
+        .fixedSize(horizontal: true, vertical: true)
     }
 
     @ViewBuilder
@@ -448,11 +451,14 @@ struct CharacterAtAGlanceView: View {
 
     private func attributesColumn(_ c: Character) -> some View {
         let effects = c.effects
+        // Three dense columns keep overall card height close to the large portrait + caption.
+        let columns = [
+            GridItem(.flexible(minimum: 96), spacing: 6),
+            GridItem(.flexible(minimum: 96), spacing: 6),
+            GridItem(.flexible(minimum: 96), spacing: 6),
+        ]
         return sectionCard("Attributes") {
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 8
-            ) {
+            LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(AttributeID.standardGenerationAttributes, id: \.self) { id in
                     editableAttributeTile(
                         id,
@@ -502,23 +508,26 @@ struct CharacterAtAGlanceView: View {
 
     private func editableAttributeTile(_ id: AttributeID, base: Int, bonus: Int) -> some View {
         let effective = base + bonus
-        return VStack(spacing: 4) {
+        return VStack(spacing: 3) {
             Text(id.displayName)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            HStack(spacing: 4) {
                 Button {
                     adjustAttribute(id, by: -1)
                 } label: {
                     Image(systemName: "minus.circle.fill")
+                        .imageScale(.medium)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
 
                 VStack(spacing: 0) {
                     Text("\(effective)")
-                        .font(.title3.monospacedDigit().weight(.semibold))
-                        .frame(minWidth: 28)
+                        .font(.body.monospacedDigit().weight(.semibold))
+                        .frame(minWidth: 22)
                     if bonus != 0 {
                         Text(bonus > 0 ? "\(base)+\(bonus)" : "\(base)\(bonus)")
                             .font(.caption2.monospacedDigit())
@@ -530,13 +539,15 @@ struct CharacterAtAGlanceView: View {
                     adjustAttribute(id, by: 1)
                 } label: {
                     Image(systemName: "plus.circle.fill")
+                        .imageScale(.medium)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .background(
             (bonus != 0 ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08)),
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -1171,15 +1182,17 @@ struct CharacterAtAGlanceView: View {
     }
 
     private func attributeTile(_ title: String, value: String, editable: Bool = false) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             Text(title)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
-                .font(.title3.monospacedDigit().weight(.semibold))
+                .font(.body.monospacedDigit().weight(.semibold))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
