@@ -49,12 +49,16 @@ enum MarketingScreenshotExporter {
         case finished
     }
 
-    /// Playback delay between GIF frames (shorter = smoother).
-    private static let gifFrameDelay: Double = 0.38
+    /// Playback delay between GIF frames (shorter = smoother with more frames).
+    private static let gifFrameDelay: Double = 0.22
     /// Hold last frame a bit longer so the result is readable.
-    private static let gifLastFrameDelay: Double = 1.15
-    /// Extra samples per storyboard step (captures mid-scroll + settle).
-    private static let samplesPerStep = 3
+    private static let gifLastFrameDelay: Double = 0.95
+    /// Live captures per storyboard step (mid-scroll + settle).
+    private static let samplesPerStep = 4
+    /// Synthetic cross-dissolve frames inserted between each live capture.
+    private static let crossfadeIntermediates = 2
+    /// Long-edge cap for GIF frames (keeps files README-friendly).
+    private static let gifMaxLongEdge: CGFloat = 720
 
     private enum CropMode {
         /// Full window (run library list).
@@ -137,29 +141,67 @@ enum MarketingScreenshotExporter {
         crop: CropMode,
         firstStep: Bool
     ) async {
-        let firstWait: UInt64 = firstStep ? 450_000_000 : 220_000_000
+        // Brief pause for scroll animation to start, then dense sampling.
+        let firstWait: UInt64 = firstStep ? 380_000_000 : 160_000_000
         try? await Task.sleep(nanoseconds: firstWait)
         for sample in 0..<samplesPerStep {
             if sample > 0 {
-                try? await Task.sleep(nanoseconds: 280_000_000)
+                try? await Task.sleep(nanoseconds: 160_000_000)
             }
             if let full = await snapshotLargestWindow() {
                 let processed: NSImage?
                 switch crop {
                 case .full:
-                    processed = downscale(full, maxLongEdge: 960)
+                    processed = downscale(full, maxLongEdge: gifMaxLongEdge)
                 case .detail:
-                    processed = cropDetailPanel(full).flatMap { downscale($0, maxLongEdge: 960) }
+                    processed = cropDetailPanel(full).flatMap { downscale($0, maxLongEdge: gifMaxLongEdge) }
                 }
                 if let frame = processed {
                     frames.append(frame)
                 } else {
-                    frames.append(downscale(full, maxLongEdge: 960) ?? full)
+                    frames.append(downscale(full, maxLongEdge: gifMaxLongEdge) ?? full)
                 }
             } else {
                 fputs("  ✗ GIF frame: no snapshot\n", stderr)
             }
         }
+    }
+
+    /// Insert cross-dissolves between live frames so hard cuts read as fades.
+    private static func expandWithCrossfades(_ keyframes: [NSImage]) -> [NSImage] {
+        guard keyframes.count >= 2, crossfadeIntermediates > 0 else { return keyframes }
+        var out: [NSImage] = []
+        out.reserveCapacity(keyframes.count * (crossfadeIntermediates + 1))
+        for i in 0..<keyframes.count {
+            out.append(keyframes[i])
+            guard i + 1 < keyframes.count else { break }
+            let a = keyframes[i]
+            let b = keyframes[i + 1]
+            for k in 1...crossfadeIntermediates {
+                let t = CGFloat(k) / CGFloat(crossfadeIntermediates + 1)
+                if let blended = crossDissolve(from: a, to: b, t: t) {
+                    out.append(blended)
+                }
+            }
+        }
+        return out
+    }
+
+    /// Linear blend: result ≈ from·(1−t) + to·t (opaque bitmaps).
+    private static func crossDissolve(from: NSImage, to: NSImage, t: CGFloat) -> NSImage? {
+        let size = NSSize(
+            width: min(from.size.width, to.size.width),
+            height: min(from.size.height, to.size.height)
+        )
+        guard size.width > 1, size.height > 1 else { return nil }
+        let rect = NSRect(origin: .zero, size: size)
+        let out = NSImage(size: size)
+        out.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .medium
+        from.draw(in: rect, from: NSRect(origin: .zero, size: from.size), operation: .copy, fraction: 1)
+        to.draw(in: rect, from: NSRect(origin: .zero, size: to.size), operation: .sourceOver, fraction: t)
+        out.unlockFocus()
+        return out
     }
 
     // MARK: - Capture helpers
@@ -332,8 +374,10 @@ enum MarketingScreenshotExporter {
             fputs("  ✗ \(name).gif: no frames\n", stderr)
             return
         }
+        // Cross-dissolve between live captures so scene changes don't hard-cut.
+        let expanded = expandWithCrossfades(frames)
         let url = directory.appendingPathComponent("\(name).gif")
-        let count = frames.count
+        let count = expanded.count
         guard let dest = CGImageDestinationCreateWithURL(
             url as CFURL,
             UTType.gif.identifier as CFString,
@@ -351,9 +395,9 @@ enum MarketingScreenshotExporter {
         ]
         CGImageDestinationSetProperties(dest, fileProps as CFDictionary)
 
-        for (index, frame) in frames.enumerated() {
+        for (index, frame) in expanded.enumerated() {
             guard let cg = cgImage(from: frame) else { continue }
-            let delay = index == frames.count - 1 ? gifLastFrameDelay : gifFrameDelay
+            let delay = index == expanded.count - 1 ? gifLastFrameDelay : gifFrameDelay
             let frameProps: [CFString: Any] = [
                 kCGImagePropertyGIFDictionary: [
                     kCGImagePropertyGIFDelayTime: delay,
@@ -365,7 +409,10 @@ enum MarketingScreenshotExporter {
 
         if CGImageDestinationFinalize(dest) {
             let kb = (try? Data(contentsOf: url).count).map { $0 / 1024 } ?? 0
-            fputs("  ✓ \(name).gif (\(kb) KB, \(frames.count) frames)\n", stderr)
+            fputs(
+                "  ✓ \(name).gif (\(kb) KB, \(expanded.count) frames; \(frames.count) live + crossfades)\n",
+                stderr
+            )
         } else {
             fputs("  ✗ \(name).gif: finalize failed\n", stderr)
         }
