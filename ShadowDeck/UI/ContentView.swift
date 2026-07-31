@@ -598,22 +598,13 @@ struct ContentView: View {
     }
 
     /// Drive UI into known-good states for README marquee captures.
+    /// Capture launches with an in-memory sample-only library (`LibraryEnvironment.marketingCapture()`).
     private func handleMarketingPhase(_ phase: MarketingScreenshotExporter.Phase) {
         switch phase {
         case .splash:
             break
         case .library:
             marketingOpenRunID = nil
-            // Ensure the library has something photogenic.
-            do {
-                if try libraryEnvironment.library.count() == 0 {
-                    for sample in SampleCharacters.makeAll() {
-                        try libraryEnvironment.library.save(sample)
-                    }
-                }
-            } catch {
-                statusMessage = "Screenshot seed failed: \(error.localizedDescription)"
-            }
             selection = .characters
             selectedCharacterID = nil
             libraryQuery = ""
@@ -630,24 +621,8 @@ struct ContentView: View {
             marketingOpenRunID = nil
             selection = .characters
             refresh()
-            // Prefer the SR5 sample combat mage if present; else first library row.
-            let preferred = SampleCharacters.sr5ID
-            if summaries.contains(where: { $0.id == preferred }) {
-                selectedCharacterID = preferred
-            } else if let first = summaries.first?.id {
-                selectedCharacterID = first
-            } else {
-                // Seed and open SR5 sample.
-                do {
-                    for sample in SampleCharacters.makeAll() {
-                        try libraryEnvironment.library.save(sample)
-                    }
-                    refresh()
-                    selectedCharacterID = preferred
-                } catch {
-                    statusMessage = "Screenshot open failed: \(error.localizedDescription)"
-                }
-            }
+            // Always the SR5 sample combat mage (seeded in marketingCapture library).
+            selectedCharacterID = SampleCharacters.sr5ID
             // Showcase Advancement Planner on the marquee character-sheet shot.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 NotificationCenter.default.post(name: AppCommand.characterSheetShowAdvanceTab, object: nil)
@@ -655,12 +630,12 @@ struct ContentView: View {
         case .runLibrary:
             selectedCharacterID = nil
             marketingOpenRunID = nil
-            ensureSampleRunForScreenshots(openDetail: false)
+            openMarketingSampleRun(detail: false)
             selection = .runs
             refresh()
         case .runDetail:
             selectedCharacterID = nil
-            ensureSampleRunForScreenshots(openDetail: true)
+            openMarketingSampleRun(detail: true)
             selection = .runs
             refresh()
         case .finished:
@@ -668,47 +643,14 @@ struct ContentView: View {
         }
     }
 
-    /// Prefer an existing run (user library); otherwise seed a photogenic sample job.
-    private func ensureSampleRunForScreenshots(openDetail: Bool) {
+    /// Open the single seeded marketing run (never scans personal on-disk libraries).
+    private func openMarketingSampleRun(detail: Bool) {
         do {
-            let existing = try libraryEnvironment.runLibrary.listSummaries()
-            if let first = existing.first {
-                marketingOpenRunID = openDetail ? first.id : nil
-                return
-            }
-            // Seed characters if needed so the run can list a team.
-            if try libraryEnvironment.library.count() == 0 {
-                for sample in SampleCharacters.makeAll() {
-                    try libraryEnvironment.library.save(sample)
-                }
-                refresh()
-            }
-            let team = try libraryEnvironment.library.listSummaries()
-            var run = Run.makeDraft(title: "Datasteal on Renraku Arcology")
-            run.tags = ["Datasteal", "Seattle"]
-            run.status = .active
-            run.client = "Mr. Johnson (Ares cut-out)"
-            run.location = "Downtown Seattle · Renraku Arcology"
-            run.objectives = [
-                RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
-                RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
-            ]
-            run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
-            run.complicationsNotes = "Johnson may double-cross once the data leaves the building."
-            run.expectedPayout = RunPayout(nuyen: 18_000, karma: 6)
-            run.heatDelta = 2
-            run.participantCharacterIDs = team.prefix(2).map(\.id)
-            run.sessionLog = [
-                RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete."),
-                RunLogEntry(kind: .complication, text: "Spider noticed the probe; clock is ticking."),
-            ]
-            run.gmNotes = "Keep decker spotlight; Face softens the Johnson if things go south."
-            run.applyStatus(.active)
-            try libraryEnvironment.runLibrary.save(run)
+            let runs = try libraryEnvironment.runLibrary.listSummaries()
+            marketingOpenRunID = detail ? runs.first?.id : nil
             libraryEnvironment.refreshRunCount()
-            marketingOpenRunID = openDetail ? run.id : nil
         } catch {
-            statusMessage = "Screenshot run seed failed: \(error.localizedDescription)"
+            statusMessage = "Screenshot run open failed: \(error.localizedDescription)"
         }
     }
 
