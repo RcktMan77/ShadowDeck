@@ -52,6 +52,10 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     public var lifestyleLastProcessedAt: Date?
     /// Append-only lifestyle payment history (optional in payloads for legacy decode).
     public var lifestyleLedger: [LifestyleLedgerEntry]?
+    /// Append-only karma advancement history (optional for legacy decode).
+    public var advancementLedger: [AdvancementLedgerEntry]?
+    /// Draft advancement plan (cart). Persists so users can save goals across sessions/tabs.
+    public var advancementPlan: [AdvancementPlanItem]?
 
     /// Play-state condition damage. Optional so legacy library payloads still decode.
     public var conditionTrack: ConditionTrack?
@@ -98,6 +102,8 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         lifestyleNuyenReserve: Int = 0,
         lifestyleLastProcessedAt: Date? = nil,
         lifestyleLedger: [LifestyleLedgerEntry]? = nil,
+        advancementLedger: [AdvancementLedgerEntry]? = nil,
+        advancementPlan: [AdvancementPlanItem]? = nil,
         conditionTrack: ConditionTrack? = nil,
         avatar: AvatarRef = AvatarRef(),
         importProvenance: ImportProvenance? = nil,
@@ -133,6 +139,8 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.lifestyleNuyenReserve = lifestyleNuyenReserve
         self.lifestyleLastProcessedAt = lifestyleLastProcessedAt
         self.lifestyleLedger = lifestyleLedger
+        self.advancementLedger = advancementLedger
+        self.advancementPlan = advancementPlan
         self.conditionTrack = conditionTrack
         self.avatar = avatar
         self.importProvenance = importProvenance
@@ -153,6 +161,27 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
             entries = Array(entries.prefix(limit))
         }
         lifestyleLedger = entries
+    }
+
+    /// Advancement ledger entries (empty if never set).
+    public var advancementLedgerEntries: [AdvancementLedgerEntry] {
+        get { advancementLedger ?? [] }
+        set { advancementLedger = newValue.isEmpty ? [] : newValue }
+    }
+
+    public mutating func appendAdvancementLedger(_ entry: AdvancementLedgerEntry, keepLast limit: Int = 40) {
+        var entries = advancementLedgerEntries
+        entries.insert(entry, at: 0)
+        if entries.count > limit {
+            entries = Array(entries.prefix(limit))
+        }
+        advancementLedger = entries
+    }
+
+    /// Draft plan items (empty if never set). Survives tab switches and library saves.
+    public var advancementPlanItems: [AdvancementPlanItem] {
+        get { advancementPlan ?? [] }
+        set { advancementPlan = newValue.isEmpty ? nil : newValue }
     }
 
     public var physicalDamage: Int {
