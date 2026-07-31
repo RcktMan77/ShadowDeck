@@ -79,7 +79,8 @@ struct ShadowDeckApp: App {
                     switch phase {
                     case .splash:
                         showSplash = true
-                    case .library, .generationRole, .characterSheet, .runLibrary, .runDetail, .finished:
+                    case .library, .generationRole, .characterSheet, .runLibrary,
+                         .runGif, .advanceGif, .finished:
                         showSplash = false
                     }
                 }
