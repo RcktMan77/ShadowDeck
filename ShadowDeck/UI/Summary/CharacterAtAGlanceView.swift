@@ -54,6 +54,9 @@ struct CharacterAtAGlanceView: View {
             sheetTab = .summary
             reload()
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.characterSheetShowAdvanceTab)) { _ in
+            sheetTab = .advance
+        }
         .fileImporter(
             isPresented: $isPortraitImporterPresented,
             allowedContentTypes: [.image, .png, .jpeg, .gif, .webP, .heic, .tiff],
@@ -145,6 +148,12 @@ struct CharacterAtAGlanceView: View {
                         ContactsManagementView(character: binding(to: c), onPersist: persistCharacter)
                     case .lifestyle:
                         LifestyleManagementView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter,
+                            onStatus: { statusMessage = $0 }
+                        )
+                    case .advance:
+                        AdvancementPlannerView(
                             character: binding(to: c),
                             onPersist: persistCharacter,
                             onStatus: { statusMessage = $0 }
@@ -652,7 +661,7 @@ struct CharacterAtAGlanceView: View {
                     vital("Spells", "\(c.spells.count)", "wand.and.stars")
                 }
             }
-            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Spend karma by raising skills, magic, etc.")
+            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Plan spends on the Advance tab.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
