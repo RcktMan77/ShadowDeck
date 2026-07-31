@@ -649,7 +649,7 @@ struct ContentView: View {
         }
     }
 
-    /// Storyboard for `07-run-mission-flow.gif`.
+    /// Storyboard for `07-run-mission-flow.gif` — scroll + highlight, then mutate.
     private func applyRunGifStoryboard(step: Int) {
         selectedCharacterID = nil
         selection = .runs
@@ -659,29 +659,58 @@ struct ContentView: View {
                 return
             }
             var run = try libraryEnvironment.runLibrary.require(runID)
+            var focusAnchor = "overview"
+            var focusHighlight: String?
 
             switch step {
             case 0:
-                // Planning: empty team, open detail.
+                // Open detail at top (title / overview).
                 run.status = .planning
                 run.participantCharacterIDs = []
                 run.sessionLog = []
                 run.outcomeSummary = ""
+                run.actualPayout = nil
                 run.objectives = [
                     RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
                     RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
                 ]
+                focusAnchor = "overview"
             case 1:
-                // Link sample runners to the job.
-                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                // Scroll to Team (empty) — viewer sees where linking happens.
+                focusAnchor = "team"
+                focusHighlight = "team"
             case 2:
-                // Activate + session log beat.
+                // Link sample runners (checkboxes now on-screen).
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                focusAnchor = "team"
+                focusHighlight = "team"
+            case 3:
+                // Scroll to session log before adding.
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                run.applyStatus(.active)
+                focusAnchor = "sessionLog"
+                focusHighlight = "sessionLog"
+            case 4:
+                // Session log entry present.
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
                 ]
-            case 3:
-                // Mark primary objective complete.
+                focusAnchor = "sessionLog"
+            case 5:
+                // Scroll to objectives (still pending).
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                run.applyStatus(.active)
+                run.sessionLog = [
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                ]
+                focusAnchor = "objectives"
+                focusHighlight = "objectives"
+            case 6:
+                // Primary objective complete.
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                run.applyStatus(.active)
                 if let i = run.objectives.firstIndex(where: \.isPrimary) {
                     run.objectives[i].status = .complete
                 }
@@ -689,11 +718,23 @@ struct ContentView: View {
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
                     RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
                 ]
+                focusAnchor = "objectives"
+                focusHighlight = "objectives"
             default:
-                // Outcome + wrap.
+                // Outcome + completed status (scroll to outcome).
+                run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
+                if let i = run.objectives.firstIndex(where: \.isPrimary) {
+                    run.objectives[i].status = .complete
+                }
+                run.sessionLog = [
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                ]
                 run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
                 run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
                 run.applyStatus(.completed)
+                focusAnchor = "outcome"
+                focusHighlight = "outcome"
             }
 
             try libraryEnvironment.runLibrary.save(run)
@@ -701,12 +742,13 @@ struct ContentView: View {
             marketingOpenRunID = runID
             refresh()
             NotificationCenter.default.post(name: AppCommand.marketingReloadRun, object: nil)
+            postMarketingFocus(anchor: focusAnchor, highlight: focusHighlight)
         } catch {
             statusMessage = "Screenshot run GIF failed: \(error.localizedDescription)"
         }
     }
 
-    /// Storyboard for `08-advancement-planner.gif`.
+    /// Storyboard for `08-advancement-planner.gif` — scroll skills, highlight Add/Apply.
     private func applyAdvanceGifStoryboard(step: Int) {
         marketingOpenRunID = nil
         selection = .characters
@@ -714,40 +756,60 @@ struct ContentView: View {
         do {
             var c = try libraryEnvironment.library.require(SampleCharacters.sr5ID)
             let rules = RulesRegistry.rules(for: c.edition)
+            var focusAnchor = "skills"
+            var focusHighlight: String?
 
-            switch step {
-            case 0:
-                // Fresh planner: clear plan, give demo karma budget.
-                c.karmaAvailable = 40
-                c.karmaTotal = max(c.karmaTotal, 40)
-                c.advancementPlanItems = []
-                // Restore a known skill rank so re-runs of capture stay stable.
+            // Stable ranks for re-runs.
+            func resetRanks() {
                 if let i = c.skills.firstIndex(where: { $0.catalogKey == "perception" }) {
                     c.skills[i].rating = 3
                 }
                 if let i = c.skills.firstIndex(where: { $0.catalogKey == "assensing" }) {
                     c.skills[i].rating = 4
                 }
+            }
+
+            switch step {
+            case 0:
+                // Top of planner — karma budget, empty plan.
+                resetRanks()
+                c.karmaAvailable = 40
+                c.karmaTotal = max(c.karmaTotal, 40)
+                c.advancementPlanItems = []
+                focusAnchor = "planHeader"
+                focusHighlight = nil
             case 1:
+                // Scroll to skills list (before adding).
+                resetRanks()
                 c.karmaAvailable = 40
                 c.advancementPlanItems = []
+                focusAnchor = "skills"
+                focusHighlight = "skill-perception"
+            case 2:
+                // Perception added after “click” highlight.
+                resetRanks()
+                c.karmaAvailable = 40
                 if let item = AdvancementEngine.makeSkillRaiseItem(
                     character: c, catalogKey: "perception", rules: rules
                 ) {
                     c.advancementPlanItems = [item]
                 }
-            case 2:
-                c.karmaAvailable = 40
-                var plan: [AdvancementPlanItem] = []
-                if let a = AdvancementEngine.makeSkillRaiseItem(
-                    character: c, catalogKey: "perception", rules: rules
-                ) { plan.append(a) }
-                if let b = AdvancementEngine.makeSkillRaiseItem(
-                    character: c, catalogKey: "assensing", rules: rules
-                ) { plan.append(b) }
-                c.advancementPlanItems = plan
+                focusAnchor = "skills"
+                focusHighlight = "skill-perception"
             case 3:
-                // Still pre-apply: same plan, ready to spend (metrics visible).
+                // Highlight second skill control.
+                resetRanks()
+                c.karmaAvailable = 40
+                if let item = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) {
+                    c.advancementPlanItems = [item]
+                }
+                focusAnchor = "skills"
+                focusHighlight = "skill-assensing"
+            case 4:
+                // Both raises in plan; still viewing skills.
+                resetRanks()
                 c.karmaAvailable = 40
                 var plan: [AdvancementPlanItem] = []
                 if let a = AdvancementEngine.makeSkillRaiseItem(
@@ -757,8 +819,38 @@ struct ContentView: View {
                     character: c, catalogKey: "assensing", rules: rules
                 ) { plan.append(b) }
                 c.advancementPlanItems = plan
+                focusAnchor = "skills"
+            case 5:
+                // Scroll/focus plan header + highlight Apply.
+                resetRanks()
+                c.karmaAvailable = 40
+                var plan: [AdvancementPlanItem] = []
+                if let a = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) { plan.append(a) }
+                if let b = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "assensing", rules: rules
+                ) { plan.append(b) }
+                c.advancementPlanItems = plan
+                focusAnchor = "planHeader"
+                focusHighlight = "applyPlan"
+            case 6:
+                // Same pre-apply frame (metrics emphasis).
+                resetRanks()
+                c.karmaAvailable = 40
+                var plan: [AdvancementPlanItem] = []
+                if let a = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "perception", rules: rules
+                ) { plan.append(a) }
+                if let b = AdvancementEngine.makeSkillRaiseItem(
+                    character: c, catalogKey: "assensing", rules: rules
+                ) { plan.append(b) }
+                c.advancementPlanItems = plan
+                focusAnchor = "planHeader"
+                focusHighlight = "applyPlan"
             default:
-                // Apply plan: karma drops, ranks rise, ledger fills, cart clears.
+                // Applied: karma down, ranks up, cart clear, ledger row.
+                resetRanks()
                 c.karmaAvailable = 40
                 var plan: [AdvancementPlanItem] = []
                 if let a = AdvancementEngine.makeSkillRaiseItem(
@@ -769,14 +861,30 @@ struct ContentView: View {
                 ) { plan.append(b) }
                 try AdvancementEngine.apply(items: plan, to: &c, rules: rules)
                 c.advancementPlanItems = []
+                focusAnchor = "skills"
+                focusHighlight = nil
             }
 
             try libraryEnvironment.library.save(c)
             refresh()
             NotificationCenter.default.post(name: AppCommand.characterSheetShowAdvanceTab, object: nil)
             NotificationCenter.default.post(name: AppCommand.marketingReloadCharacter, object: nil)
+            postMarketingFocus(anchor: focusAnchor, highlight: focusHighlight)
         } catch {
             statusMessage = "Screenshot advance GIF failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func postMarketingFocus(anchor: String, highlight: String?) {
+        var info: [AnyHashable: Any] = ["anchor": anchor]
+        if let highlight { info["highlight"] = highlight }
+        // Delay so views finish reload before scrolling.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            NotificationCenter.default.post(
+                name: AppCommand.marketingFocus,
+                object: nil,
+                userInfo: info
+            )
         }
     }
 

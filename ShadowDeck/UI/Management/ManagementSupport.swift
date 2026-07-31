@@ -191,6 +191,27 @@ struct ManagementEmptyState: View {
     }
 }
 
+/// Soft accent ring used by marketing GIF storyboards to show “where we click”.
+struct MarketingHighlightPulse: ViewModifier {
+    var active: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .padding(active ? 4 : 0)
+            .background {
+                if active {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.accentColor, lineWidth: 2.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: active)
+    }
+}
+
 struct ManagementListChrome<Content: View>: View {
     let title: String
     let subtitle: String
