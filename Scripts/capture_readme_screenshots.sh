@@ -2,6 +2,8 @@
 # Capture README marquee screenshots by launching ShadowDeck with an in-app
 # exporter (no Screen Recording permission required).
 #
+# Uses an ephemeral in-memory sample library only — never your on-disk personal data.
+#
 # Usage:
 #   Scripts/capture_readme_screenshots.sh
 #   SHADOWDECK_APP=/path/to/ShadowDeck.app Scripts/capture_readme_screenshots.sh

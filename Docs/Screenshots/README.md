@@ -16,4 +16,6 @@ Scripts/capture_readme_screenshots.sh
 | `06-run-detail.jpg` | Run detail / mission planner |
 | `thumbs/02–06-*.jpg` | Equal-size UI thumbnails (linked from README) |
 
-Full UI shots ~1800px long edge; thumbs ~960px. Capture prefers existing library data (including runs); seeds sample content only when empty.
+Full UI shots ~1800px long edge; thumbs ~960px.
+
+**Privacy:** Capture always uses an **in-memory** library seeded with sample characters and one sample run (`LibraryEnvironment.marketingCapture()`). Your on-disk personal Character / Run libraries are never opened during marquee capture.
