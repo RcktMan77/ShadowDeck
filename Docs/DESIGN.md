@@ -17,7 +17,7 @@ Updated as phases land. **Human input required** before locking ambiguous items.
 | Portability | Single-file **`.shadowdeck`** package (ZIP + JSON) for import/export |
 | Edition priority | **Equal peers** — SR4, SR5, SR6 first-class from day one |
 | House rules | Core-book default + top ~10 popular toggles early |
-| Domain model | Pure `Codable` value types; SwiftData `CharacterRecord` + JSON payload |
+| Domain model | Pure `Codable` value types; SwiftData records + JSON payloads (`Character`, `Run`) |
 | Avatar storage | **Hybrid**: ≤256KB static inline; large/animated as files |
 | Character dashboard | **Interactive play sheet** (Phase 5) + **management tabs** (Phase 6): skills, gear, augs, qualities, contacts, magic |
 
@@ -45,6 +45,8 @@ UI  →  View models / observation  →  Domain models (Character, …)
 |------|------|
 | `Edition` | `.sr4` / `.sr5` / `.sr6` peers |
 | `Character` | Full character aggregate (Codable, schemaVersion) |
+| `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs) |
+| `RunLibrary` / `RunRecord` | Parallel to character library (JSON payload + denormalized list fields) |
 | `AttributeRatings` / `AttributeID` | Physical, mental, special (incl. essence) |
 | `MetatypeID` + `MetatypeCatalog` | Core five metatypes + bounds |
 | `SkillRating` / `SkillGroupRating` | Active, knowledge, language |
