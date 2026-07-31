@@ -69,7 +69,7 @@ struct ShadowDeckApp: App {
                 switch phase {
                 case .splash:
                     showSplash = true
-                case .library, .generationRole, .characterSheet, .finished:
+                case .library, .generationRole, .characterSheet, .runLibrary, .runDetail, .finished:
                     showSplash = false
                 }
             }
@@ -87,6 +87,11 @@ struct ShadowDeckApp: App {
                     NotificationCenter.default.post(name: AppCommand.newCharacter, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: [.command])
+
+                Button("New Run") {
+                    NotificationCenter.default.post(name: AppCommand.newRun, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
 
                 // Unified import: Chummer JSON/.chum5 and .shadowdeck packages.
                 Button("Import Character…") {

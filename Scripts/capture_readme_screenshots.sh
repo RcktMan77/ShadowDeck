@@ -88,14 +88,14 @@ ls -la "$OUT"/0*.jpg 2>/dev/null || {
   exit 1
 }
 
-# Normalize sizes: full UI/splash to 1800px long edge; equal thumbs for the three UI shots.
+# Normalize sizes: full UI/splash to 1800px long edge; equal thumbs for UI shots.
 for f in "$OUT"/0*.jpg; do
   sips -Z 1800 "$f" >/dev/null
   sips -s format jpeg -s formatOptions 85 "$f" --out "$f" >/dev/null
 done
 
 mkdir -p "$OUT/thumbs"
-for base in 02-library 03-generation-role 04-character-sheet; do
+for base in 02-library 03-generation-role 04-character-sheet 05-run-library 06-run-detail; do
   if [[ -f "$OUT/${base}.jpg" ]]; then
     sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
