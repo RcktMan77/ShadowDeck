@@ -2,7 +2,7 @@
 
 **Create, import, and run Shadowrun characters on your Mac** — for Shadowrun 4th, 5th, and 6th edition.
 
-ShadowDeck is an unofficial fan-made character and campaign companion for tabletop Shadowrun. Build runners with a guided wizard, pull in sheets from Chummer, keep a living library of characters, and export what your table or online hub needs.
+ShadowDeck is an unofficial fan-made character and **campaign** companion for tabletop Shadowrun. Build runners with a guided wizard, pull in sheets from Chummer, keep a living library of characters, plan and track missions for your table, and export what your GM or online hub needs.
 
 > Shadowrun is a trademark of its respective owners. ShadowDeck is **not** affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
 
@@ -10,14 +10,14 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
   <img src="Screenshots/01-splash.jpg" alt="ShadowDeck launch splash" width="900" />
 </p>
 
-<!-- Three equal UI thumbs; click opens the matching full-size screenshot. -->
+<!-- Character UI thumbs -->
 <table align="center" width="900">
   <tr>
     <td width="33%" align="center" valign="top">
       <a href="Screenshots/02-library.jpg">
         <img src="Screenshots/thumbs/02-library.jpg" alt="Character library" width="280" />
       </a><br />
-      <sub>Library</sub>
+      <sub>Character Library</sub>
     </td>
     <td width="33%" align="center" valign="top">
       <a href="Screenshots/03-generation-role.jpg">
@@ -34,6 +34,24 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
   </tr>
 </table>
 
+<!-- Campaign / Runs UI thumbs -->
+<table align="center" width="900">
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <a href="Screenshots/05-run-library.jpg">
+        <img src="Screenshots/thumbs/05-run-library.jpg" alt="Run library" width="420" />
+      </a><br />
+      <sub>Run Library</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <a href="Screenshots/06-run-detail.jpg">
+        <img src="Screenshots/thumbs/06-run-detail.jpg" alt="Run detail planner" width="420" />
+      </a><br />
+      <sub>Run detail · mission planner</sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## What you can do
@@ -45,15 +63,25 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
 - Role recommendations and painted archetype / metatype art
 
 ### Keep a character library
-- Local library of all your runners (search and filter)
+- Local **Character Library** of all your runners (search and filter)
 - **Interactive play sheet**: attributes (base + gear/aug bonuses), condition monitors, karma, nuyen, initiative, armor, dice pools
 - Tabs for skills, gear, augmentations, qualities, contacts, and magic
 - Portraits (including animated GIF support via hybrid storage)
 
+### Plan and track missions (Run Library)
+GM-facing **Run / Mission Planner** for jobs at your table:
+- **Run Library** — list and filter missions by status (Planning / Active / Completed / Failed) and involved characters
+- **Structured briefing** — client / Mr. Johnson, location, tags, primary & secondary objectives, opposition, complications
+- **Team** — link one or more library runners to a run
+- **Payout & heat** — expected vs actual nuyen and karma; simple heat delta
+- **Session log** — timeline notes (session beats, complications, heat, objectives)
+- **Outcome & suggested awards** — aftermath summary plus equal-split award *suggestions* (does not auto-apply to characters)
+- Rich-text GM notes and story fields with shared format toolbar (bold, lists, etc.)
+
 ### Import what you already have
 - **Chummer** JSON and **`.chum5`** files
 - Native **`.shadowdeck`** packages
-- Ways to import: sidebar **Import…**, **File → Import Character…** (⌘O), drag-and-drop onto the library or Import drop zone, or double-click a `.shadowdeck` package in Finder (also works dropped on the Dock icon)
+- Ways to import: sidebar **Import Character…**, **File → Import Character…** (⌘O), drag-and-drop onto the character library or Import drop zone, or double-click a `.shadowdeck` package in Finder (also works dropped on the Dock icon)
 - Original Chummer payload is stored when you import, so you can re-export a faithful `.chum5` later
 
 ### Export for the table
@@ -73,9 +101,15 @@ ShadowDeck is an unofficial fan-made character and campaign companion for tablet
 ## Getting started
 
 1. Download a [Release](https://github.com/RcktMan77/ShadowDeck/releases) build, **or** open **ShadowDeck.xcodeproj** in Xcode 16+ and Run, **or** build with `Scripts/release_build.sh`.
-2. **New Character** from the sidebar (or ⌘N) to run the wizard, **or**
-3. **Import…** / **File → Import Character…** a Chummer (`.json` / `.chum5`) or **`.shadowdeck`** package (drag-and-drop also works), **or** load sample runners from the library toolbar.
-4. Open a character for the play sheet; use **Export…** for PDF, Chummer, or a portable package.
+2. **Create → New Character** (or ⌘N) for the wizard, **or** **Import Character…** a Chummer / `.shadowdeck` package, **or** load samples from the Character Library toolbar.
+3. Open a character for the play sheet; use **Export…** for PDF, Chummer, or a portable package.
+4. **Create → New Run** (or ⌘⇧R) to plan a job, or open **Library → Runs** to browse the **Run Library**.
+
+### Sidebar at a glance
+| Section | Items |
+|---------|--------|
+| **Library** | Characters · Runs |
+| **Create** | New Character · New Run · Import Character… |
 
 ### First launch
 You’ll see a short branded splash (skip with click or any key). Loading-style quips are flavor only — the app is already ready.
@@ -92,9 +126,10 @@ You’ll see a short branded splash (skip with click or any key). Loading-style 
 ## Tips
 
 - **Profile fields** (contacts, attributes, gear equip) save as you go.
-- **Rich-text notes** use **Save Notes** (or collapse a contact to commit its notes).
+- **Rich-text notes** (character notes, contacts, run GM notes / outcome fields) include a format toolbar; long text scrolls inside the editor.
 - **House Rules…** on the character identity area apply after chargen and affect validation/essence ceilings.
 - Re-import a Chummer file once if you want **byte-faithful** `.chum5` re-export of that original file.
+- Run **suggested awards** are planning aids only — apply karma/nuyen on each character sheet when you choose.
 
 ---
 
