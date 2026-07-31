@@ -2,17 +2,20 @@
 //  MarketingScreenshotExporter.swift
 //  ShadowDeck
 //
-//  Captures marquee UI screenshots from *inside* the app process so we don't
-//  depend on Screen Recording TCC (which redacts other apps from external
-//  screencapture). Trigger with:
+//  Captures README marquees (stills + short silent GIFs) from *inside* the app
+//  so we don't depend on Screen Recording TCC. Trigger with:
 //
-//    SHADOWDECK_CAPTURE_SCREENSHOTS=1 \
-//    SHADOWDECK_SCREENSHOT_DIR=/path/to/Docs/Screenshots \
-//    open ShadowDeck.app
+//    SHADOWDECK_CAPTURE_SCREENSHOTS=1 open ShadowDeck.app
+//    # or
+//    ShadowDeck.app/Contents/MacOS/ShadowDeck --capture-screenshots
+//
+//  Always uses an in-memory sample library (see LibraryEnvironment.marketingCapture).
 //
 
 import AppKit
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 enum MarketingScreenshotExporter {
     static var isEnabled: Bool {
@@ -21,7 +24,6 @@ enum MarketingScreenshotExporter {
     }
 
     /// Writable location inside the app sandbox (Application Support).
-    /// The capture shell script copies from here into `Docs/Screenshots`.
     static var outputDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
@@ -30,7 +32,8 @@ enum MarketingScreenshotExporter {
             .appendingPathComponent("MarketingScreenshots", isDirectory: true)
     }
 
-    /// Posted as the sequence advances so ContentView / splash can change state.
+    /// Posted as the sequence advances so ContentView can change state.
+    /// `object` is `Phase.rawValue`. Optional `userInfo["step"]` is an Int for GIF storyboards.
     static let phaseNotification = Notification.Name("com.shadowdeck.marketingScreenshotPhase")
 
     enum Phase: String {
@@ -39,9 +42,17 @@ enum MarketingScreenshotExporter {
         case generationRole
         case characterSheet
         case runLibrary
-        case runDetail
+        /// Storyboard: open/update sample run detail (userInfo step 0…n).
+        case runGif
+        /// Storyboard: Advance tab plan → apply (userInfo step 0…n).
+        case advanceGif
         case finished
     }
+
+    /// Seconds each GIF frame is shown.
+    private static let gifFrameDelay: Double = 1.15
+    /// Hold last frame a bit longer so the result is readable.
+    private static let gifLastFrameDelay: Double = 1.6
 
     @MainActor
     static func runSequence() async {
@@ -56,29 +67,29 @@ enum MarketingScreenshotExporter {
 
         fputs("Marketing screenshots → \(dir.path)\n", stderr)
 
-        // Let the first frame (splash) settle.
+        // —— Stills ——
         try? await Task.sleep(nanoseconds: 900_000_000)
-        await capture(named: "01-splash", to: dir)
+        await captureStill(named: "01-splash", to: dir)
 
         post(.library)
         try? await Task.sleep(nanoseconds: 1_100_000_000)
-        await capture(named: "02-library", to: dir)
+        await captureStill(named: "02-library", to: dir)
 
         post(.generationRole)
         try? await Task.sleep(nanoseconds: 1_200_000_000)
-        await capture(named: "03-generation-role", to: dir)
+        await captureStill(named: "03-generation-role", to: dir)
 
         post(.characterSheet)
         try? await Task.sleep(nanoseconds: 1_400_000_000)
-        await capture(named: "04-character-sheet", to: dir)
+        await captureStill(named: "04-character-sheet", to: dir)
 
         post(.runLibrary)
         try? await Task.sleep(nanoseconds: 1_200_000_000)
-        await capture(named: "05-run-library", to: dir)
+        await captureStill(named: "05-run-library", to: dir)
 
-        post(.runDetail)
-        try? await Task.sleep(nanoseconds: 1_400_000_000)
-        await capture(named: "06-run-detail", to: dir)
+        // —— GIFs (detail-panel crop) ——
+        await captureRunFlowGIF(to: dir)
+        await captureAdvanceFlowGIF(to: dir)
 
         post(.finished)
         fputs("Marketing screenshots complete.\n", stderr)
@@ -86,18 +97,65 @@ enum MarketingScreenshotExporter {
         NSApp.terminate(nil)
     }
 
+    // MARK: - GIF storyboards
+
+    /// Run: open detail → link team → session log → complete objective → set outcome.
     @MainActor
-    private static func post(_ phase: Phase) {
-        NotificationCenter.default.post(name: phaseNotification, object: phase.rawValue)
+    private static func captureRunFlowGIF(to dir: URL) async {
+        let stepCount = 5
+        var frames: [NSImage] = []
+        for step in 0..<stepCount {
+            post(.runGif, step: step)
+            try? await Task.sleep(nanoseconds: step == 0 ? 1_200_000_000 : 900_000_000)
+            if let full = await snapshotLargestWindow(),
+               let cropped = cropDetailPanel(full)
+            {
+                frames.append(downscale(cropped, maxLongEdge: 960) ?? cropped)
+            } else {
+                fputs("  ✗ run GIF step \(step): no frame\n", stderr)
+            }
+        }
+        writeGIF(frames: frames, named: "07-run-mission-flow", to: dir)
+    }
+
+    /// Advance: open planner → add raises → show totals → apply → ranks/karma update.
+    @MainActor
+    private static func captureAdvanceFlowGIF(to dir: URL) async {
+        let stepCount = 5
+        var frames: [NSImage] = []
+        for step in 0..<stepCount {
+            post(.advanceGif, step: step)
+            try? await Task.sleep(nanoseconds: step == 0 ? 1_300_000_000 : 950_000_000)
+            if let full = await snapshotLargestWindow(),
+               let cropped = cropDetailPanel(full)
+            {
+                frames.append(downscale(cropped, maxLongEdge: 960) ?? cropped)
+            } else {
+                fputs("  ✗ advance GIF step \(step): no frame\n", stderr)
+            }
+        }
+        writeGIF(frames: frames, named: "08-advancement-planner", to: dir)
+    }
+
+    // MARK: - Capture helpers
+
+    @MainActor
+    private static func post(_ phase: Phase, step: Int? = nil) {
+        var info: [AnyHashable: Any] = [:]
+        if let step { info["step"] = step }
+        NotificationCenter.default.post(
+            name: phaseNotification,
+            object: phase.rawValue,
+            userInfo: info.isEmpty ? nil : info
+        )
     }
 
     @MainActor
-    private static func capture(named name: String, to directory: URL) async {
-        // Extra layout pass.
+    private static func captureStill(named name: String, to directory: URL) async {
         try? await Task.sleep(nanoseconds: 200_000_000)
         NSApp.windows.forEach { $0.layoutIfNeeded() }
 
-        guard let image = snapshotLargestWindow() else {
+        guard let image = await snapshotLargestWindow() else {
             fputs("  ✗ \(name): no window snapshot\n", stderr)
             return
         }
@@ -132,7 +190,7 @@ enum MarketingScreenshotExporter {
     }
 
     @MainActor
-    private static func snapshotLargestWindow() -> NSImage? {
+    private static func snapshotLargestWindow() async -> NSImage? {
         let candidates = NSApp.windows.filter { window in
             window.isVisible
                 && !window.isMiniaturized
@@ -148,16 +206,15 @@ enum MarketingScreenshotExporter {
 
         window.makeKeyAndOrderFront(nil)
         view.layoutSubtreeIfNeeded()
+        try? await Task.sleep(nanoseconds: 80_000_000)
 
         let bounds = view.bounds
         guard bounds.width > 1, bounds.height > 1 else { return nil }
-
         return snapshotViaLayer(view: view, window: window)
     }
 
     @MainActor
     private static func snapshotViaLayer(view: NSView, window: NSWindow) -> NSImage? {
-        // Prefer AppKit's display cache — correct orientation for SwiftUI hosting views.
         let bounds = view.bounds
         if let rep = view.bitmapImageRepForCachingDisplay(in: bounds) {
             view.cacheDisplay(in: bounds, to: rep)
@@ -166,7 +223,6 @@ enum MarketingScreenshotExporter {
             return image
         }
 
-        // Fallback: layer render with Y-flip into bitmap coordinates.
         view.wantsLayer = true
         guard let layer = view.layer else { return nil }
         let scale = window.backingScaleFactor
@@ -195,7 +251,6 @@ enum MarketingScreenshotExporter {
         }
         NSGraphicsContext.current = ctx
         let cg = ctx.cgContext
-        // Bitmap context origin is bottom-left; flip so layer (top-left) draws upright.
         cg.translateBy(x: 0, y: CGFloat(pixelH))
         cg.scaleBy(x: scale, y: -scale)
         layer.render(in: cg)
@@ -204,5 +259,95 @@ enum MarketingScreenshotExporter {
         let image = NSImage(size: bounds.size)
         image.addRepresentation(rep)
         return image
+    }
+
+    /// Drop sidebar (~22% width) so action in the detail column is obvious.
+    private static func cropDetailPanel(_ image: NSImage) -> NSImage? {
+        let size = image.size
+        guard size.width > 100, size.height > 100 else { return image }
+        let outSize = NSSize(width: size.width * 0.78, height: size.height * 0.96)
+        let out = NSImage(size: outSize)
+        out.lockFocus()
+        let src = NSRect(
+            x: size.width * 0.22,
+            y: 0,
+            width: size.width * 0.78,
+            height: size.height * 0.96
+        )
+        image.draw(
+            in: NSRect(origin: .zero, size: outSize),
+            from: src,
+            operation: .copy,
+            fraction: 1
+        )
+        out.unlockFocus()
+        return out
+    }
+
+    private static func downscale(_ image: NSImage, maxLongEdge: CGFloat) -> NSImage? {
+        let size = image.size
+        let longEdge = max(size.width, size.height)
+        guard longEdge > maxLongEdge else { return image }
+        let scale = maxLongEdge / longEdge
+        let newSize = NSSize(width: size.width * scale, height: size.height * scale)
+        let out = NSImage(size: newSize)
+        out.lockFocus()
+        image.draw(
+            in: NSRect(origin: .zero, size: newSize),
+            from: NSRect(origin: .zero, size: size),
+            operation: .copy,
+            fraction: 1
+        )
+        out.unlockFocus()
+        return out
+    }
+
+    private static func writeGIF(frames: [NSImage], named name: String, to directory: URL) {
+        guard !frames.isEmpty else {
+            fputs("  ✗ \(name).gif: no frames\n", stderr)
+            return
+        }
+        let url = directory.appendingPathComponent("\(name).gif")
+        let count = frames.count
+        guard let dest = CGImageDestinationCreateWithURL(
+            url as CFURL,
+            UTType.gif.identifier as CFString,
+            count,
+            nil
+        ) else {
+            fputs("  ✗ \(name).gif: destination failed\n", stderr)
+            return
+        }
+
+        let fileProps: [CFString: Any] = [
+            kCGImagePropertyGIFDictionary: [
+                kCGImagePropertyGIFLoopCount: 0,
+            ] as [CFString: Any],
+        ]
+        CGImageDestinationSetProperties(dest, fileProps as CFDictionary)
+
+        for (index, frame) in frames.enumerated() {
+            guard let cg = cgImage(from: frame) else { continue }
+            let delay = index == frames.count - 1 ? gifLastFrameDelay : gifFrameDelay
+            let frameProps: [CFString: Any] = [
+                kCGImagePropertyGIFDictionary: [
+                    kCGImagePropertyGIFDelayTime: delay,
+                    kCGImagePropertyGIFUnclampedDelayTime: delay,
+                ] as [CFString: Any],
+            ]
+            CGImageDestinationAddImage(dest, cg, frameProps as CFDictionary)
+        }
+
+        if CGImageDestinationFinalize(dest) {
+            let kb = (try? Data(contentsOf: url).count).map { $0 / 1024 } ?? 0
+            fputs("  ✓ \(name).gif (\(kb) KB, \(frames.count) frames)\n", stderr)
+        } else {
+            fputs("  ✗ \(name).gif: finalize failed\n", stderr)
+        }
+    }
+
+    private static func cgImage(from image: NSImage) -> CGImage? {
+        var rect = CGRect(origin: .zero, size: image.size)
+        return image.cgImage(forProposedRect: &rect, context: nil, hints: nil)
     }
 }

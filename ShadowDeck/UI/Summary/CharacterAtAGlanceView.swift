@@ -57,6 +57,10 @@ struct CharacterAtAGlanceView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.characterSheetShowAdvanceTab)) { _ in
             sheetTab = .advance
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingReloadCharacter)) { _ in
+            reload()
+            sheetTab = .advance
+        }
         .fileImporter(
             isPresented: $isPortraitImporterPresented,
             allowedContentTypes: [.image, .png, .jpeg, .gif, .webP, .heic, .tiff],

@@ -46,6 +46,9 @@ struct RunDetailView: View {
         }
         .onAppear { reload() }
         .onChange(of: runID) { _, _ in reload() }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingReloadRun)) { _ in
+            reload()
+        }
         .onDisappear {
             guard session.allowAutoSave else { return }
             commitRichTextDrafts(force: true)
