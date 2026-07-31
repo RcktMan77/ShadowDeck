@@ -51,8 +51,8 @@ set +e
 PID=$!
 set -e
 
-# Wait up to ~90s for stills + GIF storyboards.
-for i in $(seq 1 180); do
+# Wait up to ~3 min for stills + denser GIF storyboards / crossfades.
+for i in $(seq 1 360); do
   if ! kill -0 "$PID" 2>/dev/null; then
     break
   fi
@@ -112,6 +112,48 @@ for base in 02-library 03-generation-role 04-character-sheet; do
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
   fi
 done
+
+# Quantize/resize GIFs for GitHub-friendly sizes (crossfades make raw ImageIO huge).
+if compgen -G "$OUT"/0*.gif > /dev/null 2>&1; then
+  VENV="${TMPDIR:-/tmp}/shadowdeck-gif-venv"
+  if [[ ! -x "$VENV/bin/python" ]]; then
+    python3 -m venv "$VENV"
+    "$VENV/bin/pip" install -q Pillow
+  fi
+  "$VENV/bin/python" - "$OUT" <<'PY'
+from PIL import Image
+import glob, os, sys
+root = sys.argv[1]
+for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
+    im = Image.open(path)
+    frames, durations = [], []
+    try:
+        while True:
+            fr = im.convert("RGBA")
+            w, h = fr.size
+            long_edge = max(w, h)
+            if long_edge > 640:
+                scale = 640 / long_edge
+                fr = fr.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.Resampling.LANCZOS)
+            frames.append(fr.convert("P", palette=Image.ADAPTIVE, colors=96))
+            durations.append(max(int(im.info.get("duration", 220)), 80))
+            im.seek(im.tell() + 1)
+    except EOFError:
+        pass
+    if not frames:
+        continue
+    frames[0].save(
+        path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=durations,
+        loop=0,
+        optimize=True,
+        disposal=2,
+    )
+    print(f"  optimized {os.path.basename(path)} → {os.path.getsize(path)//1024} KB ({len(frames)} frames)")
+PY
+fi
 
 echo "Done."
 ls -la "$OUT"/*.jpg "$OUT"/*.gif "$OUT/thumbs"/*.jpg 2>/dev/null || true
