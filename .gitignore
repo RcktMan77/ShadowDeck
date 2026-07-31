@@ -71,3 +71,7 @@ coverage/
 
 # App sandbox containers (local testing)
 Containers/
+
+# Local-only sample portrait experiments (keep static portrait tracked)
+SampleAssets/ghostwire_portrait_animated.gif
+SampleAssets/ghostwire_portrait_animated_still.jpg
