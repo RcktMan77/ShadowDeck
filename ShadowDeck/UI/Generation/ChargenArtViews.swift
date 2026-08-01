@@ -10,19 +10,31 @@ import SwiftUI
 import AppKit
 
 enum ChargenArtLoader {
-    static func nsImage(named name: String) -> NSImage? {
+    /// Resolve a bundled ChargenArt JPEG URL (app bundle or dev tree).
+    static func resourceURL(named name: String) -> URL? {
         let bundle = Bundle.main
         if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/ChargenArt")
             ?? bundle.url(forResource: name, withExtension: "jpg")
         {
-            return NSImage(contentsOf: url)
+            return url
         }
         let dev = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Resources/ChargenArt/\(name).jpg")
-        return NSImage(contentsOf: dev)
+        return FileManager.default.fileExists(atPath: dev.path) ? dev : nil
+    }
+
+    static func nsImage(named name: String) -> NSImage? {
+        guard let url = resourceURL(named: name) else { return nil }
+        return NSImage(contentsOf: url)
+    }
+
+    /// Raw JPEG bytes for seeding avatars / thumbnails.
+    static func jpegData(named name: String) -> Data? {
+        guard let url = resourceURL(named: name) else { return nil }
+        return try? Data(contentsOf: url)
     }
 
     static func archetypeImageName(_ archetype: RunnerArchetype) -> String {
@@ -31,6 +43,19 @@ enum ChargenArtLoader {
 
     static func metatypeImageName(_ metatype: MetatypeID) -> String {
         "metatype_\(metatype.rawValue)"
+    }
+
+    /// Default library/sheet portrait when the character has no custom avatar.
+    static func metatypeNSImage(for metatype: MetatypeID) -> NSImage? {
+        nsImage(named: metatypeImageName(metatype))
+    }
+
+    /// Prefer role art for samples; fall back to metatype.
+    static func preferredPortraitData(archetype: RunnerArchetype?, metatype: MetatypeID) -> Data? {
+        if let archetype, let data = jpegData(named: archetypeImageName(archetype)) {
+            return data
+        }
+        return jpegData(named: metatypeImageName(metatype))
     }
 }
 
