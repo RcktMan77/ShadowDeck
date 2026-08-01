@@ -8,6 +8,8 @@ import SwiftUI
 struct SkillsManagementView: View {
     @Binding var character: Character
     var onPersist: () -> Void
+    /// One-click dice roller launch (pool from derived stats).
+    var onRollSkill: ((SkillRating) -> Void)? = nil
 
     @State private var showCatalog = false
     @State private var isCustom = false
@@ -73,7 +75,8 @@ struct SkillsManagementView: View {
     }
 
     private func skillRow(_ skill: SkillRating) -> some View {
-        HStack(spacing: 12) {
+        let pool = DicePoolResolver.skillPool(character: character, skill: skill).pool
+        return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(skill.displayName)
                     .font(.body.weight(.medium))
@@ -84,6 +87,19 @@ struct SkillsManagementView: View {
                 }
             }
             Spacer()
+            Text("pool \(pool)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 48, alignment: .trailing)
+            if let onRollSkill {
+                Button {
+                    onRollSkill(skill)
+                } label: {
+                    Image(systemName: "dice.fill")
+                }
+                .buttonStyle(.borderless)
+                .help("Roll \(skill.displayName) (pool \(pool))")
+            }
             StepperControl(value: skill.rating, range: 0...13) { newRating in
                 updateSkill(id: skill.id) { $0.rating = newRating }
             }
