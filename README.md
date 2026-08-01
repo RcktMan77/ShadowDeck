@@ -44,20 +44,30 @@ ShadowDeck is an unofficial fan project. Build characters with a guided wizard, 
   </tr>
 </table>
 
-<!-- Feature GIFs: poster + play affordance; click opens the full looping GIF -->
+<!-- Feature GIFs: GitHub has no true in-place play control; details/summary expands the looping GIF on the page. -->
 <table align="center" width="900">
   <tr>
     <td width="50%" align="center" valign="top">
-      <a href="Docs/Screenshots/07-run-mission-flow.gif" title="Click to play">
-        <img src="Docs/Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow — click to play" width="420" />
-      </a><br />
-      <sub><strong>Run / mission flow</strong> — create a job, brief the team, log the session, complete objectives, set the outcome, and return to the Run Library. <em>Click to play.</em></sub>
+      <details>
+        <summary>
+          <img src="Docs/Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow — expand to play" width="420" /><br />
+          <sub><strong>▶ Run / mission flow</strong> — expand to play · create a job, brief the team, log the session, complete objectives, set the outcome, return to the Run Library</sub>
+        </summary>
+        <p align="center">
+          <img src="Docs/Screenshots/07-run-mission-flow.gif" alt="Run mission flow animation" width="420" />
+        </p>
+      </details>
     </td>
     <td width="50%" align="center" valign="top">
-      <a href="Docs/Screenshots/08-advancement-planner.gif" title="Click to play">
-        <img src="Docs/Screenshots/thumbs/08-advancement-planner-poster.jpg" alt="Advancement planner flow — click to play" width="420" />
-      </a><br />
-      <sub><strong>Advancement Planner</strong> — plan skill and attribute raises with edition karma costs, apply the plan, and see ranks and available karma update. <em>Click to play.</em></sub>
+      <details>
+        <summary>
+          <img src="Docs/Screenshots/thumbs/08-advancement-planner-poster.jpg" alt="Advancement planner — expand to play" width="420" /><br />
+          <sub><strong>▶ Advancement Planner</strong> — expand to play · plan skill and attribute raises, apply karma, watch ranks update</sub>
+        </summary>
+        <p align="center">
+          <img src="Docs/Screenshots/08-advancement-planner.gif" alt="Advancement planner animation" width="420" />
+        </p>
+      </details>
     </td>
   </tr>
 </table>
