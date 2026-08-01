@@ -628,6 +628,32 @@ private final class NotesNSTextView: NSTextView {
             return super.performKeyEquivalent(with: event)
         }
     }
+
+    /// Keep the insertion point / selection in view when wrapping or typing past the clip.
+    override func didChangeText() {
+        super.didChangeText()
+        scrollCaretIntoView()
+    }
+
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if !stillSelecting {
+            scrollCaretIntoView()
+        }
+    }
+
+    func scrollCaretIntoView() {
+        let range = selectedRange()
+        // Immediate scroll, then once after layout so soft-wrap line breaks are accounted for.
+        scrollRangeToVisible(range)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.scrollRangeToVisible(self.selectedRange())
+            if let scrollView = self.enclosingScrollView {
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+            }
+        }
+    }
 }
 
 private struct NotesTextView: NSViewRepresentable {
@@ -740,6 +766,7 @@ private struct NotesTextView: NSViewRepresentable {
             Task { @MainActor in
                 self.pushText()
                 self.bridge?.refreshFormatState()
+                (self.textView as? NotesNSTextView)?.scrollCaretIntoView()
                 self.saveWorkItem?.cancel()
                 let work = DispatchWorkItem { [weak self] in
                     Task { @MainActor in self?.parent.onCommit?() }
@@ -752,6 +779,7 @@ private struct NotesTextView: NSViewRepresentable {
         nonisolated func textViewDidChangeSelection(_ notification: Notification) {
             Task { @MainActor in
                 self.bridge?.refreshFormatState()
+                (self.textView as? NotesNSTextView)?.scrollCaretIntoView()
             }
         }
 
