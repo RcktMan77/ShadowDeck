@@ -41,6 +41,8 @@ enum MarketingScreenshotExporter {
         case library
         case generationRole
         case characterSheet
+        /// Skills tab + dice inspector after a skill roll (Edge options visible).
+        case diceRoller
         case runLibrary
         /// Storyboard: open/update sample run detail (userInfo step 0…n).
         case runGif
@@ -98,6 +100,11 @@ enum MarketingScreenshotExporter {
         post(.characterSheet)
         try? await Task.sleep(nanoseconds: 1_400_000_000)
         await captureStill(named: "04-character-sheet", to: dir)
+
+        post(.diceRoller)
+        // Skills tab + open roller + perform roll + paint Edge chrome.
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        await captureStill(named: "05-dice-roller", to: dir)
 
         // —— GIFs ——
         await captureRunFlowGIF(to: dir)

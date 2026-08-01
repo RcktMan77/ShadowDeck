@@ -28,6 +28,10 @@ public enum AppCommand {
     public static let marketingReloadCharacter = Notification.Name("com.shadowdeck.marketing.reloadCharacter")
     /// Marketing GIF focus: `userInfo` keys `anchor` (scroll id) and optional `highlight` (control id).
     public static let marketingFocus = Notification.Name("com.shadowdeck.marketing.focus")
+    /// Open the character-sheet dice roller (⌘D when a sheet is focused).
+    public static let openDiceRoller = Notification.Name("com.shadowdeck.command.openDiceRoller")
+    /// Marketing: open Skills + dice inspector with a completed skill roll (Edge options visible).
+    public static let marketingShowDiceRoller = Notification.Name("com.shadowdeck.marketing.showDiceRoller")
 }
 
 import UniformTypeIdentifiers

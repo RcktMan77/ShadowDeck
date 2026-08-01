@@ -685,6 +685,15 @@ struct ContentView: View {
             refresh()
             // Marquee “play sheet” stays on Summary (default tab).
             selectedCharacterID = SampleCharacters.sr5ID
+        case .diceRoller:
+            marketingOpenRunID = nil
+            selection = .characters
+            refresh()
+            selectedCharacterID = SampleCharacters.sr5ID
+            // Let the sheet mount, then Skills + roller with a completed skill roll.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                NotificationCenter.default.post(name: AppCommand.marketingShowDiceRoller, object: nil)
+            }
         case .runLibrary:
             // Kept for phase completeness; no longer used as a still marquee.
             selectedCharacterID = nil
