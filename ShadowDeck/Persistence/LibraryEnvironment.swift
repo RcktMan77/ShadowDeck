@@ -64,13 +64,13 @@ public final class LibraryEnvironment {
         }
     }
 
-    /// Saves sample runners with bundled role/metatype art as avatars (gallery + list thumbs).
+    /// Saves sample runners with bundled sample portraits (gender-correct art) as avatars.
     public func seedSampleCharactersWithPortraits() throws {
         for sample in SampleCharacters.makeAll() {
             var character = sample
-            let archetype = SampleCharacters.portraitArchetype(for: character.id)
+            let resource = SampleCharacters.portraitResourceName(for: character.id)
             if let data = ChargenArtLoader.preferredPortraitData(
-                archetype: archetype,
+                resourceName: resource,
                 metatype: character.metatype
             ) {
                 character.avatar.inlineData = data
