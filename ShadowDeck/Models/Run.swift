@@ -199,6 +199,11 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
     public var outcomeSummary: String
     public var gmNotes: String
 
+    /// When non-nil, suggested awards have been committed to linked characters (double-apply guard).
+    public var awardsAppliedAt: Date?
+    /// Optional free-text note captured when awards were applied.
+    public var awardsAppliedNote: String?
+
     public var createdAt: Date
     public var modifiedAt: Date
 
@@ -227,6 +232,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         sessionLog: [RunLogEntry] = [],
         outcomeSummary: String = "",
         gmNotes: String = "",
+        awardsAppliedAt: Date? = nil,
+        awardsAppliedNote: String? = nil,
         createdAt: Date = Date(),
         modifiedAt: Date = Date()
     ) {
@@ -252,11 +259,13 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.sessionLog = sessionLog
         self.outcomeSummary = outcomeSummary
         self.gmNotes = gmNotes
+        self.awardsAppliedAt = awardsAppliedAt
+        self.awardsAppliedNote = awardsAppliedNote
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
     }
 
-    // MARK: Codable (legacy payloads may omit `edition`)
+    // MARK: Codable (legacy payloads may omit `edition` / awards fields)
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, title, tags, status, edition
@@ -265,6 +274,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         case expectedPayout, actualPayout, heatDelta
         case participantCharacterIDs, campaignID
         case sessionLog, outcomeSummary, gmNotes
+        case awardsAppliedAt, awardsAppliedNote
         case createdAt, modifiedAt
     }
 
@@ -292,6 +302,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         sessionLog = try c.decodeIfPresent([RunLogEntry].self, forKey: .sessionLog) ?? []
         outcomeSummary = try c.decodeIfPresent(String.self, forKey: .outcomeSummary) ?? ""
         gmNotes = try c.decodeIfPresent(String.self, forKey: .gmNotes) ?? ""
+        awardsAppliedAt = try c.decodeIfPresent(Date.self, forKey: .awardsAppliedAt)
+        awardsAppliedNote = try c.decodeIfPresent(String.self, forKey: .awardsAppliedNote)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? Date()
     }
@@ -320,6 +332,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         try c.encode(sessionLog, forKey: .sessionLog)
         try c.encode(outcomeSummary, forKey: .outcomeSummary)
         try c.encode(gmNotes, forKey: .gmNotes)
+        try c.encodeIfPresent(awardsAppliedAt, forKey: .awardsAppliedAt)
+        try c.encodeIfPresent(awardsAppliedNote, forKey: .awardsAppliedNote)
         try c.encode(createdAt, forKey: .createdAt)
         try c.encode(modifiedAt, forKey: .modifiedAt)
     }

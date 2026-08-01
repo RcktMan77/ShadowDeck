@@ -28,6 +28,8 @@ struct CharacterAtAGlanceView: View {
     @State private var confirmDeletePresented = false
     @State private var showHouseRulesBrowser = false
     @State private var showExportOptions = false
+    /// Session-only stack of Summary-sheet manual karma awards (amounts). Pop to undo last `+`.
+    @State private var manualKarmaAwardStack: [Int] = []
     @StateObject private var diceRoller = DiceRollerController()
 
     private var rules: any EditionRules {
@@ -54,6 +56,7 @@ struct CharacterAtAGlanceView: View {
         .onChange(of: characterID) { _, _ in
             sheetTab = .summary
             diceRoller.dismiss()
+            manualKarmaAwardStack = []
             reload()
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.characterSheetShowAdvanceTab)) { _ in
@@ -777,13 +780,15 @@ struct CharacterAtAGlanceView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
                 vital("Edge", "\(c.attributes.edge)", "bolt.fill")
                 // Available = unspent; Total = career earned (including already spent).
-                // + awards (total & available up); − spends available only.
+                // + awards (total & available up); undo reverts the last manual award only.
                 karmaAwardVital(
                     title: "Karma Available",
                     value: c.karmaAvailable,
                     systemImage: "sparkles",
+                    canUndo: !manualKarmaAwardStack.isEmpty,
                     onAward: { advanceKarma(by: 1) },
-                    onAwardFive: { advanceKarma(by: 5) }
+                    onAwardFive: { advanceKarma(by: 5) },
+                    onUndo: { undoLastManualKarmaAward() }
                 )
                 vital("Karma Total", "\(c.karmaTotal)", "chart.line.uptrend.xyaxis")
                 vital("Nuyen", "¥\(formatInt(c.nuyen))", "yensign.circle.fill")
@@ -812,7 +817,7 @@ struct CharacterAtAGlanceView: View {
                     vital("Spells", "\(c.spells.count)", "wand.and.stars")
                 }
             }
-            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Plan spends on the Advance tab.")
+            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Undo reverts the last manual award. Plan spends on the Advance tab.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -972,8 +977,10 @@ struct CharacterAtAGlanceView: View {
         title: String,
         value: Int,
         systemImage: String,
+        canUndo: Bool,
         onAward: @escaping () -> Void,
-        onAwardFive: @escaping () -> Void
+        onAwardFive: @escaping () -> Void,
+        onUndo: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
@@ -997,7 +1004,24 @@ struct CharacterAtAGlanceView: View {
                     .contextMenu {
                         Button("Award 1 Karma") { onAward() }
                         Button("Award 5 Karma") { onAwardFive() }
+                        if canUndo {
+                            Divider()
+                            Button("Undo Last Award") { onUndo() }
+                        }
                     }
+
+                    Button(action: onUndo) {
+                        Image(systemName: "arrow.uturn.backward.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(canUndo ? .secondary : Color.secondary.opacity(0.35))
+                    .disabled(!canUndo)
+                    .help(
+                        canUndo
+                            ? "Undo last manual karma award (available + total)."
+                            : "No manual karma award to undo this session."
+                    )
+                    .accessibilityLabel("Undo last karma award")
                 }
             }
             Spacer(minLength: 0)
@@ -1516,6 +1540,21 @@ struct CharacterAtAGlanceView: View {
             c.karmaTotal += amount
             c.karmaAvailable += amount
         }, status: "Awarded \(amount) Karma.")
+        manualKarmaAwardStack.append(amount)
+    }
+
+    /// Reverts the most recent Summary-sheet manual award (both available and total).
+    /// Session-only — not a full karma history; Plan spends are not on this stack.
+    private func undoLastManualKarmaAward() {
+        guard let amount = manualKarmaAwardStack.popLast(), amount > 0 else { return }
+        updateCharacter({ c in
+            c.karmaTotal = max(0, c.karmaTotal - amount)
+            c.karmaAvailable = max(0, c.karmaAvailable - amount)
+            // Keep available from drifting above total if other edits intervened.
+            if c.karmaAvailable > c.karmaTotal {
+                c.karmaAvailable = c.karmaTotal
+            }
+        }, status: "Undid last karma award (−\(amount)).")
     }
 
     private func deleteCharacter() {
