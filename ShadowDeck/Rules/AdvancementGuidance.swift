@@ -39,7 +39,7 @@ public enum AdvancementGuidance {
             return skillImpact(character: character, skill: skill, rules: rules)
         case .newSkill:
             return newSkillImpact(preview: preview, character: character, rules: rules)
-        case .other:
+        case .other, .runAward:
             return nil
         }
     }
