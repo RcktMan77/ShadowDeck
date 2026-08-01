@@ -61,6 +61,7 @@ public final class RunRecord {
             id: id,
             title: title,
             status: status,
+            edition: .sr5, // payload may refine when fully decoded
             tags: [], // tags live in payload; list can refresh from fetch when needed
             plannedDate: plannedDate,
             startedAt: nil,
@@ -76,6 +77,7 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
     public var id: UUID
     public var title: String
     public var status: RunStatus
+    public var edition: Edition
     public var tags: [String]
     public var plannedDate: Date?
     public var startedAt: Date?
@@ -89,6 +91,7 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
         id: UUID,
         title: String,
         status: RunStatus,
+        edition: Edition = .sr5,
         tags: [String] = [],
         plannedDate: Date?,
         startedAt: Date? = nil,
@@ -99,6 +102,7 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
         self.id = id
         self.title = title
         self.status = status
+        self.edition = edition
         self.tags = tags
         self.plannedDate = plannedDate
         self.startedAt = startedAt
