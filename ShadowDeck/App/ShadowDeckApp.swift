@@ -111,6 +111,25 @@ struct ShadowDeckApp: App {
                 }
                 .keyboardShortcut("o", modifiers: [.command])
             }
+
+            // Standard format shortcuts. Target the focused NSTextView (NotesEditor, etc.).
+            // NotesNSTextView.performKeyEquivalent is a fallback if these don’t reach the field.
+            CommandMenu("Format") {
+                Button("Bold") {
+                    NotesTextFormatting.applyBoldToFocusedTextView()
+                }
+                .keyboardShortcut("b", modifiers: [.command])
+
+                Button("Italic") {
+                    NotesTextFormatting.applyItalicToFocusedTextView()
+                }
+                .keyboardShortcut("i", modifiers: [.command])
+
+                Button("Underline") {
+                    NotesTextFormatting.applyUnderlineToFocusedTextView()
+                }
+                .keyboardShortcut("u", modifiers: [.command])
+            }
         }
 
         Settings {
