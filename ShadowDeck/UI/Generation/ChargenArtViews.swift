@@ -50,8 +50,15 @@ enum ChargenArtLoader {
         nsImage(named: metatypeImageName(metatype))
     }
 
-    /// Prefer role art for samples; fall back to metatype.
-    static func preferredPortraitData(archetype: RunnerArchetype?, metatype: MetatypeID) -> Data? {
+    /// Prefer an explicit sample resource, then role art, then metatype.
+    static func preferredPortraitData(
+        resourceName: String? = nil,
+        archetype: RunnerArchetype? = nil,
+        metatype: MetatypeID
+    ) -> Data? {
+        if let resourceName, let data = jpegData(named: resourceName) {
+            return data
+        }
         if let archetype, let data = jpegData(named: archetypeImageName(archetype)) {
             return data
         }
