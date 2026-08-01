@@ -47,9 +47,7 @@ public final class LibraryEnvironment {
     /// Used for README marquee captures so personal disk libraries never appear.
     public static func marketingCapture() throws -> LibraryEnvironment {
         let env = try ephemeral()
-        for sample in SampleCharacters.makeAll() {
-            try env.library.save(sample)
-        }
+        try env.seedSampleCharactersWithPortraits()
         env.refreshRunCount()
         return env
     }
@@ -58,13 +56,30 @@ public final class LibraryEnvironment {
         do {
             let env = try ephemeral()
             if seedSamples {
-                for sample in SampleCharacters.makeAll() {
-                    try env.library.save(sample)
-                }
+                try env.seedSampleCharactersWithPortraits()
             }
             return env
         } catch {
             fatalError("Preview library failed: \(error)")
+        }
+    }
+
+    /// Saves sample runners with bundled role/metatype art as avatars (gallery + list thumbs).
+    public func seedSampleCharactersWithPortraits() throws {
+        for sample in SampleCharacters.makeAll() {
+            var character = sample
+            let archetype = SampleCharacters.portraitArchetype(for: character.id)
+            if let data = ChargenArtLoader.preferredPortraitData(
+                archetype: archetype,
+                metatype: character.metatype
+            ) {
+                character.avatar.inlineData = data
+                character.avatar.mimeType = "image/jpeg"
+                character.avatar.isAnimated = false
+                try library.save(character, avatarData: data)
+            } else {
+                try library.save(character)
+            }
         }
     }
 

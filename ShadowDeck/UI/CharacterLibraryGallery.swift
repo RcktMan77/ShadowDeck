@@ -290,6 +290,13 @@ private struct CharacterLibraryCard: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
+            } else if let metatype = summary.metatype,
+                      let image = ChargenArtLoader.metatypeNSImage(for: metatype)
+            {
+                // Default: painted metatype art when no custom portrait is set.
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
             } else {
                 ZStack {
                     LinearGradient(

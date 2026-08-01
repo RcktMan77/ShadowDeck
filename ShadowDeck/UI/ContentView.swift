@@ -554,6 +554,12 @@ struct ContentView: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
+            } else if let metatype = summary.metatype,
+                      let image = ChargenArtLoader.metatypeNSImage(for: metatype)
+            {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
             } else {
                 ZStack {
                     Color.secondary.opacity(0.12)
@@ -647,10 +653,8 @@ struct ContentView: View {
     private func seedSamplesIfEmpty() {
         do {
             if try libraryEnvironment.library.count() == 0 {
-                for sample in SampleCharacters.makeAll() {
-                    try libraryEnvironment.library.save(sample)
-                }
-                statusMessage = "Seeded sample SR4 / SR5 / SR6 characters."
+                try libraryEnvironment.seedSampleCharactersWithPortraits()
+                statusMessage = "Seeded sample SR4 / SR5 / SR6 characters with role portraits."
             } else {
                 statusMessage = "Library already has characters. Use New Character or Import."
             }
