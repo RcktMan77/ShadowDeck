@@ -36,6 +36,7 @@ public enum RunMapper {
             id: run.id,
             title: run.title,
             status: run.status,
+            edition: run.edition,
             tags: run.tags,
             plannedDate: run.plannedDate,
             startedAt: run.startedAt,

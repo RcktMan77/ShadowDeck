@@ -169,6 +169,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
     public var title: String
     public var tags: [String]
     public var status: RunStatus
+    /// Rulebook edition for this job; team links are restricted to matching characters.
+    public var edition: Edition
 
     public var plannedDate: Date?
     public var startedAt: Date?
@@ -208,6 +210,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         title: String = "",
         tags: [String] = [],
         status: RunStatus = .planning,
+        edition: Edition = .sr5,
         plannedDate: Date? = nil,
         startedAt: Date? = nil,
         completedAt: Date? = nil,
@@ -232,6 +235,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.title = title
         self.tags = tags
         self.status = status
+        self.edition = edition
         self.plannedDate = plannedDate
         self.startedAt = startedAt
         self.completedAt = completedAt
@@ -250,6 +254,74 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.gmNotes = gmNotes
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
+    }
+
+    // MARK: Codable (legacy payloads may omit `edition`)
+
+    private enum CodingKeys: String, CodingKey {
+        case id, schemaVersion, title, tags, status, edition
+        case plannedDate, startedAt, completedAt
+        case client, location, objectives, opposition, complicationsNotes
+        case expectedPayout, actualPayout, heatDelta
+        case participantCharacterIDs, campaignID
+        case sessionLog, outcomeSummary, gmNotes
+        case createdAt, modifiedAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Run.currentSchemaVersion
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
+        status = try c.decodeIfPresent(RunStatus.self, forKey: .status) ?? .planning
+        edition = try c.decodeIfPresent(Edition.self, forKey: .edition) ?? .sr5
+        plannedDate = try c.decodeIfPresent(Date.self, forKey: .plannedDate)
+        startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt)
+        completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
+        client = try c.decodeIfPresent(String.self, forKey: .client) ?? ""
+        location = try c.decodeIfPresent(String.self, forKey: .location) ?? ""
+        objectives = try c.decodeIfPresent([RunObjective].self, forKey: .objectives) ?? []
+        opposition = try c.decodeIfPresent(String.self, forKey: .opposition) ?? ""
+        complicationsNotes = try c.decodeIfPresent(String.self, forKey: .complicationsNotes) ?? ""
+        expectedPayout = try c.decodeIfPresent(RunPayout.self, forKey: .expectedPayout) ?? .zero
+        actualPayout = try c.decodeIfPresent(RunPayout.self, forKey: .actualPayout)
+        heatDelta = try c.decodeIfPresent(Int.self, forKey: .heatDelta) ?? 0
+        participantCharacterIDs = try c.decodeIfPresent([UUID].self, forKey: .participantCharacterIDs) ?? []
+        campaignID = try c.decodeIfPresent(UUID.self, forKey: .campaignID)
+        sessionLog = try c.decodeIfPresent([RunLogEntry].self, forKey: .sessionLog) ?? []
+        outcomeSummary = try c.decodeIfPresent(String.self, forKey: .outcomeSummary) ?? ""
+        gmNotes = try c.decodeIfPresent(String.self, forKey: .gmNotes) ?? ""
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? Date()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(schemaVersion, forKey: .schemaVersion)
+        try c.encode(title, forKey: .title)
+        try c.encode(tags, forKey: .tags)
+        try c.encode(status, forKey: .status)
+        try c.encode(edition, forKey: .edition)
+        try c.encodeIfPresent(plannedDate, forKey: .plannedDate)
+        try c.encodeIfPresent(startedAt, forKey: .startedAt)
+        try c.encodeIfPresent(completedAt, forKey: .completedAt)
+        try c.encode(client, forKey: .client)
+        try c.encode(location, forKey: .location)
+        try c.encode(objectives, forKey: .objectives)
+        try c.encode(opposition, forKey: .opposition)
+        try c.encode(complicationsNotes, forKey: .complicationsNotes)
+        try c.encode(expectedPayout, forKey: .expectedPayout)
+        try c.encodeIfPresent(actualPayout, forKey: .actualPayout)
+        try c.encode(heatDelta, forKey: .heatDelta)
+        try c.encode(participantCharacterIDs, forKey: .participantCharacterIDs)
+        try c.encodeIfPresent(campaignID, forKey: .campaignID)
+        try c.encode(sessionLog, forKey: .sessionLog)
+        try c.encode(outcomeSummary, forKey: .outcomeSummary)
+        try c.encode(gmNotes, forKey: .gmNotes)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(modifiedAt, forKey: .modifiedAt)
     }
 
     public mutating func touch() {
@@ -360,7 +432,21 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
 
 public extension Run {
     /// New planning run with a placeholder title the GM should replace.
-    static func makeDraft(title: String = "New Run") -> Run {
-        Run(title: title, status: .planning)
+    static func makeDraft(title: String = "New Run", edition: Edition = .sr5) -> Run {
+        Run(title: title, status: .planning, edition: edition)
+    }
+
+    /// Whether a library character may join this run’s team (edition match).
+    func acceptsParticipant(edition characterEdition: Edition?) -> Bool {
+        guard let characterEdition else { return false }
+        return characterEdition == edition
+    }
+
+    /// Drop linked runners that no longer match `edition` (e.g. after ruleset change).
+    mutating func pruneIneligibleParticipants(characterEditions: [UUID: Edition]) {
+        participantCharacterIDs.removeAll { id in
+            guard let ed = characterEditions[id] else { return false }
+            return ed != edition
+        }
     }
 }
