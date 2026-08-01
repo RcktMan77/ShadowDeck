@@ -17,12 +17,13 @@ public enum SampleCharacters {
         [sr4StreetSamurai(), sr5CombatMage(), sr6FaceHacker()]
     }
 
-    /// ChargenArt role key for a sample (used when seeding library portraits).
-    public static func portraitArchetype(for characterID: UUID) -> RunnerArchetype? {
+    /// Bundled ChargenArt resource name (no extension) for a sample portrait.
+    /// Gender-correct art for deterministic sample runners; falls back to metatype art if missing.
+    public static func portraitResourceName(for characterID: UUID) -> String? {
         switch characterID {
-        case sr4ID: return .streetSamurai
-        case sr5ID: return .combatMage
-        case sr6ID: return .face
+        case sr4ID: return "sample_marcus_iron"   // male street samurai
+        case sr5ID: return "sample_elena_hex"     // female elf combat mage
+        case sr6ID: return "sample_jordan_signal" // male face / hacker
         default: return nil
         }
     }
