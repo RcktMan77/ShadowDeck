@@ -9,29 +9,69 @@
 import AppKit
 import SwiftUI
 
-/// Shared handle so the toolbar can talk to the NSTextView.
+/// Shared formatting helpers for toolbar, Format menu, and ⌘B / ⌘I / ⌘U key equivalents.
 @MainActor
-final class NotesTextBridge: ObservableObject {
-    weak var textView: NSTextView?
-
-    func focus() {
-        guard let textView, let window = textView.window else { return }
-        window.makeFirstResponder(textView)
+enum NotesTextFormatting {
+    /// Walk the responder chain for the key window’s focused text view.
+    static func focusedTextView() -> NSTextView? {
+        var responder: NSResponder? = NSApp.keyWindow?.firstResponder
+        while let current = responder {
+            if let textView = current as? NSTextView, textView.isEditable, textView.isRichText {
+                return textView
+            }
+            responder = current.nextResponder
+        }
+        return nil
     }
 
-    func bold() {
-        focus()
-        toggleFontTrait(.boldFontMask)
+    static func applyBoldToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleFontTrait(.boldFontMask, on: textView)
     }
 
-    func italic() {
-        focus()
-        toggleFontTrait(.italicFontMask)
+    static func applyItalicToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleFontTrait(.italicFontMask, on: textView)
     }
 
-    func underline() {
-        focus()
-        guard let textView else { return }
+    static func applyUnderlineToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleUnderline(on: textView)
+    }
+
+    static func toggleFontTrait(_ trait: NSFontTraitMask, on textView: NSTextView) {
+        let manager = NSFontManager.shared
+        let range = textView.selectedRange()
+
+        if range.length == 0 {
+            var attrs = textView.typingAttributes
+            let font = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            if manager.traits(of: font).contains(trait) {
+                attrs[.font] = manager.convert(font, toNotHaveTrait: trait)
+            } else {
+                attrs[.font] = manager.convert(font, toHaveTrait: trait)
+            }
+            textView.typingAttributes = attrs
+            return
+        }
+
+        guard let storage = textView.textStorage else { return }
+        storage.beginEditing()
+        storage.enumerateAttribute(.font, in: range) { value, subrange, _ in
+            let font = (value as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            let next: NSFont
+            if manager.traits(of: font).contains(trait) {
+                next = manager.convert(font, toNotHaveTrait: trait)
+            } else {
+                next = manager.convert(font, toHaveTrait: trait)
+            }
+            storage.addAttribute(.font, value: next, range: subrange)
+        }
+        storage.endEditing()
+        textView.didChangeText()
+    }
+
+    static func toggleUnderline(on textView: NSTextView) {
         let range = textView.selectedRange()
         if range.length == 0 {
             var attrs = textView.typingAttributes
@@ -50,6 +90,35 @@ final class NotesTextBridge: ObservableObject {
         storage.addAttribute(.underlineStyle, value: newStyle, range: range)
         storage.endEditing()
         textView.didChangeText()
+    }
+}
+
+/// Shared handle so the toolbar can talk to the NSTextView.
+@MainActor
+final class NotesTextBridge: ObservableObject {
+    weak var textView: NSTextView?
+
+    func focus() {
+        guard let textView, let window = textView.window else { return }
+        window.makeFirstResponder(textView)
+    }
+
+    func bold() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleFontTrait(.boldFontMask, on: textView)
+    }
+
+    func italic() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleFontTrait(.italicFontMask, on: textView)
+    }
+
+    func underline() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleUnderline(on: textView)
     }
 
     func showFonts() {
@@ -285,39 +354,6 @@ final class NotesTextBridge: ObservableObject {
         let endPara = ns.paragraphRange(for: NSRange(location: max(min(end - 1, ns.length - 1), 0), length: 0))
         return NSRange(location: startPara.location, length: NSMaxRange(endPara) - startPara.location)
     }
-
-    private func toggleFontTrait(_ trait: NSFontTraitMask) {
-        guard let textView else { return }
-        let manager = NSFontManager.shared
-        let range = textView.selectedRange()
-
-        if range.length == 0 {
-            var attrs = textView.typingAttributes
-            let font = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-            if manager.traits(of: font).contains(trait) {
-                attrs[.font] = manager.convert(font, toNotHaveTrait: trait)
-            } else {
-                attrs[.font] = manager.convert(font, toHaveTrait: trait)
-            }
-            textView.typingAttributes = attrs
-            return
-        }
-
-        guard let storage = textView.textStorage else { return }
-        storage.beginEditing()
-        storage.enumerateAttribute(.font, in: range) { value, subrange, _ in
-            let font = (value as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-            let next: NSFont
-            if manager.traits(of: font).contains(trait) {
-                next = manager.convert(font, toNotHaveTrait: trait)
-            } else {
-                next = manager.convert(font, toHaveTrait: trait)
-            }
-            storage.addAttribute(.font, value: next, range: subrange)
-        }
-        storage.endEditing()
-        textView.didChangeText()
-    }
 }
 
 private extension NSRange {
@@ -356,6 +392,8 @@ struct NotesEditor: View {
 
     private var formatToolbar: some View {
         HStack(spacing: 4) {
+            // Shortcuts live on Format menu + NotesNSTextView (not toolbar buttons),
+            // so they work while the text field is first responder.
             formatButton("bold", help: "Bold (⌘B)", action: bridge.bold)
             formatButton("italic", help: "Italic (⌘I)", action: bridge.italic)
             formatButton("underline", help: "Underline (⌘U)", action: bridge.underline)
@@ -392,6 +430,35 @@ struct NotesEditor: View {
 
 // MARK: - NSTextView host
 
+/// Rich-text view that honors standard format key equivalents while first responder.
+/// SwiftUI apps often lack the AppKit Format menu, so ⌘B / ⌘I / ⌘U would otherwise no-op.
+private final class NotesNSTextView: NSTextView {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Plain ⌘ only (no ⇧ / ⌥ / ⌃) so we don't steal other bindings.
+        guard flags == .command,
+              let key = event.charactersIgnoringModifiers?.lowercased(),
+              key.count == 1
+        else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch key {
+        case "b":
+            NotesTextFormatting.toggleFontTrait(.boldFontMask, on: self)
+            return true
+        case "i":
+            NotesTextFormatting.toggleFontTrait(.italicFontMask, on: self)
+            return true
+        case "u":
+            NotesTextFormatting.toggleUnderline(on: self)
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+}
+
 private struct NotesTextView: NSViewRepresentable {
     @Binding var text: String
     var bridge: NotesTextBridge
@@ -409,7 +476,7 @@ private struct NotesTextView: NSViewRepresentable {
         scroll.borderType = .noBorder
         scroll.drawsBackground = true
 
-        let textView = NSTextView()
+        let textView = NotesNSTextView()
         textView.delegate = context.coordinator
         textView.isRichText = true
         textView.importsGraphics = false
