@@ -19,6 +19,7 @@ struct RunsListView: View {
     @State private var characterSummaries: [CharacterSummary] = []
     @State private var selectedRunID: UUID?
     @State private var statusFilter: RunStatus?
+    @State private var editionFilter: Edition?
     @State private var characterFilterID: UUID?
     @State private var statusMessage: String?
     @State private var errorMessage: String?
@@ -27,6 +28,7 @@ struct RunsListView: View {
     private var filtered: [RunSummary] {
         summaries.filter { summary in
             if let statusFilter, summary.status != statusFilter { return false }
+            if let editionFilter, summary.edition != editionFilter { return false }
             if let characterFilterID,
                !summary.participantCharacterIDs.contains(characterFilterID)
             {
@@ -120,6 +122,7 @@ struct RunsListView: View {
                 } actions: {
                     Button("Clear Filters") {
                         statusFilter = nil
+                        editionFilter = nil
                         characterFilterID = nil
                     }
                 }
@@ -182,6 +185,14 @@ struct RunsListView: View {
             }
             .frame(maxWidth: 200)
 
+            Picker("Ruleset", selection: $editionFilter) {
+                Text("All rulesets").tag(Optional<Edition>.none)
+                ForEach(Edition.allCases) { edition in
+                    Text(edition.shortName).tag(Optional(edition))
+                }
+            }
+            .frame(maxWidth: 160)
+
             Picker("Character", selection: $characterFilterID) {
                 Text("All characters").tag(Optional<UUID>.none)
                 ForEach(characterSummaries) { summary in
@@ -205,6 +216,7 @@ struct RunsListView: View {
                     Text(summary.title)
                         .font(.headline)
                         .lineLimit(1)
+                    RunEditionBadge(edition: summary.edition)
                     RunStatusBadge(status: summary.status)
                 }
                 RunTagChips(tags: summary.tags)

@@ -15,7 +15,10 @@ Scripts/capture_readme_screenshots.sh
 | `07-run-mission-flow.gif` | Run Library → create job → team/log/objectives → complete → library |
 | `08-advancement-planner.gif` | Advancement Planner (scroll skills → plan → apply) |
 | `thumbs/02–04-*.jpg` | Equal-size UI thumbnails (linked from README) |
+| `thumbs/*-poster.jpg` | Still first-frame posters with play overlay (README click-to-play) |
 
 Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; run/advance storyboards capture multiple samples per step for smoother playback.
+
+**Click-to-play:** GitHub always autoplays embedded GIFs, so the README shows a static poster with a play glyph. Clicking the poster opens the full GIF.
 
 **Privacy:** Capture always uses an **in-memory** library seeded with sample characters only (`LibraryEnvironment.marketingCapture()`). The mission GIF creates its own run. Your on-disk personal libraries are never opened during marquee capture.
