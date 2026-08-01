@@ -263,6 +263,8 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-25 | Phase 5: at-a-glance character summary dashboard |
 | 2026-07-25 | Phase 6: detailed management tabs (skills, gear, augs, qualities, contacts, magic) |
 | 2026-07-31 | Enriched contacts v1: tags, manual favor standing, interaction log (historical favor snapshots), optional soft Run link; relationship status from loyalty + recency; still character-scoped |
+| 2026-07-31 | Dice roller v1: inspector panel on character sheet; SR4/5/6 hits & glitches; Push the Limit + Second Chance with session Edge; one-click from skills/attributes; ⌘D |
+| 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
 
 
 ## Phase 9A — Brand kit

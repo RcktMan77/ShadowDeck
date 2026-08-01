@@ -79,7 +79,7 @@ struct ShadowDeckApp: App {
                     switch phase {
                     case .splash:
                         showSplash = true
-                    case .library, .generationRole, .characterSheet, .runLibrary,
+                    case .library, .generationRole, .characterSheet, .diceRoller, .runLibrary,
                          .runGif, .advanceGif, .finished:
                         showSplash = false
                     }
@@ -110,6 +110,13 @@ struct ShadowDeckApp: App {
                     NotificationCenter.default.post(name: AppCommand.importCharacter, object: nil)
                 }
                 .keyboardShortcut("o", modifiers: [.command])
+            }
+
+            CommandGroup(after: .newItem) {
+                Button("Roll Dice…") {
+                    NotificationCenter.default.post(name: AppCommand.openDiceRoller, object: nil)
+                }
+                .keyboardShortcut("d", modifiers: [.command])
             }
 
             // Standard format shortcuts. Target the focused NSTextView (NotesEditor, etc.).
