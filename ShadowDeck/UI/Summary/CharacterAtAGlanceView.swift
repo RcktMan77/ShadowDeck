@@ -28,6 +28,7 @@ struct CharacterAtAGlanceView: View {
     @State private var confirmDeletePresented = false
     @State private var showHouseRulesBrowser = false
     @State private var showExportOptions = false
+    @StateObject private var diceRoller = DiceRollerController()
 
     private var rules: any EditionRules {
         RulesRegistry.rules(for: character?.edition ?? .sr5)
@@ -52,6 +53,7 @@ struct CharacterAtAGlanceView: View {
         .onAppear { reload() }
         .onChange(of: characterID) { _, _ in
             sheetTab = .summary
+            diceRoller.dismiss()
             reload()
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.characterSheetShowAdvanceTab)) { _ in
@@ -60,6 +62,12 @@ struct CharacterAtAGlanceView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingReloadCharacter)) { _ in
             reload()
             sheetTab = .advance
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openDiceRoller)) { _ in
+            openDiceRollerManual()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingShowDiceRoller)) { _ in
+            prepareMarketingDiceRoller()
         }
         .fileImporter(
             isPresented: $isPortraitImporterPresented,
@@ -79,7 +87,8 @@ struct CharacterAtAGlanceView: View {
     // MARK: - Workspace (tabs)
 
     private var workspace: some View {
-        VStack(spacing: 0) {
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
             if let c = character {
                 toolbar(c)
                     .padding(.horizontal, 24)
@@ -129,7 +138,11 @@ struct CharacterAtAGlanceView: View {
                     case .summary:
                         dashboard(c)
                     case .skills:
-                        SkillsManagementView(character: binding(to: c), onPersist: persistCharacter)
+                        SkillsManagementView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter,
+                            onRollSkill: { skill in openDiceRoller(skill: skill) }
+                        )
                     case .gear:
                         GearManagementView(
                             character: binding(to: c),
@@ -173,8 +186,80 @@ struct CharacterAtAGlanceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .id(sheetTab) // tear down management views cleanly when switching tabs
             }
+            } // end main column VStack
+
+            if diceRoller.isPresented {
+                Divider()
+                DiceRollerPanel(controller: diceRoller) {
+                    diceRoller.dismiss()
+                }
+                .frame(width: 320)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: diceRoller.isPresented)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    // MARK: - Dice roller
+
+    private func openDiceRollerManual() {
+        guard let c = character else { return }
+        diceRoller.presentManual(character: c)
+    }
+
+    /// Marquee still: Skills tab, roller open after a skill roll, Edge options visible.
+    private func prepareMarketingDiceRoller() {
+        guard let c = character else { return }
+        sheetTab = .skills
+        let skill = c.skills
+            .filter { $0.category == .active && $0.rating > 0 }
+            .sorted { $0.rating > $1.rating }
+            .first
+            ?? c.skills.first
+        if let skill {
+            openDiceRoller(skill: skill)
+        } else {
+            openDiceRollerManual()
+        }
+        // Let the inspector open, then roll so result + Second Chance chrome appear.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            diceRoller.roll()
+            // Leave Edge remaining so Push / Second Chance options read as available.
+            if diceRoller.edgeRemaining == 0, diceRoller.edgeRating > 0 {
+                diceRoller.refreshEdge()
+            }
+        }
+    }
+
+    private func openDiceRoller(skill: SkillRating) {
+        guard let c = character else { return }
+        let resolved = DicePoolResolver.skillPool(character: c, skill: skill)
+        diceRoller.present(
+            request: DiceRollRequest(
+                pool: resolved.pool,
+                edition: c.edition,
+                sourceLabel: resolved.label,
+                edgeRating: DicePoolResolver.edgeRating(character: c)
+            ),
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
+        )
+    }
+
+    private func openDiceRoller(attribute: AttributeID) {
+        guard let c = character else { return }
+        let resolved = DicePoolResolver.attributePool(character: c, attribute: attribute)
+        diceRoller.present(
+            request: DiceRollRequest(
+                pool: resolved.pool,
+                edition: c.edition,
+                sourceLabel: resolved.label,
+                edgeRating: DicePoolResolver.edgeRating(character: c)
+            ),
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
+        )
     }
 
     /// Safe binding — never force-unwraps optional `character`.
@@ -326,6 +411,21 @@ struct CharacterAtAGlanceView: View {
             }
 
             Spacer()
+
+            Button {
+                if diceRoller.isPresented {
+                    diceRoller.dismiss()
+                } else {
+                    openDiceRollerManual()
+                }
+            } label: {
+                Label(
+                    diceRoller.isPresented ? "Hide Dice" : "Dice",
+                    systemImage: "dice.fill"
+                )
+            }
+            .help("Open dice roller (⌘D)")
+            .keyboardShortcut("d", modifiers: [.command])
 
             Button("Export…", systemImage: "square.and.arrow.up") {
                 showExportOptions = true
@@ -509,11 +609,24 @@ struct CharacterAtAGlanceView: View {
     private func editableAttributeTile(_ id: AttributeID, base: Int, bonus: Int) -> some View {
         let effective = base + bonus
         return VStack(spacing: 3) {
-            Text(id.displayName)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+            HStack(spacing: 2) {
+                Text(id.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+                if id != .essence {
+                    Button {
+                        openDiceRoller(attribute: id)
+                    } label: {
+                        Image(systemName: "dice")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Roll \(id.displayName) (pool \(effective))")
+                }
+            }
             HStack(spacing: 4) {
                 Button {
                     adjustAttribute(id, by: -1)
