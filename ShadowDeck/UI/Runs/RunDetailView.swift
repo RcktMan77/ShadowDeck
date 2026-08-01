@@ -37,6 +37,8 @@ struct RunDetailView: View {
     /// Marketing GIF: scroll + pulse a section so storyboard action is on-screen.
     @State private var marketingAnchor: String?
     @State private var marketingHighlight: String?
+    @State private var showApplyAwardsSheet = false
+    @State private var applyAwardsPreview: AwardPreview?
 
     var body: some View {
         Group {
@@ -83,6 +85,21 @@ struct RunDetailView: View {
             }
         } message: {
             Text("You’re marking this run finished without an outcome summary. You can still save — a short write-up helps later when looking up the job.")
+        }
+        .sheet(isPresented: $showApplyAwardsSheet) {
+            if let preview = applyAwardsPreview, let run {
+                ApplyAwardsSheet(
+                    runTitle: run.title,
+                    preview: preview,
+                    onCancel: {
+                        showApplyAwardsSheet = false
+                        applyAwardsPreview = nil
+                    },
+                    onConfirm: { note in
+                        applyAwards(note: note)
+                    }
+                )
+            }
         }
     }
 
@@ -587,36 +604,7 @@ struct RunDetailView: View {
 
                 Divider()
 
-                Text("Suggested awards")
-                    .font(.subheadline.weight(.semibold))
-                Text("Suggestions only — does not change character karma/nuyen. Apply awards manually on each character sheet when you’re ready.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                let awards = run?.suggestedAwards() ?? []
-                if awards.isEmpty {
-                    Text("Link at least one runner and set expected or actual payout to see a split.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else {
-                    ForEach(awards) { award in
-                        HStack {
-                            Text(characterTitle(award.characterID))
-                                .font(.body.weight(.medium))
-                            Spacer()
-                            Text(RunSupport.formatNuyen(award.nuyen))
-                                .monospacedDigit()
-                            Text("\(award.karma) karma")
-                                .monospacedDigit()
-                                .frame(width: 80, alignment: .trailing)
-                        }
-                        .font(.callout)
-                    }
-                    Text(awards.first?.note ?? "")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+                awardsBlock
 
                 if let run {
                     HStack(spacing: 16) {
@@ -632,6 +620,148 @@ struct RunDetailView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var awardsBlock: some View {
+        if let run, run.awardsAppliedAt != nil {
+            appliedAwardsBlock(run)
+        } else {
+            pendingAwardsBlock
+        }
+    }
+
+    private func appliedAwardsBlock(_ run: Run) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(
+                "Awards applied on \(RunSupport.formatDate(run.awardsAppliedAt))",
+                systemImage: "checkmark.seal.fill"
+            )
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.green)
+
+            Text("Awards applied to linked runners. See each character’s Plan tab ledger for the credit.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let note = run.awardsAppliedNote, !note.isEmpty {
+                Text("Note: \(note)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Collapse prior suggestion breakdown so it is clearly non-actionable.
+            let awards = run.suggestedAwards()
+            if !awards.isEmpty {
+                DisclosureGroup("Previous suggestion breakdown") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(awards) { award in
+                            HStack {
+                                Text(characterTitle(award.characterID))
+                                Spacer()
+                                Text(RunSupport.formatNuyen(award.nuyen))
+                                    .monospacedDigit()
+                                Text("\(award.karma) karma")
+                                    .monospacedDigit()
+                                    .frame(width: 80, alignment: .trailing)
+                            }
+                            .font(.caption)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private var pendingAwardsBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Suggested awards")
+                .font(.subheadline.weight(.semibold))
+            Text("Suggestions only — does not change character karma/nuyen until you apply.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            let awards = run?.suggestedAwards() ?? []
+            if awards.isEmpty {
+                Text("Link at least one runner and set expected or actual payout to see a split.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                ForEach(awards) { award in
+                    HStack {
+                        Text(characterTitle(award.characterID))
+                            .font(.body.weight(.medium))
+                        Spacer()
+                        Text(RunSupport.formatNuyen(award.nuyen))
+                            .monospacedDigit()
+                        Text("\(award.karma) karma")
+                            .monospacedDigit()
+                            .frame(width: 80, alignment: .trailing)
+                    }
+                    .font(.callout)
+                }
+                Text(awards.first?.note ?? "")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            applyAwardsControls
+        }
+    }
+
+    private var applyAwardsControls: some View {
+        let eligible = canOfferApplyAwards
+        return VStack(alignment: .leading, spacing: 6) {
+            Button("Apply Awards…") {
+                presentApplyAwardsSheet()
+            }
+            .disabled(!eligible)
+            .help(applyAwardsHelp)
+
+            if !eligible, let hint = applyAwardsDisabledHint {
+                Text(hint)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private var canOfferApplyAwards: Bool {
+        guard let run else { return false }
+        guard run.awardsAppliedAt == nil else { return false }
+        guard run.status.isTerminal else { return false }
+        guard !run.participantCharacterIDs.isEmpty else { return false }
+        let source = run.actualPayout ?? run.expectedPayout
+        return !source.isZero
+    }
+
+    private var applyAwardsHelp: String {
+        if canOfferApplyAwards {
+            return "Credit equal-split nuyen and karma to linked runners"
+        }
+        return applyAwardsDisabledHint ?? "Apply awards when the run is finished"
+    }
+
+    private var applyAwardsDisabledHint: String? {
+        guard let run else { return nil }
+        if run.awardsAppliedAt != nil { return nil }
+        if !run.status.isTerminal {
+            return "Mark the run Completed or Failed to apply awards."
+        }
+        if run.participantCharacterIDs.isEmpty {
+            return "Link at least one runner on the team."
+        }
+        let source = run.actualPayout ?? run.expectedPayout
+        if source.isZero {
+            return "Set a non-zero expected or actual payout first."
+        }
+        return nil
     }
 
     // MARK: - Bindings & mutations
@@ -869,6 +999,99 @@ struct RunDetailView: View {
 
     private func characterTitle(_ id: UUID) -> String {
         characterSummaries.first(where: { $0.id == id })?.displayTitle ?? "Missing runner"
+    }
+
+    // MARK: - Apply awards
+
+    private func presentApplyAwardsSheet() {
+        guard var current = run else { return }
+        // Ensure rich-text drafts are flushed before we read/mutate the run.
+        commitRichTextDrafts(force: true)
+        current = run ?? current
+
+        var charactersByID: [UUID: Character] = [:]
+        for id in current.participantCharacterIDs {
+            if let character = try? libraryEnvironment.library.fetch(id: id) {
+                charactersByID[id] = character
+            }
+        }
+        let preview = RunAwardApplicator.preview(run: current, charactersByID: charactersByID)
+        applyAwardsPreview = preview
+        showApplyAwardsSheet = true
+    }
+
+    private func applyAwards(note: String) {
+        guard var current = run else {
+            showApplyAwardsSheet = false
+            applyAwardsPreview = nil
+            return
+        }
+        commitRichTextDrafts(force: true)
+        current = run ?? current
+
+        var characters: [Character] = []
+        var missingIDs: [UUID] = []
+        for id in current.participantCharacterIDs {
+            if let character = try? libraryEnvironment.library.fetch(id: id) {
+                characters.append(character)
+            } else {
+                missingIDs.append(id)
+            }
+        }
+
+        do {
+            let result = try RunAwardApplicator.apply(
+                run: &current,
+                characters: &characters,
+                note: note
+            )
+
+            // Persist characters first, then the run (applied marker last).
+            var failedSaves: [String] = []
+            for character in characters where result.applied.contains(where: { $0.characterID == character.id }) {
+                do {
+                    try libraryEnvironment.library.save(character)
+                } catch {
+                    failedSaves.append(character.displayTitle)
+                }
+            }
+
+            if !failedSaves.isEmpty {
+                errorMessage =
+                    "Some character saves failed (\(failedSaves.joined(separator: ", "))). "
+                    + "Verify those sheets before applying again — awards were not marked applied on the run."
+                showApplyAwardsSheet = false
+                applyAwardsPreview = nil
+                // Do not save run with awardsAppliedAt if character saves failed mid-way.
+                // Note: pure apply already mutated `current` in memory; reload to discard.
+                reload()
+                return
+            }
+
+            try libraryEnvironment.runLibrary.save(current)
+            run = current
+            characterSummaries = try libraryEnvironment.library.listSummaries()
+            statusMessage = awardsStatusMessage(result: result, missingCount: missingIDs.count)
+            errorMessage = nil
+            showApplyAwardsSheet = false
+            applyAwardsPreview = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            showApplyAwardsSheet = false
+            applyAwardsPreview = nil
+        }
+    }
+
+    private func awardsStatusMessage(result: ApplyResult, missingCount: Int) -> String {
+        let nuyen = result.applied.map(\.nuyen).reduce(0, +)
+        let karma = result.applied.map(\.karma).reduce(0, +)
+        var message =
+            "Applied awards to \(result.applied.count) runner(s): "
+            + "\(RunSupport.formatNuyen(nuyen)) + \(karma) karma."
+        if !result.skipped.isEmpty || missingCount > 0 {
+            message += " Skipped \(result.skipped.count) missing."
+        }
+        return message
     }
 
     private func updateRun(_ mutate: (inout Run) -> Void) {
