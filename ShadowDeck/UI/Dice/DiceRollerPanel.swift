@@ -18,6 +18,7 @@ struct DiceRollerPanel: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     sourceSection
+                    diceRulesBanner
                     poolSection
                     edgePreRollSection
                     rollButton
@@ -77,6 +78,40 @@ struct DiceRollerPanel: View {
         }
     }
 
+    @ViewBuilder
+    private var diceRulesBanner: some View {
+        let lines = controller.diceRules.activeSummaryLines
+        let glitch = controller.diceRules.resolvedGlitchThreshold(for: controller.edition)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Dice rules")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("Glitch: \(glitch.displayName) · Hits on \(controller.diceRules.hitMinimum)+")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            if !lines.isEmpty {
+                Text(lines.joined(separator: " · "))
+                    .font(.caption2)
+                    .foregroundStyle(.tint)
+            }
+        }
+        .help("From this character’s House Rules. Change them on the sheet’s House Rules browser.")
+    }
+
+    private var pushTheLimitSubtitle: String {
+        if controller.diceRules.ruleOfSix == .always {
+            return "Spend 1 Edge · +\(controller.edgeRating) dice (6s already explode)"
+        }
+        return "Spend 1 Edge · +\(controller.edgeRating) dice · Rule of Six"
+    }
+
+    private var nextRollExplodeCaption: String {
+        if controller.ruleOfSixActiveForNextRoll {
+            return "Will roll \(controller.effectivePool) dice (6s explode)."
+        }
+        return "Will roll \(controller.effectivePool) dice."
+    }
+
     private var poolSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -127,15 +162,15 @@ struct DiceRollerPanel: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Push the Limit")
                             .font(.body.weight(.medium))
-                        Text("Spend 1 Edge · +\(controller.edgeRating) dice · Rule of Six")
+                        Text(pushTheLimitSubtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
                 .toggleStyle(.checkbox)
                 .disabled(!controller.canPushTheLimit)
-                if controller.pushTheLimit {
-                    Text("Will roll \(controller.effectivePool) dice (6s explode).")
+                if controller.pushTheLimit || controller.diceRules.ruleOfSix == .always {
+                    Text(nextRollExplodeCaption)
                         .font(.caption2)
                         .foregroundStyle(.tint)
                 }

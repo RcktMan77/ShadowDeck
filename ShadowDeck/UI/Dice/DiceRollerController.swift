@@ -15,6 +15,7 @@ final class DiceRollerController: ObservableObject {
 
     @Published var isPresented = false
     @Published var edition: Edition = .sr5
+    @Published var diceRules: DiceHouseRules = .coreBook
     @Published var pool: Int = 1
     @Published var modifier: Int = 0
     @Published var sourceLabel: String = "Manual"
@@ -37,6 +38,10 @@ final class DiceRollerController: ObservableObject {
         return base
     }
 
+    var ruleOfSixActiveForNextRoll: Bool {
+        diceRules.ruleOfSixEnabled(pushingTheLimit: pushTheLimit && canPushTheLimit)
+    }
+
     var canPushTheLimit: Bool {
         edgeRemaining > 0 && edgeRating > 0
     }
@@ -47,10 +52,11 @@ final class DiceRollerController: ObservableObject {
 
     // MARK: - Presentation
 
-    func present(request: DiceRollRequest, characterID: UUID?) {
+    func present(request: DiceRollRequest, characterID: UUID?, diceRules: DiceHouseRules = .coreBook) {
         let sameCharacter = characterID != nil && characterID == self.characterID
         self.characterID = characterID
         edition = request.edition
+        self.diceRules = diceRules
         pool = max(0, request.pool)
         modifier = request.modifier
         sourceLabel = request.sourceLabel ?? "Manual"
@@ -72,7 +78,8 @@ final class DiceRollerController: ObservableObject {
                 sourceLabel: "Manual",
                 edgeRating: DicePoolResolver.edgeRating(character: character)
             ),
-            characterID: character.id
+            characterID: character.id,
+            diceRules: character.houseRules.resolvedDice
         )
     }
 
@@ -93,21 +100,25 @@ final class DiceRollerController: ObservableObject {
         secondChancePreview = nil
         var edgeSpent = 0
         var mode: DiceEdgeMode = .none
-        var options = DiceRollOptions.standard
+        var pushing = false
         var rollPool = max(0, pool + modifier)
 
         if pushTheLimit, canPushTheLimit {
             rollPool = DiceRollerEngine.pushTheLimitPool(basePool: max(0, pool + modifier), edgeRating: edgeRating)
-            options = .pushTheLimit
             edgeSpent = 1
             mode = .pushTheLimit
+            pushing = true
             edgeRemaining = max(0, edgeRemaining - 1)
             pushTheLimit = false
         }
 
+        let explode = diceRules.ruleOfSixEnabled(pushingTheLimit: pushing)
+        let options = DiceRollOptions(ruleOfSix: explode)
+
         let result = DiceRollerEngine.roll(
             pool: rollPool,
             edition: edition,
+            diceRules: diceRules,
             options: options,
             edgeSpent: edgeSpent,
             edgeMode: mode,
@@ -125,7 +136,7 @@ final class DiceRollerController: ObservableObject {
             secondChancePreview = nil
             return
         }
-        secondChancePreview = DiceRollerEngine.secondChance(previous: last)
+        secondChancePreview = DiceRollerEngine.secondChance(previous: last, diceRules: diceRules)
     }
 
     func commitSecondChance() {

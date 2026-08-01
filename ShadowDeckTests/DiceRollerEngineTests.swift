@@ -17,6 +17,79 @@ final class DiceRollerEngineTests: XCTestCase {
         XCTAssertEqual(eval.ones, 1)
     }
 
+    func testHitsOn4HouseRule() {
+        let faces = [1, 2, 3, 4, 5, 6]
+        let rules = DiceHouseRules(hitsOn4: true)
+        let eval = DiceRollerEngine.evaluate(dice: faces, edition: .sr5, diceRules: rules)
+        XCTAssertEqual(eval.hits, 3) // 4, 5, 6
+    }
+
+    func testIgnoreExplodedDiceForGlitch() {
+        // Faces include explosion: original pool 2, faces [1, 6, 1]
+        let faces = [1, 6, 1]
+        let countAll = DiceHouseRules(countExplodedDiceForGlitch: true)
+        let ignoreExtra = DiceHouseRules(countExplodedDiceForGlitch: false)
+        // 2 ones of 3 → more than half → glitch when counting all
+        let withAll = DiceRollerEngine.evaluate(
+            dice: faces, edition: .sr5, diceRules: countAll, originalPool: 2
+        )
+        XCTAssertTrue(withAll.glitch)
+        // Only original pool 2: 2 ones of 2 → more than half? 2*2 > 2 → yes still glitch
+        // Use faces [1, 6, 5] — 1 one of 3 if count all, no glitch; original pool 2 with 1 one → no glitch either
+        let faces2 = [1, 6, 5]
+        let a = DiceRollerEngine.evaluate(dice: faces2, edition: .sr5, diceRules: countAll, originalPool: 2)
+        let b = DiceRollerEngine.evaluate(dice: faces2, edition: .sr5, diceRules: ignoreExtra, originalPool: 2)
+        XCTAssertFalse(a.glitch) // 1 of 3
+        XCTAssertFalse(b.glitch) // 1 of 2
+        // [1,1,6,1] original 2: count all 3 ones of 4 → glitch; ignore → ones still 3 but count 2 → glitch half
+        // Better: original 4 dice, explosions add 2 ones making 6 dice with 3 ones (half, SR5 no glitch)
+        // original 4, faces [1,1,2,3,1,1] if explosions... simpler:
+        // originalPool 4, faces count 6 with 4 ones → more than half of 6 (4>3) glitch if count all
+        // if ignore: 4 ones vs original 4 → half, SR5 moreThanHalf → 4*2>4 → glitch still
+        // original 6, faces 8 with 4 ones: 4>4 false no glitch all; original 6: 4*2>6 → glitch ignore
+        let faces3 = [1, 1, 1, 1, 2, 3, 5, 6] // 4 ones, 8 dice
+        let all = DiceRollerEngine.evaluate(
+            dice: faces3, edition: .sr5, diceRules: countAll, originalPool: 6
+        )
+        let ign = DiceRollerEngine.evaluate(
+            dice: faces3, edition: .sr5, diceRules: ignoreExtra, originalPool: 6
+        )
+        // 4 ones / 8 dice: 8 > 8 false → no glitch when counting all
+        XCTAssertFalse(all.glitch)
+        // 4 ones / 6 original: 8 > 6 true → glitch when ignoring explosions
+        XCTAssertTrue(ign.glitch)
+    }
+
+    func testGlitchThresholdOverrideHalfOrMoreOnSR5() {
+        // 4 dice, 2 ones: edition default moreThanHalf → no; house halfOrMore → yes
+        XCTAssertFalse(DiceRollerEngine.isGlitch(ones: 2, diceCount: 4, edition: .sr5))
+        let rules = DiceHouseRules(glitchThreshold: .halfOrMore)
+        XCTAssertTrue(DiceRollerEngine.isGlitch(ones: 2, diceCount: 4, edition: .sr5, diceRules: rules))
+    }
+
+    func testRuleOfSixAlwaysFromHouseRules() {
+        let rules = DiceHouseRules(ruleOfSix: .always)
+        XCTAssertTrue(rules.ruleOfSixEnabled(pushingTheLimit: false))
+        XCTAssertTrue(rules.ruleOfSixEnabled(pushingTheLimit: true))
+        let edgeOnly = DiceHouseRules(ruleOfSix: .edgeOnly)
+        XCTAssertFalse(edgeOnly.ruleOfSixEnabled(pushingTheLimit: false))
+        XCTAssertTrue(edgeOnly.ruleOfSixEnabled(pushingTheLimit: true))
+    }
+
+    func testLegacyHouseRulesDecodeWithoutDice() throws {
+        // Encode core book, drop the optional `dice` key, re-decode (legacy payloads).
+        let encoder = PortableCharacterCoding.encoder()
+        var obj = try JSONSerialization.jsonObject(
+            with: encoder.encode(HouseRules.coreBook)
+        ) as! [String: Any]
+        obj.removeValue(forKey: "dice")
+        let data = try JSONSerialization.data(withJSONObject: obj)
+        let rules = try PortableCharacterCoding.decoder().decode(HouseRules.self, from: data)
+        XCTAssertNil(rules.dice)
+        XCTAssertEqual(rules.resolvedDice.glitchThreshold, .editionDefault)
+        XCTAssertEqual(rules.resolvedDice.ruleOfSix, .edgeOnly)
+    }
+
     func testEmptyPool() {
         let result = DiceRollerEngine.roll(pool: 0, edition: .sr5)
         XCTAssertEqual(result.hits, 0)
