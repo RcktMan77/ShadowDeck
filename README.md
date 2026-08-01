@@ -214,9 +214,24 @@ python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
 
 ---
 
-## License & credits
+## License
 
-- Application source: [LICENSE](LICENSE)
+ShadowDeck source code is made available for **personal, non-commercial use**.
+
+You may:
+- View, download, and build the source for your own personal use
+- Modify it for your own personal campaigns
+- Submit pull requests or suggestions
+
+You may **not**:
+- Sell, sublicense, or commercially redistribute the source code or compiled binaries derived from it
+- Offer ShadowDeck (or a substantially similar product based on this codebase) as a paid service or commercial product without explicit written permission
+
+Commercial licensing and future paid features (if any) will be handled separately.  
+See the [LICENSE](LICENSE) file for the full terms.
+
+### Credits
+
 - Bundled catalog data derived from Chummer5a open data (GPL-3.0); see `ShadowDeck/Resources/Catalog/NOTICE.txt`
 - Brand fonts: Orbitron / Rajdhani (SIL Open Font License) under `Resources/Fonts/`
 - Splash and icon art are original generated assets for this fan tool
