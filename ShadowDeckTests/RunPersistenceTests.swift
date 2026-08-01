@@ -107,4 +107,24 @@ final class RunPersistenceTests: XCTestCase {
         XCTAssertEqual(try runLibrary.count(), 0, "Deleted run must not be re-inserted by a deferred save")
         XCTAssertNil(try runLibrary.fetch(id: run.id))
     }
+
+    func testListSummariesStableOldestCreatedFirst() throws {
+        var older = Run.makeDraft(title: "Oldest")
+        older.createdAt = Date(timeIntervalSince1970: 1_000)
+        older.modifiedAt = Date(timeIntervalSince1970: 1_000)
+        try runLibrary.save(older)
+
+        var newer = Run.makeDraft(title: "Newest")
+        newer.createdAt = Date(timeIntervalSince1970: 2_000)
+        newer.modifiedAt = Date(timeIntervalSince1970: 2_000)
+        try runLibrary.save(newer)
+
+        // Touch the older run so modifiedAt is later — must not reorder the list.
+        var loaded = try runLibrary.require(older.id)
+        loaded.client = "Updated Johnson"
+        try runLibrary.save(loaded)
+
+        let titles = try runLibrary.listSummaries().map(\.title)
+        XCTAssertEqual(titles, ["Oldest", "Newest"])
+    }
 }

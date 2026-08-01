@@ -44,9 +44,16 @@ public final class RunLibrary {
 
     public func listSummaries() throws -> [RunSummary] {
         modelContext.processPendingChanges()
+        // Stable chronological order: oldest created first. Edits / opens must not reorder
+        // (saves call touch() → modifiedAt, which previously floated runs to the top).
         let records = try modelContext.fetch(FetchDescriptor<RunRecord>())
             .filter { !$0.isDeleted }
-            .sorted { $0.modifiedAt > $1.modifiedAt }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt < rhs.createdAt
+                }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
         return records.map { record in
             // Prefer tags from full payload when available (cheap enough for small libraries).
             if let run = try? run(from: record) {
