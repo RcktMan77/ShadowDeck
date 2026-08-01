@@ -17,6 +17,16 @@ public enum SampleCharacters {
         [sr4StreetSamurai(), sr5CombatMage(), sr6FaceHacker()]
     }
 
+    /// ChargenArt role key for a sample (used when seeding library portraits).
+    public static func portraitArchetype(for characterID: UUID) -> RunnerArchetype? {
+        switch characterID {
+        case sr4ID: return .streetSamurai
+        case sr5ID: return .combatMage
+        case sr6ID: return .face
+        default: return nil
+        }
+    }
+
     // MARK: - SR4 (Build Points)
 
     public static func sr4StreetSamurai() -> Character {
