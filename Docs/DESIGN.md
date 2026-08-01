@@ -45,10 +45,11 @@ UI  →  View models / observation  →  Domain models (Character, …)
 |------|------|
 | `Edition` | `.sr4` / `.sr5` / `.sr6` peers |
 | `Character` | Full character aggregate (Codable, schemaVersion) |
-| `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs) |
+| `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs; optional `awardsAppliedAt` / note) |
 | `RunLibrary` / `RunRecord` | Parallel to character library (JSON payload + denormalized list fields) |
+| `RunAwardApplicator` | Pure preview + apply for equal-split nuyen/karma from a finished run onto available linked characters |
 | `Lifestyle` + `LifestyleTracker` | Per-character monthly burn, prepaid months, reserve, process 1–3 months, ledger |
-| `Advancement` + `AdvancementEngine` | Character Advance tab: session cart, skill/attribute karma raises, ledger; free Skills-tab edits remain for import/GM fiat |
+| `Advancement` + `AdvancementEngine` | Character Plan tab: session cart, skill/attribute karma raises, ledger; free Skills-tab edits remain for import/GM fiat; ledger also records `runAward` gains |
 | `AttributeRatings` / `AttributeID` | Physical, mental, special (incl. essence) |
 | `MetatypeID` + `MetatypeCatalog` | Core five metatypes + bounds |
 | `SkillRating` / `SkillGroupRating` | Active, knowledge, language |
@@ -59,7 +60,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | `GenerationProfile` | BP / priority / sum-to-ten / karmagen state |
 | `HouseRules` | Toggle set + parameters |
 | `DerivedStats` | Limits, monitors, initiative, pools |
-| `PortableCharacterDocument` | Export payload schema |
+| `PortableCharacterDocument` | Export payload schema — full `Character` embed; `.shadowdeck` is the fidelity-preserving transfer format |
 
 ### Edition strategy differences (high level)
 
@@ -200,6 +201,22 @@ Segmented tabs on the open character:
 
 Mutations persist immediately through `CharacterLibrary.save`.
 
+## Apply Run Awards (v1)
+
+Explicit GM action on a **Completed** or **Failed** run. Never automatic on status change.
+
+| Piece | Behavior |
+|-------|----------|
+| Source payout | `actualPayout ?? expectedPayout` (sheet labels which) |
+| Split | Equal floor among **available** library characters; remainder ¥/karma → first listed available |
+| Missing participants | Skipped with report; all-missing blocks apply |
+| Character credit | `nuyen +=`, `karmaAvailable +=`, `karmaTotal +=` (matches Summary manual karma award) |
+| Ledger | `AdvancementKind.runAward`; `karmaSpent` negative = gain; `nuyenDelta` + `relatedRunID` |
+| Double-apply | `Run.awardsAppliedAt` set after successful apply; second apply blocked |
+| UI | Outcome section **Apply Awards…** → confirmation sheet; post-apply collapses prior suggestions |
+
+Pure engine: `RunAwardApplicator.preview` / `.apply`. UI owns multi-entity save (characters, then run).
+
 ## Character effects engine (Phase 7)
 
 Equipping gear, installing augmentations, taking qualities, and ranking adept powers dynamically updates the play sheet.
@@ -265,6 +282,7 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-31 | Enriched contacts v1: tags, manual favor standing, interaction log (historical favor snapshots), optional soft Run link; relationship status from loyalty + recency; still character-scoped |
 | 2026-07-31 | Dice roller v1: inspector panel on character sheet; SR4/5/6 hits & glitches; Push the Limit + Second Chance with session Edge; one-click from skills/attributes; ⌘D |
 | 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
+| 2026-08-01 | Apply Run Awards v1: explicit Apply Awards… on terminal runs; equal floor split among available participants; remainder to first; `awardsAppliedAt` double-apply guard; advancement `runAward` ledger; no auto-apply |
 
 
 ## Phase 9A — Brand kit

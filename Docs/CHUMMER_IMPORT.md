@@ -2,7 +2,7 @@
 
 **Purpose:** Document how Chummer5a data relates to ShadowDeck’s **native** models, what we map today, and what remains intentionally out of scope or deferred.
 
-**Principle:** ShadowDeck’s source of truth is the clean native `Character` model + `.shadowdeck` packages. Chummer is an **import source**, not a storage format we re-export.
+**Principle:** ShadowDeck’s source of truth is the clean native `Character` model + **`.shadowdeck` packages** (full domain fidelity: ledgers, house rules, contacts CRM, plan cart, condition, etc.). Chummer is a **lossy campaign import / best-effort hub export**, not the storage format for ShadowDeck-only features.
 
 **Validated against:** Chummer **5.225.0** (Ghostwire sample, read-only), plus synthetic fixtures in `ShadowDeckTests/Fixtures/`.
 
@@ -94,27 +94,41 @@ Oddities we handle:
 | Name / alias / metatype / edition | ✅ | |
 | Priorities A–E | ✅ | Sum-to-ten when indicated |
 | Build method → generation system | ✅ | Priority / BP / karma heuristics |
-| Attributes (sheet totals) | ✅ | Prefer `total`, then `base` |
+| Attributes (sheet bases) | ✅ | Prefer **`base`**, then total (augs live in ShadowDeck modifiers) |
 | Essence | ✅ | Prefer `totaless` |
 | Active / knowledge skills (ranks) | ✅ | Use `rating` / `base+karma`, **not** pool `total` |
-| Skill specializations | ✅ | |
-| Skill groups | ⚠️ Partial | Legacy + `newskills/groups` |
+| Skill specializations | ✅ | Flat `<spec>`, nested `<specs><spec>`, and `<spec><name>` |
+| Skill groups | ⚠️ Partial | Import + regenerated export of groups; not all Chummer layouts |
 | Qualities | ✅ | Karma may be 0 on some built-ins |
-| Cyberware / bioware | ✅ | Essence, grade, rating |
+| Cyberware / bioware | ✅ | Essence, grade, rating; cost often 0 after import |
 | Adept powers | ✅ | |
 | Spells / complex forms | ✅ | When present |
 | Top-level gear / weapons / armor | ✅ | Unarmed attack rows skipped |
 | Nested gear (in armor/weapon) | ❌ Gap | Listed under parent in Chummer only |
 | Vehicles / drones | ❌ Gap | Present on Ghostwire; not mapped |
-| Contacts / lifestyles | ✅ | |
+| Contacts (core + profile fields) | ✅ | Notes / type / payment / hobbies / life import+export |
+| Contact tags / favors / interaction log | ❌ SD-only | Use `.shadowdeck` |
+| Lifestyles + prepaid months | ✅ | |
+| Lifestyle ledger / reserve / process month | ❌ SD-only | Use `.shadowdeck` |
+| Advancement ledger / plan cart | ❌ SD-only | Use `.shadowdeck` |
+| House rules + dice house rules | ❌ SD-only | Use `.shadowdeck` |
 | Metamagic / initiation grade | ❌ Gap | Data present; future magic depth |
 | Expenses / karma history | ❌ Gap | |
 | Improvements | ❌ Gap | Derived bonuses may already be in totals |
-| Mugshots | ❌ Gap | |
-| Condition monitors (filled) | ❌ Gap | `calculatedvalues` / filled boxes available |
+| Mugshots | ❌ Gap | Native hybrid avatars instead |
+| Condition monitors (filled) | ✅ | `physicalcmfilled` / `stuncmfilled` |
 | Tradition / spirits | ❌ Gap | |
 
-“Gap” means **not in native model yet or not mapped**—not that we should store raw Chummer XML.
+“Gap” means **not in native model yet or not mapped**. **SD-only** means the feature lives only in ShadowDeck and is preserved by **`.shadowdeck` / library save**, not by Chummer.
+
+### Export modes (`.chum5`)
+
+| Mode | Behavior |
+|------|----------|
+| **Prefer original** (UI default when XML provenance exists) | Writes the **bytes stored at import** — campaign edits in ShadowDeck are **not** applied |
+| **Regenerated** | Best-effort modern Chummer XML from current domain state (lossy for SD-only fields) |
+
+Canonical portable transfer between ShadowDeck installs: **export `.shadowdeck`**, not Chummer.
 
 ---
 

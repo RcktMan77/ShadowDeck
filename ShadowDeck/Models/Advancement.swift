@@ -9,12 +9,14 @@ import Foundation
 
 // MARK: - Kinds
 
-/// What kind of advancement purchase this is.
+/// What kind of advancement ledger / plan item this is.
 public enum AdvancementKind: String, Codable, Sendable, Hashable, CaseIterable {
     case skillRaise
     case attributeRaise
     case newSkill
     case other
+    /// Run award (nuyen + karma gain). Not a cart purchasable raise.
+    case runAward
 
     public var displayName: String {
         switch self {
@@ -22,6 +24,7 @@ public enum AdvancementKind: String, Codable, Sendable, Hashable, CaseIterable {
         case .attributeRaise: "Attribute raise"
         case .newSkill: "New skill"
         case .other: "Other"
+        case .runAward: "Run award"
         }
     }
 }
@@ -75,8 +78,13 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
     public var kind: AdvancementKind
     /// Human-readable line, e.g. `Pistols 4 → 5 (8 karma)`.
     public var summary: String
+    /// Karma delta convention: **positive = spent** (purchases); **negative = gained** (e.g. run awards).
     public var karmaSpent: Int
     public var targetKey: String?
+    /// Nuyen gained (positive) or spent; used by run awards. Defaults to 0 for older entries.
+    public var nuyenDelta: Int
+    /// Soft link to the run that produced a run award, when known.
+    public var relatedRunID: UUID?
 
     public init(
         id: UUID = UUID(),
@@ -84,7 +92,9 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
         kind: AdvancementKind,
         summary: String,
         karmaSpent: Int,
-        targetKey: String? = nil
+        targetKey: String? = nil,
+        nuyenDelta: Int = 0,
+        relatedRunID: UUID? = nil
     ) {
         self.id = id
         self.date = date
@@ -92,5 +102,37 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
         self.summary = summary
         self.karmaSpent = karmaSpent
         self.targetKey = targetKey
+        self.nuyenDelta = nuyenDelta
+        self.relatedRunID = relatedRunID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, date, kind, summary, karmaSpent, targetKey, nuyenDelta, relatedRunID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        date = try c.decode(Date.self, forKey: .date)
+        kind = try c.decode(AdvancementKind.self, forKey: .kind)
+        summary = try c.decode(String.self, forKey: .summary)
+        karmaSpent = try c.decode(Int.self, forKey: .karmaSpent)
+        targetKey = try c.decodeIfPresent(String.self, forKey: .targetKey)
+        nuyenDelta = try c.decodeIfPresent(Int.self, forKey: .nuyenDelta) ?? 0
+        relatedRunID = try c.decodeIfPresent(UUID.self, forKey: .relatedRunID)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(date, forKey: .date)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(summary, forKey: .summary)
+        try c.encode(karmaSpent, forKey: .karmaSpent)
+        try c.encodeIfPresent(targetKey, forKey: .targetKey)
+        if nuyenDelta != 0 {
+            try c.encode(nuyenDelta, forKey: .nuyenDelta)
+        }
+        try c.encodeIfPresent(relatedRunID, forKey: .relatedRunID)
     }
 }
