@@ -112,6 +112,13 @@ struct ShadowDeckApp: App {
                 .keyboardShortcut("o", modifiers: [.command])
             }
 
+            CommandGroup(after: .newItem) {
+                Button("Roll Dice…") {
+                    NotificationCenter.default.post(name: AppCommand.openDiceRoller, object: nil)
+                }
+                .keyboardShortcut("d", modifiers: [.command])
+            }
+
             // Standard format shortcuts. Target the focused NSTextView (NotesEditor, etc.).
             // NotesNSTextView.performKeyEquivalent is a fallback if these don’t reach the field.
             CommandMenu("Format") {
