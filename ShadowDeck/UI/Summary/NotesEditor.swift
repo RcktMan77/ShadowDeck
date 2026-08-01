@@ -9,29 +9,72 @@
 import AppKit
 import SwiftUI
 
-/// Shared handle so the toolbar can talk to the NSTextView.
+/// Shared formatting helpers for toolbar, Format menu, and ⌘B / ⌘I / ⌘U key equivalents.
 @MainActor
-final class NotesTextBridge: ObservableObject {
-    weak var textView: NSTextView?
-
-    func focus() {
-        guard let textView, let window = textView.window else { return }
-        window.makeFirstResponder(textView)
+enum NotesTextFormatting {
+    /// Walk the responder chain for the key window’s focused text view.
+    static func focusedTextView() -> NSTextView? {
+        var responder: NSResponder? = NSApp.keyWindow?.firstResponder
+        while let current = responder {
+            if let textView = current as? NSTextView, textView.isEditable, textView.isRichText {
+                return textView
+            }
+            responder = current.nextResponder
+        }
+        return nil
     }
 
-    func bold() {
-        focus()
-        toggleFontTrait(.boldFontMask)
+    static func applyBoldToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleFontTrait(.boldFontMask, on: textView)
+        (textView as? NotesNSTextView)?.formatBridge?.refreshFormatState()
     }
 
-    func italic() {
-        focus()
-        toggleFontTrait(.italicFontMask)
+    static func applyItalicToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleFontTrait(.italicFontMask, on: textView)
+        (textView as? NotesNSTextView)?.formatBridge?.refreshFormatState()
     }
 
-    func underline() {
-        focus()
-        guard let textView else { return }
+    static func applyUnderlineToFocusedTextView() {
+        guard let textView = focusedTextView() else { return }
+        toggleUnderline(on: textView)
+        (textView as? NotesNSTextView)?.formatBridge?.refreshFormatState()
+    }
+
+    static func toggleFontTrait(_ trait: NSFontTraitMask, on textView: NSTextView) {
+        let manager = NSFontManager.shared
+        let range = textView.selectedRange()
+
+        if range.length == 0 {
+            var attrs = textView.typingAttributes
+            let font = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            if manager.traits(of: font).contains(trait) {
+                attrs[.font] = manager.convert(font, toNotHaveTrait: trait)
+            } else {
+                attrs[.font] = manager.convert(font, toHaveTrait: trait)
+            }
+            textView.typingAttributes = attrs
+            return
+        }
+
+        guard let storage = textView.textStorage else { return }
+        storage.beginEditing()
+        storage.enumerateAttribute(.font, in: range) { value, subrange, _ in
+            let font = (value as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            let next: NSFont
+            if manager.traits(of: font).contains(trait) {
+                next = manager.convert(font, toNotHaveTrait: trait)
+            } else {
+                next = manager.convert(font, toHaveTrait: trait)
+            }
+            storage.addAttribute(.font, value: next, range: subrange)
+        }
+        storage.endEditing()
+        textView.didChangeText()
+    }
+
+    static func toggleUnderline(on textView: NSTextView) {
         let range = textView.selectedRange()
         if range.length == 0 {
             var attrs = textView.typingAttributes
@@ -51,6 +94,58 @@ final class NotesTextBridge: ObservableObject {
         storage.endEditing()
         textView.didChangeText()
     }
+}
+
+/// Snapshot of formatting at the caret / selection for toolbar highlighting.
+struct NotesFormatState: Equatable {
+    var isBold = false
+    var isItalic = false
+    var isUnderline = false
+    var isBulletedList = false
+    var isNumberedList = false
+    var alignment: NSTextAlignment = .natural
+}
+
+/// Shared handle so the toolbar can talk to the NSTextView.
+@MainActor
+final class NotesTextBridge: ObservableObject {
+    weak var textView: NSTextView?
+    @Published private(set) var formatState = NotesFormatState()
+
+    func focus() {
+        guard let textView, let window = textView.window else { return }
+        window.makeFirstResponder(textView)
+    }
+
+    /// Re-read attributes at the caret/selection and update toolbar state.
+    func refreshFormatState() {
+        guard let textView else {
+            formatState = NotesFormatState()
+            return
+        }
+        formatState = Self.snapshot(from: textView)
+    }
+
+    func bold() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleFontTrait(.boldFontMask, on: textView)
+        refreshFormatState()
+    }
+
+    func italic() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleFontTrait(.italicFontMask, on: textView)
+        refreshFormatState()
+    }
+
+    func underline() {
+        focus()
+        guard let textView else { return }
+        NotesTextFormatting.toggleUnderline(on: textView)
+        refreshFormatState()
+    }
 
     func showFonts() {
         focus()
@@ -58,36 +153,135 @@ final class NotesTextBridge: ObservableObject {
             NSFontManager.shared.target = textView
         }
         NSFontManager.shared.orderFrontFontPanel(nil)
+        // Font panel changes apply asynchronously; refresh when user returns to typing.
+        DispatchQueue.main.async { [weak self] in self?.refreshFormatState() }
     }
 
     func showColors() {
         focus()
         NSApp.orderFrontColorPanel(nil)
+        DispatchQueue.main.async { [weak self] in self?.refreshFormatState() }
     }
 
     func alignLeft() {
         focus()
         textView?.alignLeft(nil)
+        textView?.didChangeText()
+        refreshFormatState()
     }
 
     func alignCenter() {
         focus()
         textView?.alignCenter(nil)
+        textView?.didChangeText()
+        refreshFormatState()
     }
 
     func alignRight() {
         focus()
         textView?.alignRight(nil)
+        textView?.didChangeText()
+        refreshFormatState()
     }
 
     func toggleBulletedList() {
         focus()
         applyListToggle(kind: .bullet)
+        refreshFormatState()
     }
 
     func toggleNumberedList() {
         focus()
         applyListToggle(kind: .numbered)
+        refreshFormatState()
+    }
+
+    private static func snapshot(from textView: NSTextView) -> NotesFormatState {
+        let manager = NSFontManager.shared
+        let range = textView.selectedRange()
+        let storage = textView.textStorage
+        let length = storage?.length ?? 0
+
+        // Attributes for style sampling: typing attrs at caret, or “all of selection”.
+        let sampleFont: NSFont
+        let isUnderline: Bool
+        let alignment: NSTextAlignment
+
+        if length == 0 {
+            let attrs = textView.typingAttributes
+            sampleFont = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            let under = attrs[.underlineStyle] as? Int ?? 0
+            isUnderline = under != 0
+            let para = attrs[.paragraphStyle] as? NSParagraphStyle
+            alignment = para?.alignment ?? .natural
+        } else if range.length == 0 {
+            // Caret: prefer typing attributes (updated as you move through styles).
+            let attrs = textView.typingAttributes
+            sampleFont = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            let under = attrs[.underlineStyle] as? Int ?? 0
+            isUnderline = under != 0
+            let para = attrs[.paragraphStyle] as? NSParagraphStyle
+            alignment = para?.alignment ?? .natural
+        } else if let storage {
+            var allBold = true
+            var allItalic = true
+            var allUnder = true
+            var saw = false
+            var sampleAlignment: NSTextAlignment = .natural
+            storage.enumerateAttributes(in: range, options: []) { attrs, _, _ in
+                saw = true
+                let font = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+                let traits = manager.traits(of: font)
+                if !traits.contains(.boldFontMask) { allBold = false }
+                if !traits.contains(.italicFontMask) { allItalic = false }
+                let under = attrs[.underlineStyle] as? Int ?? 0
+                if under == 0 { allUnder = false }
+                if let para = attrs[.paragraphStyle] as? NSParagraphStyle {
+                    sampleAlignment = para.alignment
+                }
+            }
+            guard saw else { return NotesFormatState() }
+            return NotesFormatState(
+                isBold: allBold,
+                isItalic: allItalic,
+                isUnderline: allUnder,
+                isBulletedList: paragraphIsList(textView: textView, kind: .bullet),
+                isNumberedList: paragraphIsList(textView: textView, kind: .numbered),
+                alignment: sampleAlignment
+            )
+        } else {
+            return NotesFormatState()
+        }
+
+        let traits = manager.traits(of: sampleFont)
+        return NotesFormatState(
+            isBold: traits.contains(.boldFontMask),
+            isItalic: traits.contains(.italicFontMask),
+            isUnderline: isUnderline,
+            isBulletedList: paragraphIsList(textView: textView, kind: .bullet),
+            isNumberedList: paragraphIsList(textView: textView, kind: .numbered),
+            alignment: alignment
+        )
+    }
+
+    private static func paragraphIsList(textView: NSTextView, kind: NotesListKind) -> Bool {
+        guard let storage = textView.textStorage else { return false }
+        let ns = storage.string as NSString
+        guard ns.length > 0 else { return false }
+        let selection = textView.selectedRange().clamped(to: ns.length)
+        let cover = paragraphCover(for: selection, in: ns)
+        guard cover.length > 0 else { return false }
+        let raw = ns.substring(with: cover)
+        var body = raw
+        if body.hasSuffix("\r\n") {
+            body = String(body.dropLast(2))
+        } else if body.hasSuffix("\n") || body.hasSuffix("\r") {
+            body = String(body.dropLast())
+        }
+        // First line of cover is enough for caret; multi-para: all must match.
+        let lines = body.components(separatedBy: .newlines).filter { !$0.isEmpty }
+        guard !lines.isEmpty else { return kind.matchesMarker(in: body) }
+        return lines.allSatisfy { kind.matchesMarker(in: $0) }
     }
 
     /// Rebuild the covered paragraphs as one attributed replacement.
@@ -285,39 +479,6 @@ final class NotesTextBridge: ObservableObject {
         let endPara = ns.paragraphRange(for: NSRange(location: max(min(end - 1, ns.length - 1), 0), length: 0))
         return NSRange(location: startPara.location, length: NSMaxRange(endPara) - startPara.location)
     }
-
-    private func toggleFontTrait(_ trait: NSFontTraitMask) {
-        guard let textView else { return }
-        let manager = NSFontManager.shared
-        let range = textView.selectedRange()
-
-        if range.length == 0 {
-            var attrs = textView.typingAttributes
-            let font = (attrs[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-            if manager.traits(of: font).contains(trait) {
-                attrs[.font] = manager.convert(font, toNotHaveTrait: trait)
-            } else {
-                attrs[.font] = manager.convert(font, toHaveTrait: trait)
-            }
-            textView.typingAttributes = attrs
-            return
-        }
-
-        guard let storage = textView.textStorage else { return }
-        storage.beginEditing()
-        storage.enumerateAttribute(.font, in: range) { value, subrange, _ in
-            let font = (value as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-            let next: NSFont
-            if manager.traits(of: font).contains(trait) {
-                next = manager.convert(font, toNotHaveTrait: trait)
-            } else {
-                next = manager.convert(font, toHaveTrait: trait)
-            }
-            storage.addAttribute(.font, value: next, range: subrange)
-        }
-        storage.endEditing()
-        textView.didChangeText()
-    }
 }
 
 private extension NSRange {
@@ -355,10 +516,13 @@ struct NotesEditor: View {
     }
 
     private var formatToolbar: some View {
-        HStack(spacing: 4) {
-            formatButton("bold", help: "Bold (⌘B)", action: bridge.bold)
-            formatButton("italic", help: "Italic (⌘I)", action: bridge.italic)
-            formatButton("underline", help: "Underline (⌘U)", action: bridge.underline)
+        let state = bridge.formatState
+        return HStack(spacing: 4) {
+            // Shortcuts live on Format menu + NotesNSTextView (not toolbar buttons),
+            // so they work while the text field is first responder.
+            formatButton("bold", help: "Bold (⌘B)", isActive: state.isBold, action: bridge.bold)
+            formatButton("italic", help: "Italic (⌘I)", isActive: state.isItalic, action: bridge.italic)
+            formatButton("underline", help: "Underline (⌘U)", isActive: state.isUnderline, action: bridge.underline)
 
             Divider().frame(height: 18).padding(.horizontal, 4)
 
@@ -367,30 +531,130 @@ struct NotesEditor: View {
 
             Divider().frame(height: 18).padding(.horizontal, 4)
 
-            formatButton("list.bullet", help: "Bulleted list", action: bridge.toggleBulletedList)
-            formatButton("list.number", help: "Numbered list", action: bridge.toggleNumberedList)
+            formatButton(
+                "list.bullet",
+                help: "Bulleted list",
+                isActive: state.isBulletedList,
+                action: bridge.toggleBulletedList
+            )
+            formatButton(
+                "list.number",
+                help: "Numbered list",
+                isActive: state.isNumberedList,
+                action: bridge.toggleNumberedList
+            )
 
             Divider().frame(height: 18).padding(.horizontal, 4)
 
-            formatButton("text.alignleft", help: "Align left", action: bridge.alignLeft)
-            formatButton("text.aligncenter", help: "Align center", action: bridge.alignCenter)
-            formatButton("text.alignright", help: "Align right", action: bridge.alignRight)
+            formatButton(
+                "text.alignleft",
+                help: "Align left",
+                isActive: state.alignment == .left || state.alignment == .natural,
+                action: bridge.alignLeft
+            )
+            formatButton(
+                "text.aligncenter",
+                help: "Align center",
+                isActive: state.alignment == .center,
+                action: bridge.alignCenter
+            )
+            formatButton(
+                "text.alignright",
+                help: "Align right",
+                isActive: state.alignment == .right,
+                action: bridge.alignRight
+            )
 
             Spacer(minLength: 0)
         }
     }
 
-    private func formatButton(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {
+    private func formatButton(
+        _ systemImage: String,
+        help: String,
+        isActive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
+                .font(.body.weight(isActive ? .semibold : .regular))
                 .frame(width: 28, height: 24)
+                .foregroundStyle(isActive ? Color.accentColor : Color.primary)
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.18))
+                    }
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         }
         .buttonStyle(.borderless)
         .help(help)
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 
 // MARK: - NSTextView host
+
+/// Rich-text view that honors standard format key equivalents while first responder.
+/// SwiftUI apps often lack the AppKit Format menu, so ⌘B / ⌘I / ⌘U would otherwise no-op.
+private final class NotesNSTextView: NSTextView {
+    weak var formatBridge: NotesTextBridge?
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Plain ⌘ only (no ⇧ / ⌥ / ⌃) so we don't steal other bindings.
+        guard flags == .command,
+              let key = event.charactersIgnoringModifiers?.lowercased(),
+              key.count == 1
+        else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch key {
+        case "b":
+            NotesTextFormatting.toggleFontTrait(.boldFontMask, on: self)
+            formatBridge?.refreshFormatState()
+            return true
+        case "i":
+            NotesTextFormatting.toggleFontTrait(.italicFontMask, on: self)
+            formatBridge?.refreshFormatState()
+            return true
+        case "u":
+            NotesTextFormatting.toggleUnderline(on: self)
+            formatBridge?.refreshFormatState()
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+
+    /// Keep the insertion point / selection in view when wrapping or typing past the clip.
+    override func didChangeText() {
+        super.didChangeText()
+        scrollCaretIntoView()
+    }
+
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if !stillSelecting {
+            scrollCaretIntoView()
+        }
+    }
+
+    func scrollCaretIntoView() {
+        let range = selectedRange()
+        // Immediate scroll, then once after layout so soft-wrap line breaks are accounted for.
+        scrollRangeToVisible(range)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.scrollRangeToVisible(self.selectedRange())
+            if let scrollView = self.enclosingScrollView {
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+            }
+        }
+    }
+}
 
 private struct NotesTextView: NSViewRepresentable {
     @Binding var text: String
@@ -409,8 +673,9 @@ private struct NotesTextView: NSViewRepresentable {
         scroll.borderType = .noBorder
         scroll.drawsBackground = true
 
-        let textView = NSTextView()
+        let textView = NotesNSTextView()
         textView.delegate = context.coordinator
+        textView.formatBridge = bridge
         textView.isRichText = true
         textView.importsGraphics = false
         textView.allowsUndo = true
@@ -446,7 +711,9 @@ private struct NotesTextView: NSViewRepresentable {
         Coordinator.load(text, into: textView)
         context.coordinator.lastExported = text
         context.coordinator.textView = textView
+        context.coordinator.bridge = bridge
         bridge.textView = textView
+        bridge.refreshFormatState()
 
         scroll.documentView = textView
         return scroll
@@ -454,17 +721,23 @@ private struct NotesTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         bridge.textView = scrollView.documentView as? NSTextView
+        if let notesView = scrollView.documentView as? NotesNSTextView {
+            notesView.formatBridge = bridge
+        }
+        context.coordinator.bridge = bridge
         guard let textView = scrollView.documentView as? NSTextView else { return }
         guard context.coordinator.isEditing == false else { return }
         guard text != context.coordinator.lastExported else { return }
         Coordinator.load(text, into: textView)
         context.coordinator.lastExported = text
+        bridge.refreshFormatState()
     }
 
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: NotesTextView
         weak var textView: NSTextView?
+        weak var bridge: NotesTextBridge?
         var isEditing = false
         var lastExported: String = ""
         private var saveWorkItem: DispatchWorkItem?
@@ -474,7 +747,10 @@ private struct NotesTextView: NSViewRepresentable {
         }
 
         nonisolated func textDidBeginEditing(_ notification: Notification) {
-            Task { @MainActor in self.isEditing = true }
+            Task { @MainActor in
+                self.isEditing = true
+                self.bridge?.refreshFormatState()
+            }
         }
 
         nonisolated func textDidEndEditing(_ notification: Notification) {
@@ -482,18 +758,28 @@ private struct NotesTextView: NSViewRepresentable {
                 self.isEditing = false
                 self.pushText()
                 self.parent.onCommit?()
+                self.bridge?.refreshFormatState()
             }
         }
 
         nonisolated func textDidChange(_ notification: Notification) {
             Task { @MainActor in
                 self.pushText()
+                self.bridge?.refreshFormatState()
+                (self.textView as? NotesNSTextView)?.scrollCaretIntoView()
                 self.saveWorkItem?.cancel()
                 let work = DispatchWorkItem { [weak self] in
                     Task { @MainActor in self?.parent.onCommit?() }
                 }
                 self.saveWorkItem = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+            }
+        }
+
+        nonisolated func textViewDidChangeSelection(_ notification: Notification) {
+            Task { @MainActor in
+                self.bridge?.refreshFormatState()
+                (self.textView as? NotesNSTextView)?.scrollCaretIntoView()
             }
         }
 
