@@ -118,9 +118,16 @@ struct ContentView: View {
                     sidebarLabel(SidebarItem.newCharacter)
                         .tag(SidebarItem.newCharacter)
                         .help(SidebarItem.newCharacter.help ?? "")
-                    sidebarLabel(SidebarItem.newRun)
-                        .tag(SidebarItem.newRun)
-                        .help(SidebarItem.newRun.help ?? "")
+                    // Button (not selection-only) so re-clicking New Run while already on
+                    // Create → New Run still mints a fresh job instead of reusing the last id.
+                    Button {
+                        requestNewRun()
+                    } label: {
+                        sidebarLabel(SidebarItem.newRun)
+                    }
+                    .buttonStyle(.plain)
+                    .tag(SidebarItem.newRun)
+                    .help(SidebarItem.newRun.help ?? "")
                     sidebarLabel(SidebarItem.importCharacter)
                         .tag(SidebarItem.importCharacter)
                         .help(SidebarItem.importCharacter.help ?? "")
@@ -158,21 +165,16 @@ struct ContentView: View {
                 // Keep the Runs badge / list in sync after create/delete from other routes.
                 refresh()
             }
-            // Sidebar Create → New Run: create once when entering this item.
-            // (File menu path calls beginNewRun() itself before setting selection.)
-            if newValue == .newRun, oldValue != .newRun, newRunDetailID == nil {
-                beginNewRun()
-            }
+            // Create → New Run is handled by requestNewRun() (sidebar button / File menu).
+            // Do not mint here: a stale newRunDetailID previously blocked creation, and
+            // pairing onChange with requestNewRun would double-create.
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newCharacter)) { _ in
             selection = .newCharacter
             selectedCharacterID = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
-            selectedCharacterID = nil
-            // Always mint a new run (even if already on .newRun).
-            beginNewRun()
-            selection = .newRun
+            requestNewRun()
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.importCharacter)) { _ in
             selection = .importCharacter
@@ -614,7 +616,15 @@ struct ContentView: View {
         return "\(summary.editionRaw) · \(summary.metatypeRaw.capitalized) · \(conceptPart)"
     }
 
-    /// Mint exactly one run and show its detail under Create → New Run.
+    /// Sidebar / File menu: always mint a new run and show its detail under Create → New Run.
+    /// Never reuses `newRunDetailID` (that caused “completed run still open” after New Run).
+    private func requestNewRun() {
+        selectedCharacterID = nil
+        beginNewRun()
+        selection = .newRun
+    }
+
+    /// Mint exactly one run and point the New Run detail at it.
     private func beginNewRun() {
         var run = Run.makeDraft(title: "New Run")
         let count = (try? libraryEnvironment.runLibrary.count()) ?? 0
@@ -729,7 +739,8 @@ struct ContentView: View {
                 break
             }
 
-            guard let runID = try libraryEnvironment.runLibrary.listSummaries().first?.id else {
+            // List is oldest-first; storyboard wants the latest minted marketing run.
+            guard let runID = try libraryEnvironment.runLibrary.listSummaries().last?.id else {
                 statusMessage = "Screenshot run GIF: no sample run"
                 return
             }
