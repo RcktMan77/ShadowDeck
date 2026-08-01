@@ -214,6 +214,21 @@ struct RunDetailView: View {
     private var overviewSection: some View {
         RunSectionCard(title: "Overview") {
             VStack(alignment: .leading, spacing: 10) {
+                LabeledContent("Ruleset") {
+                    Picker("Ruleset", selection: editionBinding) {
+                        ForEach(Edition.allCases) { edition in
+                            Text(edition.shortName).tag(edition)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 280)
+                    .help("Only runners built for this edition can be added to the team.")
+                }
+                Text("Team picks are limited to characters that match this ruleset.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
                 LabeledContent("Client / Johnson") {
                     TextField("Mr. Johnson…", text: binding(\.client))
                         .textFieldStyle(.roundedBorder)
@@ -434,22 +449,63 @@ struct RunDetailView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(characterSummaries) { summary in
-                        Toggle(isOn: participantToggle(summary.id)) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(summary.displayTitle)
-                                    .font(.body.weight(.medium))
-                                Text("\(summary.editionRaw) · \(summary.metatypeRaw.capitalized)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                let runEdition = run?.edition ?? .sr5
+                let eligible = characterSummaries.filter { $0.edition == runEdition }
+                let ineligible = characterSummaries.filter { $0.edition != runEdition }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    if eligible.isEmpty {
+                        Text("No \(runEdition.shortName) runners in the library yet. Create or import a matching character to build the team.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(runEdition.shortName) runners")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        ForEach(eligible) { summary in
+                            teamToggleRow(summary, enabled: true, reason: nil)
                         }
-                        .toggleStyle(.checkbox)
+                    }
+
+                    if !ineligible.isEmpty {
+                        DisclosureGroup("Other editions (\(ineligible.count))") {
+                            VStack(alignment: .leading, spacing: 6) {
+                                ForEach(ineligible) { summary in
+                                    teamToggleRow(
+                                        summary,
+                                        enabled: false,
+                                        reason: "Built for \(summary.editionRaw) — this run is \(runEdition.shortName)"
+                                    )
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
+                        .font(.caption)
                     }
                 }
             }
         }
+    }
+
+    private func teamToggleRow(_ summary: CharacterSummary, enabled: Bool, reason: String?) -> some View {
+        Toggle(isOn: participantToggle(summary.id, enabled: enabled)) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(summary.displayTitle)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(enabled ? .primary : .secondary)
+                Text("\(summary.editionRaw) · \(summary.metatypeRaw.capitalized)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let reason {
+                    Text(reason)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .toggleStyle(.checkbox)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.72)
     }
 
     private var sessionLogSection: some View {
@@ -689,12 +745,37 @@ struct RunDetailView: View {
         )
     }
 
-    private func participantToggle(_ id: UUID) -> Binding<Bool> {
+    private var editionBinding: Binding<Edition> {
+        Binding(
+            get: { run?.edition ?? .sr5 },
+            set: { newEdition in
+                updateRun { r in
+                    guard r.edition != newEdition else { return }
+                    r.edition = newEdition
+                    let map = Dictionary(
+                        uniqueKeysWithValues: characterSummaries.compactMap { s -> (UUID, Edition)? in
+                            guard let ed = s.edition else { return nil }
+                            return (s.id, ed)
+                        }
+                    )
+                    r.pruneIneligibleParticipants(characterEditions: map)
+                }
+            }
+        )
+    }
+
+    private func participantToggle(_ id: UUID, enabled: Bool = true) -> Binding<Bool> {
         Binding(
             get: { run?.participantCharacterIDs.contains(id) == true },
             set: { on in
+                guard enabled else { return }
                 updateRun { r in
                     if on {
+                        if let summary = characterSummaries.first(where: { $0.id == id }),
+                           summary.edition != r.edition
+                        {
+                            return
+                        }
                         if !r.participantCharacterIDs.contains(id) {
                             r.participantCharacterIDs.append(id)
                         }

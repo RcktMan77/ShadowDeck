@@ -50,6 +50,61 @@ final class RunModelTests: XCTestCase {
         XCTAssertEqual(decoded.participantCharacterIDs, [a, b])
         XCTAssertEqual(decoded.sessionLog.count, 2)
         XCTAssertEqual(decoded.schemaVersion, Run.currentSchemaVersion)
+        XCTAssertEqual(decoded.edition, .sr5)
+    }
+
+    func testLegacyRunJSONWithoutEditionDefaultsToSR5() throws {
+        // Minimal payload shaped like pre-edition runs.
+        let json = """
+        {
+          "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+          "schemaVersion": 1,
+          "title": "Legacy Job",
+          "tags": [],
+          "status": "planning",
+          "client": "",
+          "location": "",
+          "objectives": [],
+          "opposition": "",
+          "complicationsNotes": "",
+          "expectedPayout": { "nuyen": 0, "karma": 0 },
+          "heatDelta": 0,
+          "participantCharacterIDs": [],
+          "sessionLog": [],
+          "outcomeSummary": "",
+          "gmNotes": "",
+          "createdAt": "2020-01-01T00:00:00Z",
+          "modifiedAt": "2020-01-01T00:00:00Z"
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let run = try decoder.decode(Run.self, from: json)
+        XCTAssertEqual(run.edition, .sr5)
+        XCTAssertEqual(run.title, "Legacy Job")
+    }
+
+    func testPruneIneligibleParticipantsOnEditionChange() {
+        let sr4 = UUID()
+        let sr5 = UUID()
+        var run = Run.makeDraft(title: "Mixed", edition: .sr5)
+        run.participantCharacterIDs = [sr4, sr5]
+        run.pruneIneligibleParticipants(characterEditions: [sr4: .sr4, sr5: .sr5])
+        XCTAssertEqual(run.participantCharacterIDs, [sr5])
+        run.edition = .sr4
+        run.pruneIneligibleParticipants(characterEditions: [sr4: .sr4, sr5: .sr5])
+        XCTAssertEqual(run.participantCharacterIDs, [])
+        // After re-add only SR4
+        run.participantCharacterIDs = [sr4]
+        run.pruneIneligibleParticipants(characterEditions: [sr4: .sr4, sr5: .sr5])
+        XCTAssertEqual(run.participantCharacterIDs, [sr4])
+    }
+
+    func testAcceptsParticipantByEdition() {
+        let run = Run.makeDraft(title: "SR6 job", edition: .sr6)
+        XCTAssertTrue(run.acceptsParticipant(edition: .sr6))
+        XCTAssertFalse(run.acceptsParticipant(edition: .sr5))
+        XCTAssertFalse(run.acceptsParticipant(edition: nil))
     }
 
     func testNestedTypesRoundTrip() throws {
