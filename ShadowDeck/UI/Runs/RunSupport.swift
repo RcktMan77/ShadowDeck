@@ -51,6 +51,20 @@ struct RunStatusBadge: View {
     }
 }
 
+struct RunEditionBadge: View {
+    let edition: Edition
+
+    var body: some View {
+        Text(edition.shortName)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.accentColor.opacity(0.14), in: Capsule())
+            .foregroundStyle(.tint)
+            .help(edition.displayName)
+    }
+}
+
 struct RunSectionCard<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
