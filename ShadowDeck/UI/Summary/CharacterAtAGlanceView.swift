@@ -215,7 +215,8 @@ struct CharacterAtAGlanceView: View {
                 sourceLabel: resolved.label,
                 edgeRating: DicePoolResolver.edgeRating(character: c)
             ),
-            characterID: c.id
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
         )
     }
 
@@ -229,7 +230,8 @@ struct CharacterAtAGlanceView: View {
                 sourceLabel: resolved.label,
                 edgeRating: DicePoolResolver.edgeRating(character: c)
             ),
-            characterID: c.id
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
         )
     }
 
