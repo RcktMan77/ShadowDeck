@@ -169,7 +169,26 @@ public enum ChummerXMLExporter {
             xml += skillXML(skill, knowledge: true)
         }
         xml += "    </knoskills>\r\n"
+        if !c.skillGroups.isEmpty {
+            xml += "    <groups>\r\n"
+            for group in c.skillGroups where group.rating > 0 {
+                xml += "      <skillgroup>\r\n"
+                xml += elem("name", group.group.displayName, indent: 8)
+                xml += elem("base", "\(group.rating)", indent: 8)
+                xml += elem("rating", "\(group.rating)", indent: 8)
+                xml += "      </skillgroup>\r\n"
+            }
+            xml += "    </groups>\r\n"
+            included.append("skill groups")
+        }
         xml += "  </newskills>\r\n"
+
+        // Condition monitor filled boxes (play state)
+        if let track = c.conditionTrack, track.physicalDamage > 0 || track.stunDamage > 0 {
+            xml += elem("physicalcmfilled", "\(track.physicalDamage)", indent: 2)
+            xml += elem("stuncmfilled", "\(track.stunDamage)", indent: 2)
+            included.append("condition monitors")
+        }
 
         // Qualities
         xml += "  <qualities>\r\n"
@@ -272,6 +291,22 @@ public enum ChummerXMLExporter {
             if let loc = contact.location { xml += elem("location", loc, indent: 6) }
             if let g = contact.gender { xml += elem("gender", g, indent: 6) }
             if let a = contact.age { xml += elem("age", a, indent: 6) }
+            if let t = contact.contactType, !t.isEmpty {
+                xml += elem("type", t, indent: 6)
+            }
+            if let pay = contact.preferredPayment, !pay.isEmpty {
+                xml += elem("preferredpayment", pay, indent: 6)
+            }
+            if let hobby = contact.hobbiesVice, !hobby.isEmpty {
+                xml += elem("hobbiesvice", hobby, indent: 6)
+            }
+            if let life = contact.personalLife, !life.isEmpty {
+                xml += elem("personallife", life, indent: 6)
+            }
+            if !contact.notes.isEmpty {
+                xml += elem("notes", contact.notes, indent: 6)
+            }
+            // ShadowDeck-only fields (tags, favor, interaction log) intentionally omitted.
             xml += "    </contact>\r\n"
         }
         xml += "  </contacts>\r\n"
@@ -282,6 +317,10 @@ public enum ChummerXMLExporter {
             xml += elem("name", life.name, indent: 6)
             xml += elem("baselifestyle", life.level.rawValue, indent: 6)
             xml += elem("cost", "\(life.monthlyCost)", indent: 6)
+            xml += elem("months", "\(life.monthsPrepaid)", indent: 6)
+            if !life.notes.isEmpty {
+                xml += elem("notes", life.notes, indent: 6)
+            }
             xml += "    </lifestyle>\r\n"
         }
         xml += "  </lifestyles>\r\n"
@@ -322,8 +361,11 @@ public enum ChummerXMLExporter {
             xml += elem("skillcategory", "Active", indent: 8)
         }
         if let spec = skill.specialized, !spec.isEmpty {
+            // Nested form matches modern Chummer 5.x; importer accepts this + flat `<spec>`.
             xml += "        <specs>\r\n"
-            xml += elem("spec", spec, indent: 10)
+            xml += "          <spec>\r\n"
+            xml += elem("name", spec, indent: 12)
+            xml += "          </spec>\r\n"
             xml += "        </specs>\r\n"
         }
         xml += "      </skill>\r\n"

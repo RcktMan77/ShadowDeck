@@ -207,18 +207,41 @@ public enum ChummerXMLParser {
                 default: H.intValue(childText(s, "base")) + H.intValue(childText(s, "karma"))
             )
             if rating <= 0 || rating > 13 { return nil }
-            let spec = childText(s, "spec")
+            let isKnowledgeFlag = isKnowledge
+                || boolText(childText(s, "isknowledge"))
+                || boolText(childText(s, "knowledge"))
+            let isLangFlag = isLanguage
+                || boolText(childText(s, "islanguage"))
+            let spec = extractSpecialization(from: s)
             return ChummerNormalizedSkill(
                 name: name,
                 rating: rating,
-                specialized: spec.isEmpty ? nil : spec,
-                isKnowledge: isKnowledge,
-                isLanguage: isLanguage,
+                specialized: spec,
+                isKnowledge: isKnowledgeFlag,
+                isLanguage: isLangFlag,
                 skillGroup: childText(s, "skillgroup").nilIfEmpty,
                 category: category.nilIfEmpty,
                 attribute: childText(s, "attribute").nilIfEmpty
             )
         }
+    }
+
+    /// Supports flat `<spec>`, nested `<specs><spec>…</spec></specs>`, and `<specs><spec><name>…</name></spec></specs>`.
+    private static func extractSpecialization(from skill: XMLElement) -> String? {
+        let flat = childText(skill, "spec")
+        if !flat.isEmpty { return flat }
+
+        guard let specs = skill.elements(forName: "specs").first else { return nil }
+        // Prefer first non-empty named or text specialization.
+        for specEl in specs.elements(forName: "spec") {
+            let named = childText(specEl, "name")
+            if !named.isEmpty { return named }
+            let text = (specEl.stringValue ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // When nested elements exist, stringValue may include concatenated child text only — still OK.
+            if !text.isEmpty { return text }
+        }
+        return nil
     }
 
     private static func mapSkillGroups(_ c: XMLElement) -> [ChummerNormalizedSkillGroup] {

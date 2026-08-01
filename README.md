@@ -125,8 +125,7 @@ That combination is meant to be a **campaign companion** — not only a characte
 - **Run Library** — filter by status, character, and **ruleset**
 - Briefing: client, location, tags, objectives, opposition, complications
 - **Team** limited to library characters that match the run’s ruleset (others greyed with reason)
-- Session log, payout & heat, outcome notes, **suggested** equal-split awards  
-  *(applying awards to characters is a planned next step — see roadmap)*
+- Session log, payout & heat, outcome notes, suggested equal-split awards, and **Apply Awards…** (explicit commit of nuyen + karma to linked runners)
 
 ### Import & export
 | | |
@@ -169,7 +168,7 @@ A short branded splash appears (skip with click or any key). Flavor “loading�
 - **Lifestyle** is never auto-charged; process months only when you choose.
 - **Plan** spends `karmaAvailable` with edition (and house-rule) costs; Skills can still adjust ranks freely for imports/GM fiat.
 - **House Rules…** on the character identity area apply after chargen and feed validation, essence, and the **dice roller**.
-- Run **suggested awards** are planning aids until Apply Awards ships — apply karma/nuyen on each sheet when you choose.
+- Run **Apply Awards…** (on a Completed/Failed run) credits equal-split nuyen and karma to linked runners with a confirmation sheet; it is never automatic.
 - Re-import a Chummer file once if you need **byte-faithful** `.chum5` re-export of the original payload.
 
 ---
@@ -180,11 +179,10 @@ Guiding principle: **deepen existing campaign tools** and high-frequency play ai
 
 | Priority | Feature | Why | Effort |
 |----------|---------|-----|--------|
-| **1** | **Apply Run Awards** | Push suggested nuyen/karma from a completed run onto linked characters — highest leverage for the Run tracker | Small–Medium |
-| **2** | **Rules reference / quick calculators** | Searchable core reference + Drain, Overwatch, and similar calculators for daily play | Medium |
-| **3** | **Run Tracker Phase 2** | Templates, stronger contact links from runs, outcome flow, open threads | Medium |
-| **4** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
-| **5** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
+| **1** | **Rules reference / quick calculators** | Searchable core reference + Drain, Overwatch, and similar calculators for daily play | Medium |
+| **2** | **Run Tracker Phase 2** | Templates, stronger contact links from runs, outcome flow, open threads; custom award shares | Medium |
+| **3** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
+| **4** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
 
 ---
 

@@ -490,14 +490,21 @@ struct AdvancementPlannerView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(entry.summary)
                                     .font(.caption)
-                                Text(entry.date.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
+                                HStack(spacing: 6) {
+                                    Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                    if entry.kind == .runAward {
+                                        Text("Run award")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(.green.opacity(0.9))
+                                    }
+                                }
                             }
                             Spacer()
-                            Text("−\(entry.karmaSpent)")
+                            Text(ledgerKarmaLabel(entry.karmaSpent))
                                 .font(.caption.monospacedDigit().weight(.medium))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(entry.karmaSpent < 0 ? .green : .secondary)
                         }
                     }
                 }
@@ -505,6 +512,13 @@ struct AdvancementPlannerView: View {
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
+    }
+
+    /// Formats ledger karma: positive = spent (−N), negative = gained (+N).
+    private func ledgerKarmaLabel(_ karmaSpent: Int) -> String {
+        if karmaSpent > 0 { return "−\(karmaSpent)" }
+        if karmaSpent < 0 { return "+\(-karmaSpent)" }
+        return "—"
     }
 
     // MARK: - Rows
@@ -619,7 +633,7 @@ struct AdvancementPlannerView: View {
                 attribute: attr,
                 rules: rules
             )
-        case .newSkill, .other:
+        case .newSkill, .other, .runAward:
             return nil
         }
     }
@@ -741,7 +755,7 @@ struct AdvancementPlannerView: View {
                     }
                     refreshed.append(live)
                 }
-            case .other:
+            case .other, .runAward:
                 dropped = true
                 changed = true
             }
