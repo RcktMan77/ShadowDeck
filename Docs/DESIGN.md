@@ -195,7 +195,7 @@ Segmented tabs on the open character:
 | **Gear** | Inventory; equip toggles; quantity; add/remove |
 | **Augs** | Cyberware/bioware + essence costs |
 | **Qualities** | Positive/negative qualities + karma values |
-| **Contacts** | Loyalty / Connection |
+| **Contacts** | Loyalty / Connection; tags, favor standing, interaction log (enriched v1) |
 | **Magic** | Adept powers, spells, complex forms |
 
 Mutations persist immediately through `CharacterLibrary.save`.
@@ -262,6 +262,7 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-25 | Phase 4: multi-page generation wizard, live allocation, archetype showcase |
 | 2026-07-25 | Phase 5: at-a-glance character summary dashboard |
 | 2026-07-25 | Phase 6: detailed management tabs (skills, gear, augs, qualities, contacts, magic) |
+| 2026-07-31 | Enriched contacts v1: tags, manual favor standing, interaction log (historical favor snapshots), optional soft Run link; relationship status from loyalty + recency; still character-scoped |
 
 
 ## Phase 9A — Brand kit
