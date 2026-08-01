@@ -186,8 +186,6 @@ Guiding principle: **deepen existing campaign tools** and high-frequency play ai
 | **4** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
 | **5** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
 
-**Suggested sequence:** finish Dice Roller (this branch) → Apply Run Awards → lightweight Rules Reference → expand Runs → only then Combat Tracker or Shared Hub.
-
 ---
 
 ## For developers
