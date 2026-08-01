@@ -22,6 +22,6 @@ Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; st
 
 **Automation:** The capture script optimizes GIFs, builds still thumbs, generates **click-to-play posters** (play glyph on a mid-GIF frame), copies assets into this folder, then **deletes originals** from the app’s Application Support capture directory so the repo copy is the source of truth.
 
-**Click-to-play:** GitHub autoplays embedded GIFs, so the README links a static poster to the full GIF.
+**Click-to-play:** GitHub has no pause/play control for GIFs and autoplays any embedded GIF. The README uses a `<details>` / `<summary>` poster; expanding reveals the looping GIF on the same page (better than linking to the raw file browser).
 
 **Privacy:** Capture always uses an **in-memory** library seeded with sample characters only (`LibraryEnvironment.marketingCapture()`). The mission GIF creates its own run. Your on-disk personal libraries are never opened during marquee capture.
