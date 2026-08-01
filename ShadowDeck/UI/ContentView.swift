@@ -29,12 +29,13 @@ private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     }
 
     var systemImage: String {
+        // Filled variants read more like Finder / System Settings sidebar glyphs.
         switch self {
-        case .characters: "person.3"
-        case .runs: "list.clipboard"
-        case .newCharacter: "plus.circle"
-        case .newRun: "plus.rectangle.on.folder"
-        case .importCharacter: "square.and.arrow.down"
+        case .characters: "person.3.fill"
+        case .runs: "list.clipboard.fill"
+        case .newCharacter: "plus.circle.fill"
+        case .newRun: "plus.rectangle.on.folder.fill"
+        case .importCharacter: "square.and.arrow.down.fill"
         }
     }
 
@@ -63,6 +64,7 @@ struct ContentView: View {
     /// Pending library delete (confirmation dialog).
     @State private var characterPendingDelete: CharacterSummary?
     @State private var libraryQuery = ""
+    @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
     /// Run opened via Create → New Run / File → New Run (detail only; never a list host).
     @State private var newRunDetailID: UUID?
@@ -84,33 +86,50 @@ struct ContentView: View {
         }
     }
 
+    /// Finder-like sidebar row: larger hierarchical SF Symbol + body label.
+    private func sidebarLabel(_ item: SidebarItem) -> some View {
+        Label {
+            Text(item.title)
+                .font(.body)
+        } icon: {
+            Image(systemName: item.systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.primary)
+                .frame(width: 24, height: 20, alignment: .center)
+        }
+        .labelStyle(.titleAndIcon)
+    }
+
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section("Library") {
-                    Label(SidebarItem.characters.title, systemImage: SidebarItem.characters.systemImage)
+                    sidebarLabel(SidebarItem.characters)
                         .badge(summaries.count)
                         .tag(SidebarItem.characters)
                         .help(SidebarItem.characters.help ?? "")
-                    Label(SidebarItem.runs.title, systemImage: SidebarItem.runs.systemImage)
+                    sidebarLabel(SidebarItem.runs)
                         .badge(libraryEnvironment.runCount)
                         .tag(SidebarItem.runs)
                         .help(SidebarItem.runs.help ?? "")
                 }
                 Section("Create") {
-                    Label(SidebarItem.newCharacter.title, systemImage: SidebarItem.newCharacter.systemImage)
+                    sidebarLabel(SidebarItem.newCharacter)
                         .tag(SidebarItem.newCharacter)
                         .help(SidebarItem.newCharacter.help ?? "")
-                    Label(SidebarItem.newRun.title, systemImage: SidebarItem.newRun.systemImage)
+                    sidebarLabel(SidebarItem.newRun)
                         .tag(SidebarItem.newRun)
                         .help(SidebarItem.newRun.help ?? "")
-                    Label(SidebarItem.importCharacter.title, systemImage: SidebarItem.importCharacter.systemImage)
+                    sidebarLabel(SidebarItem.importCharacter)
                         .tag(SidebarItem.importCharacter)
                         .help(SidebarItem.importCharacter.help ?? "")
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240)
             .listStyle(.sidebar)
+            // Finder-like row density: slightly roomier rows for the larger glyphs.
+            .environment(\.defaultMinListRowHeight, 28)
         } detail: {
             // NavigationStack keeps the detail column a proper primary column;
             // shared min frame prevents collapse under contentMinSize sizing.
@@ -275,6 +294,16 @@ struct ContentView: View {
                 Text("Character Library")
                     .font(.title2.weight(.semibold))
                 Spacer()
+                Picker("Layout", selection: $libraryLayout) {
+                    ForEach(CharacterLibraryLayout.allCases) { layout in
+                        Label(layout.title, systemImage: layout.systemImage).tag(layout)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 180)
+                .labelsHidden()
+                .help("Switch between list and portrait gallery")
+
                 Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
                     .help("Reload the library list from disk (useful after external changes).")
                 Button("Load Samples", systemImage: "tray.and.arrow.down") { seedSamplesIfEmpty() }
@@ -348,103 +377,119 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Text("Select a runner for the at-a-glance summary.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                Text(
+                    libraryLayout == .gallery
+                        ? "Click a portrait to open the sheet. Use ⓘ to flip a card for a quick summary."
+                        : "Select a runner for the at-a-glance summary."
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-                List {
-                    ForEach(filteredSummaries) { summary in
-                        HStack(spacing: 10) {
-                            // Tappable open area — separate from action buttons.
-                            HStack(spacing: 12) {
-                                libraryPortrait(summary)
+                switch libraryLayout {
+                case .gallery:
+                    CharacterLibraryGalleryView(
+                        summaries: filteredSummaries,
+                        onOpen: { selectedCharacterID = $0.id },
+                        onExportPackage: { exportCharacter($0) },
+                        onExportPDF: { exportPDFSheet($0) },
+                        onExportChummer: { exportChummer($0) },
+                        onDelete: { characterPendingDelete = $0 }
+                    )
+                case .list:
+                    List {
+                        ForEach(filteredSummaries) { summary in
+                            HStack(spacing: 10) {
+                                // Tappable open area — separate from action buttons.
+                                HStack(spacing: 12) {
+                                    libraryPortrait(summary)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(summary.displayTitle)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    Text(librarySubtitle(for: summary))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(summary.displayTitle)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                        Text(librarySubtitle(for: summary))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer(minLength: 8)
                                 }
-                                Spacer(minLength: 8)
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedCharacterID = summary.id
-                            }
-                            .layoutPriority(1)
-
-                            // Compact trailing actions (fixed width so Menu doesn't expand).
-                            HStack(spacing: 4) {
-                                Button {
+                                .contentShape(Rectangle())
+                                .onTapGesture {
                                     selectedCharacterID = summary.id
-                                } label: {
-                                    Image(systemName: "square.and.pencil")
-                                        .font(.body)
-                                        .frame(width: 28, height: 28)
-                                        .contentShape(Rectangle())
                                 }
-                                .buttonStyle(.borderless)
-                                .help("Open \(summary.displayTitle)")
+                                .layoutPriority(1)
 
-                                Menu {
-                                    Button("ShadowDeck Package…") {
-                                        exportCharacter(summary)
+                                // Compact trailing actions (fixed width so Menu doesn't expand).
+                                HStack(spacing: 4) {
+                                    Button {
+                                        selectedCharacterID = summary.id
+                                    } label: {
+                                        Image(systemName: "square.and.pencil")
+                                            .font(.body)
+                                            .frame(width: 28, height: 28)
+                                            .contentShape(Rectangle())
                                     }
-                                    Button("PDF Character Sheet…") {
-                                        exportPDFSheet(summary)
+                                    .buttonStyle(.borderless)
+                                    .help("Open \(summary.displayTitle)")
+
+                                    Menu {
+                                        Button("ShadowDeck Package…") {
+                                            exportCharacter(summary)
+                                        }
+                                        Button("PDF Character Sheet…") {
+                                            exportPDFSheet(summary)
+                                        }
+                                        Button("Chummer .chum5…") {
+                                            exportChummer(summary)
+                                        }
+                                    } label: {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.body)
+                                            .frame(width: 28, height: 28)
+                                            .contentShape(Rectangle())
                                     }
-                                    Button("Chummer .chum5…") {
-                                        exportChummer(summary)
+                                    .menuStyle(.borderlessButton)
+                                    .menuIndicator(.hidden)
+                                    .fixedSize()
+                                    .help("Export \(summary.displayTitle)")
+
+                                    Button {
+                                        characterPendingDelete = summary
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.body)
+                                            .foregroundStyle(.red)
+                                            .frame(width: 28, height: 28)
+                                            .contentShape(Rectangle())
                                     }
-                                } label: {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.body)
-                                        .frame(width: 28, height: 28)
-                                        .contentShape(Rectangle())
+                                    .buttonStyle(.borderless)
+                                    .help("Delete \(summary.displayTitle)")
                                 }
-                                .menuStyle(.borderlessButton)
-                                .menuIndicator(.hidden)
                                 .fixedSize()
-                                .help("Export \(summary.displayTitle)")
-
-                                Button {
-                                    characterPendingDelete = summary
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.body)
-                                        .foregroundStyle(.red)
-                                        .frame(width: 28, height: 28)
-                                        .contentShape(Rectangle())
+                            }
+                            .contextMenu {
+                                Button("Open Character Sheet") {
+                                    selectedCharacterID = summary.id
                                 }
-                                .buttonStyle(.borderless)
-                                .help("Delete \(summary.displayTitle)")
-                            }
-                            .fixedSize()
-                        }
-                        .contextMenu {
-                            Button("Open Character Sheet") {
-                                selectedCharacterID = summary.id
-                            }
-                            Button("Export ShadowDeck Package…") {
-                                exportCharacter(summary)
-                            }
-                            Button("Export PDF Character Sheet…") {
-                                exportPDFSheet(summary)
-                            }
-                            Button("Export Chummer .chum5…") {
-                                exportChummer(summary)
-                            }
-                            Button("Delete…", role: .destructive) {
-                                characterPendingDelete = summary
+                                Button("Export ShadowDeck Package…") {
+                                    exportCharacter(summary)
+                                }
+                                Button("Export PDF Character Sheet…") {
+                                    exportPDFSheet(summary)
+                                }
+                                Button("Export Chummer .chum5…") {
+                                    exportChummer(summary)
+                                }
+                                Button("Delete…", role: .destructive) {
+                                    characterPendingDelete = summary
+                                }
                             }
                         }
                     }
+                    .listStyle(.inset)
+                    .frame(maxWidth: 720)
                 }
-                .listStyle(.inset)
-                .frame(maxWidth: 720)
             }
         }
         .padding(24)

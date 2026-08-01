@@ -29,7 +29,8 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
         case .qualities: "Qualities"
         case .contacts: "Contacts"
         case .lifestyle: "Lifestyle"
-        case .advance: "Advance"
+        // Tab label is "Plan"; the view title remains "Advancement Planner".
+        case .advance: "Plan"
         case .magic: "Magic"
         }
     }

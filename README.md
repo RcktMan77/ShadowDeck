@@ -38,16 +38,20 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
   </tr>
 </table>
 
-<!-- Feature GIFs -->
+<!-- Feature GIFs: poster + play affordance; click opens the full looping GIF -->
 <table align="center" width="900">
   <tr>
     <td width="50%" align="center" valign="top">
-      <img src="Docs/Screenshots/07-run-mission-flow.gif" alt="Run mission flow" width="420" /><br />
-      <sub><strong>Run / mission flow</strong> — from the Run Library, create a job, fill the briefing, link runners, log a session, complete objectives, set the outcome, then return to the library with the completed status on the run row.</sub>
+      <a href="Docs/Screenshots/07-run-mission-flow.gif" title="Click to play">
+        <img src="Docs/Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow — click to play" width="420" />
+      </a><br />
+      <sub><strong>Run / mission flow</strong> — from the Run Library, create a job, fill the briefing, link runners, log a session, complete objectives, set the outcome, then return to the library with the completed status on the run row. <em>Click to play.</em></sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <img src="Docs/Screenshots/08-advancement-planner.gif" alt="Advancement planner flow" width="420" /><br />
-      <sub><strong>Advancement Planner</strong> — scroll to skills, add raises to the plan, watch karma totals, apply, and see ranks and available karma update.</sub>
+      <a href="Docs/Screenshots/08-advancement-planner.gif" title="Click to play">
+        <img src="Docs/Screenshots/thumbs/08-advancement-planner-poster.jpg" alt="Advancement planner flow — click to play" width="420" />
+      </a><br />
+      <sub><strong>Advancement Planner</strong> — scroll to skills, add raises to the plan, watch karma totals, apply, and see ranks and available karma update. <em>Click to play.</em></sub>
     </td>
   </tr>
 </table>
@@ -65,7 +69,7 @@ ShadowDeck is an unofficial fan-made character and **campaign** companion for ta
 ### Keep a character library
 - Local **Character Library** of all your runners (search and filter)
 - **Interactive play sheet**: attributes (base + gear/aug bonuses), condition monitors, karma, nuyen, initiative, armor, dice pools
-- Tabs for skills, gear, augmentations, qualities, contacts, **lifestyle**, **Advance**, and magic
+- Tabs for skills, gear, augmentations, qualities, contacts, **lifestyle**, **Plan** (Advancement Planner), and magic
 - **Lifestyle tracker** — monthly burn, prepaid months, reserve (used first when paying), Process Month (1–3 mo), prepay, and a short payment ledger
 - **Advancement Planner** — plan skill/attribute raises with edition karma costs, session-persistent cart, Buy Now / Apply Plan, suggestions, and a short spend ledger (free rank edits on Skills remain for imports and house rulings)
 - Portraits (including animated GIF support via hybrid storage)
@@ -130,7 +134,7 @@ You’ll see a short branded splash (skip with click or any key). Loading-style 
 - **Profile fields** (contacts, attributes, gear equip) save as you go.
 - **Rich-text notes** (character notes, contacts, run GM notes / outcome fields) include a format toolbar; long text scrolls inside the editor.
 - **Lifestyle** tab surfaces due / covered / underfunded on the Summary banner; process month only when you choose (no automatic calendar charge).
-- **Advance** tab spends `karmaAvailable` with edition rules; the Skills tab can still adjust ranks without cost when you need to fix an import or apply a table ruling.
+- **Plan** tab (Advancement Planner) spends `karmaAvailable` with edition rules; the Skills tab can still adjust ranks without cost when you need to fix an import or apply a table ruling.
 - **House Rules…** on the character identity area apply after chargen and affect validation/essence ceilings.
 - Re-import a Chummer file once if you want **byte-faithful** `.chum5` re-export of that original file.
 - Run **suggested awards** are planning aids only — apply karma/nuyen on each character sheet when you choose.
