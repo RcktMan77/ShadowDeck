@@ -356,7 +356,7 @@ public enum AdvancementEngine {
                 return favoredAttrs.contains(p.targetKey)
             case .skillRaise, .newSkill:
                 return favoredSkills.contains(where: { p.targetKey.contains($0) || $0.contains(p.targetKey) })
-            case .other:
+            case .other, .runAward:
                 return false
             }
         }
@@ -419,7 +419,7 @@ public enum AdvancementEngine {
             try applyAttributeRaise(item, to: &character, rules: rules, at: date)
         case .newSkill:
             try applyNewSkill(item, to: &character, rules: rules, at: date)
-        case .other:
+        case .other, .runAward:
             throw AdvancementError.invalidRaise
         }
     }
@@ -461,7 +461,7 @@ public enum AdvancementEngine {
         case .attributeRaise: 0
         case .skillRaise: 1
         case .newSkill: 2
-        case .other: 3
+        case .other, .runAward: 3
         }
     }
 
