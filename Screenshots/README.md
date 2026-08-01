@@ -12,13 +12,16 @@ Scripts/capture_readme_screenshots.sh
 | `02-library.jpg` | Character Library |
 | `03-generation-role.jpg` | Wizard · Concept & Role |
 | `04-character-sheet.jpg` | Character play sheet (Summary) |
+| `05-dice-roller.jpg` | Skills + dice inspector after a skill roll |
 | `07-run-mission-flow.gif` | Run Library → create job → team/log/objectives → complete → library |
 | `08-advancement-planner.gif` | Advancement Planner (scroll skills → plan → apply) |
-| `thumbs/02–04-*.jpg` | Equal-size UI thumbnails (linked from README) |
-| `thumbs/*-poster.jpg` | Still first-frame posters with play overlay (README click-to-play) |
+| `thumbs/02–05-*.jpg` | Equal-size UI thumbnails (linked from README) |
+| `thumbs/*-poster.jpg` | Mid-GIF stills with play overlay (README click-to-play) |
 
-Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; run/advance storyboards capture multiple samples per step for smoother playback.
+Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; storyboards use settled keyframes plus short crossfades.
 
-**Click-to-play:** GitHub always autoplays embedded GIFs, so the README shows a static poster with a play glyph. Clicking the poster opens the full GIF.
+**Automation:** The capture script optimizes GIFs, builds still thumbs, generates **click-to-play posters** (play glyph on a mid-GIF frame), copies assets into this folder, then **deletes originals** from the app’s Application Support capture directory so the repo copy is the source of truth.
+
+**Click-to-play:** GitHub autoplays embedded GIFs, so the README links a static poster to the full GIF.
 
 **Privacy:** Capture always uses an **in-memory** library seeded with sample characters only (`LibraryEnvironment.marketingCapture()`). The mission GIF creates its own run. Your on-disk personal libraries are never opened during marquee capture.
