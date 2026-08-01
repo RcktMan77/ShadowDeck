@@ -66,6 +66,9 @@ struct CharacterAtAGlanceView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openDiceRoller)) { _ in
             openDiceRollerManual()
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingShowDiceRoller)) { _ in
+            prepareMarketingDiceRoller()
+        }
         .fileImporter(
             isPresented: $isPortraitImporterPresented,
             allowedContentTypes: [.image, .png, .jpeg, .gif, .webP, .heic, .tiff],
@@ -203,6 +206,30 @@ struct CharacterAtAGlanceView: View {
     private func openDiceRollerManual() {
         guard let c = character else { return }
         diceRoller.presentManual(character: c)
+    }
+
+    /// Marquee still: Skills tab, roller open after a skill roll, Edge options visible.
+    private func prepareMarketingDiceRoller() {
+        guard let c = character else { return }
+        sheetTab = .skills
+        let skill = c.skills
+            .filter { $0.category == .active && $0.rating > 0 }
+            .sorted { $0.rating > $1.rating }
+            .first
+            ?? c.skills.first
+        if let skill {
+            openDiceRoller(skill: skill)
+        } else {
+            openDiceRollerManual()
+        }
+        // Let the inspector open, then roll so result + Second Chance chrome appear.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            diceRoller.roll()
+            // Leave Edge remaining so Push / Second Chance options read as available.
+            if diceRoller.edgeRemaining == 0, diceRoller.edgeRating > 0 {
+                diceRoller.refreshEdge()
+            }
+        }
     }
 
     private func openDiceRoller(skill: SkillRating) {
