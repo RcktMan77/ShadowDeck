@@ -1,0 +1,48 @@
+# Lightweight SwiftLint for ShadowDeck (optional).
+# Install: brew install swiftlint
+# Run: Scripts/lint.sh
+#
+# Baseline is intentionally permissive: catch real smells without forcing a
+# mass rewrite of large SwiftUI views and layout math helpers.
+
+only_rules:
+  - empty_count
+  - first_where
+  - last_where
+  - contains_over_filter_count
+  - sorted_first_last
+  - toggle_bool
+  - yoda_condition
+  - unused_optional_binding
+  - redundant_nil_coalescing
+  - redundant_void_return
+  - redundant_discardable_let
+  - vertical_whitespace
+  - trailing_newline
+  - trailing_semicolon
+  - colon
+  - comma
+  - return_arrow_whitespace
+  - mark
+  - orphaned_doc_comment
+  - compiler_protocol_init
+  - duplicate_imports
+  - unused_closure_parameter
+  - unneeded_override
+  - unneeded_break_in_switch
+  - switch_case_alignment
+
+included:
+  - ShadowDeck
+  - ShadowDeckTests
+
+excluded:
+  - build
+  - DerivedData
+  - Scripts
+  - Docs/Screenshots
+
+vertical_whitespace:
+  max_empty_lines: 2
+
+reporter: "xcode"
