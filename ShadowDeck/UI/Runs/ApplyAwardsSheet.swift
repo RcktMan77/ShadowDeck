@@ -8,6 +8,14 @@
 
 import SwiftUI
 
+/// Payload for `sheet(item:)` so Apply Awards never presents an empty content tree.
+struct ApplyAwardsPresentation: Identifiable, Hashable {
+    let id = UUID()
+    var runTitle: String
+    var heatDelta: Int
+    var preview: AwardPreview
+}
+
 struct ApplyAwardsSheet: View {
     let runTitle: String
     let preview: AwardPreview
@@ -22,29 +30,36 @@ struct ApplyAwardsSheet: View {
     @State private var isApplying = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            totals
-            sharesList
-            if !preview.skipped.isEmpty {
-                skippedSection
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    header
+                    totals
+                    sharesList
+                    if !preview.skipped.isEmpty {
+                        skippedSection
+                    }
+                    Text("Remainder ¥/karma goes to the first listed runner. Reputation deltas are optional and per runner.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    heatNoteField
+                    noteField
+                    if !preview.canApply, !preview.blockReason.isEmpty {
+                        Text(preview.blockReason)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text("Remainder ¥/karma goes to the first listed runner. Reputation deltas are optional and per runner.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-            heatNoteField
-            noteField
-            if !preview.canApply, !preview.blockReason.isEmpty {
-                Text(preview.blockReason)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
+            Divider()
             footer
+                .padding(20)
         }
-        .padding(20)
-        .frame(minWidth: 480, idealWidth: 540, maxWidth: 620, minHeight: 420, idealHeight: 560)
+        // Firm size so macOS sheet chrome does not collapse to a blank white chip.
+        .frame(width: 540, height: 560)
         .onAppear {
             if editableShares.isEmpty {
                 editableShares = preview.perCharacter
