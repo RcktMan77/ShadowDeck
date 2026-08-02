@@ -51,8 +51,6 @@ public enum PlayerBriefingMarkdown {
         let title = displayTitle(run.title)
         lines.append("# \(title.isEmpty ? "Untitled Job" : title)")
         lines.append("")
-        lines.append("_What runners know — GM-only prep is not included._")
-        lines.append("")
 
         // Meta
         let client = run.displayClientName
@@ -130,13 +128,11 @@ public enum PlayerBriefingMarkdown {
             lines.append("")
         }
 
-        lines.append("---")
-        lines.append("")
-        lines.append(
-            "_Omitted from this briefing: GM notes, full opposition, complications, session heat, award splits, and contact secrets._"
-        )
-
-        return lines.joined(separator: "\n")
+        // Trim trailing blank lines for clean paste / PDF.
+        while lines.last?.isEmpty == true {
+            lines.removeLast()
+        }
+        return lines.joined(separator: "\n") + "\n"
     }
 
     /// Ensure readable spacing after a colon (e.g. `SRM 05-01: Chasing the Wind`).
