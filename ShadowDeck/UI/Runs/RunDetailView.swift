@@ -110,6 +110,7 @@ struct RunDetailView: View {
         .sheet(item: $playerBriefingPresentation) { presentation in
             PlayerBriefingView(
                 run: presentation.run,
+                teamNames: presentation.teamNames,
                 onDismiss: { playerBriefingPresentation = nil }
             )
         }
@@ -309,19 +310,24 @@ struct RunDetailView: View {
     // MARK: - Sticky toolbar
 
     private func stickyToolbar(_ current: Run) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Button {
                 goBack()
             } label: {
                 Label("Runs", systemImage: "chevron.left")
             }
 
-            Text(current.title.isEmpty ? "Untitled Run" : current.title)
-                .font(.headline)
-                .lineLimit(1)
-                .foregroundStyle(.secondary)
+            Text(PlayerBriefingMarkdown.displayTitle(
+                current.title.isEmpty ? "Untitled Run" : current.title
+            ))
+            .font(.headline)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .foregroundStyle(.secondary)
+            .layoutPriority(1)
+            .help(current.title.isEmpty ? "Untitled Run" : current.title)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Picker("Status", selection: statusBinding) {
                 ForEach(RunStatus.allCases) { status in
@@ -329,27 +335,41 @@ struct RunDetailView: View {
                 }
             }
             .labelsHidden()
-            .frame(maxWidth: 160)
+            .frame(width: 120)
             .help("Run status")
 
-            Button("Look up", systemImage: "book.pages") {
+            // Icon-only actions — full titles live in help tooltips (toolbar was truncating labels).
+            Button {
                 RulesReferenceOpener.request(query: "run")
+            } label: {
+                Label("Look up", systemImage: "book.pages")
             }
-            .help("Open Rules Reference for awards, heat, and downtime topics")
+            .labelStyle(.iconOnly)
+            .help("Look up — Rules Reference for awards, heat, and downtime")
 
-            Button("Player briefing", systemImage: "person.3.sequence") {
+            Button {
                 presentPlayerBriefing()
+            } label: {
+                Label("Player briefing", systemImage: "person.3.sequence")
             }
-            .help("Show a player-safe briefing and copy Markdown")
+            .labelStyle(.iconOnly)
+            .help("Player briefing — player-safe handout and Copy Markdown")
 
-            Button("Save as Template…", systemImage: "list.bullet.rectangle") {
+            Button {
                 prepareSaveAsTemplate()
+            } label: {
+                Label("Save as Template", systemImage: "list.bullet.rectangle")
             }
-            .help("Save this job’s structure as a reusable run template")
+            .labelStyle(.iconOnly)
+            .help("Save as Template — reusable job pattern")
 
-            Button("Delete", systemImage: "trash", role: .destructive) {
+            Button(role: .destructive) {
                 confirmDelete = true
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
+            .labelStyle(.iconOnly)
+            .help("Delete this run")
         }
     }
 
@@ -357,7 +377,8 @@ struct RunDetailView: View {
         guard var current = run else { return }
         commitRichTextDrafts(force: true)
         current = run ?? current
-        playerBriefingPresentation = PlayerBriefingPresentation(run: current)
+        let names = current.participantCharacterIDs.map { characterTitle($0) }
+        playerBriefingPresentation = PlayerBriefingPresentation(run: current, teamNames: names)
     }
 
     /// Scrolls with the form body — large editable title under sticky chrome.

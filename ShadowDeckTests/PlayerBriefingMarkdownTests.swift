@@ -39,18 +39,60 @@ final class PlayerBriefingMarkdownTests: XCTestCase {
     }
 
     func testRenderIncludesPlayerFacingFields() {
-        let md = PlayerBriefingMarkdown.render(sampleRun())
+        let md = PlayerBriefingMarkdown.render(
+            sampleRun(),
+            options: .init(
+                includeSecondaryObjectives: true,
+                hideFailedObjectives: true,
+                showObjectiveProgress: false,
+                teamNames: ["Kai Ellison “Ghostwire”"]
+            )
+        )
 
         XCTAssertTrue(md.contains("# SRM 5A-02: Critic's Choice"))
         XCTAssertTrue(md.contains("**Client:** Ms. Myth")) // Johnson link wins over free-text client
         XCTAssertTrue(md.contains("**Location:** Downtown Seattle"))
+        XCTAssertTrue(md.contains("**Runners:** Kai Ellison"))
         XCTAssertTrue(md.contains("## What you know"))
         XCTAssertTrue(md.contains("Meet the Johnson at Dante's"))
         XCTAssertTrue(md.contains("Secure Dr. Tate's property"))
         XCTAssertTrue(md.contains("Family Save (optional)"))
+        XCTAssertTrue(md.contains("## Pay"))
         XCTAssertTrue(md.contains("## Known risks"))
         XCTAssertTrue(md.contains("garage cameras"))
         XCTAssertTrue(md.contains("**Expected:** ¥7,050 + 6 karma") || md.contains("¥7050"))
+        // Pre-run style: no complete annotations
+        XCTAssertFalse(md.contains("_(complete)_"))
+    }
+
+    func testTitleNormalizesSpaceAfterColon() {
+        XCTAssertEqual(
+            PlayerBriefingMarkdown.displayTitle("SRM 05-01:Chasing the Wind"),
+            "SRM 05-01: Chasing the Wind"
+        )
+        XCTAssertEqual(
+            PlayerBriefingMarkdown.displayTitle("SRM 05-01:  Chasing the Wind"),
+            "SRM 05-01: Chasing the Wind"
+        )
+        let run = Run.makeDraft(title: "SRM 05-01:Chasing the Wind")
+        let md = PlayerBriefingMarkdown.render(run)
+        XCTAssertTrue(md.contains("# SRM 05-01: Chasing the Wind"))
+    }
+
+    func testShowProgressAnnotatesCompleteObjectives() {
+        var run = sampleRun()
+        run.objectives[0].status = .complete
+        let withProgress = PlayerBriefingMarkdown.render(
+            run,
+            options: .init(showObjectiveProgress: true)
+        )
+        XCTAssertTrue(withProgress.contains("_(complete)_"))
+
+        let without = PlayerBriefingMarkdown.render(
+            run,
+            options: .init(showObjectiveProgress: false)
+        )
+        XCTAssertFalse(without.contains("_(complete)_"))
     }
 
     func testRenderHidesGMOnlyFields() {
@@ -72,13 +114,21 @@ final class PlayerBriefingMarkdownTests: XCTestCase {
         let run = sampleRun()
         let hidden = PlayerBriefingMarkdown.render(
             run,
-            options: .init(includeSecondaryObjectives: true, hideFailedObjectives: true)
+            options: .init(
+                includeSecondaryObjectives: true,
+                hideFailedObjectives: true,
+                showObjectiveProgress: false
+            )
         )
         XCTAssertFalse(hidden.contains("Failed side goal"))
 
         let shown = PlayerBriefingMarkdown.render(
             run,
-            options: .init(includeSecondaryObjectives: true, hideFailedObjectives: false)
+            options: .init(
+                includeSecondaryObjectives: true,
+                hideFailedObjectives: false,
+                showObjectiveProgress: false
+            )
         )
         XCTAssertTrue(shown.contains("Failed side goal"))
     }
@@ -86,7 +136,11 @@ final class PlayerBriefingMarkdownTests: XCTestCase {
     func testExcludeSecondaryObjectives() {
         let md = PlayerBriefingMarkdown.render(
             sampleRun(),
-            options: .init(includeSecondaryObjectives: false, hideFailedObjectives: true)
+            options: .init(
+                includeSecondaryObjectives: false,
+                hideFailedObjectives: true,
+                showObjectiveProgress: false
+            )
         )
         XCTAssertTrue(md.contains("Secure Dr. Tate"))
         XCTAssertFalse(md.contains("Family Save"))
