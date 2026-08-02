@@ -14,6 +14,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case campaigns
     case runs
     case newCharacter
+    case newCampaign
     case newRun
     case importCharacter
 
@@ -25,6 +26,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .campaigns: "Campaigns"
         case .runs: "Runs"
         case .newCharacter: "New Character"
+        case .newCampaign: "New Campaign"
         case .newRun: "New Run"
         case .importCharacter: "Import New Character"
         }
@@ -36,6 +38,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
         case .newCharacter: "plus.circle.fill"
+        case .newCampaign: "folder.badge.plus"
         case .newRun: "plus.rectangle.on.folder.fill"
         case .importCharacter: "square.and.arrow.down.fill"
         }
@@ -45,6 +48,8 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         switch self {
         case .importCharacter:
             return "Import a new character from Chummer (.json / .chum5) or a .shadowdeck package"
+        case .newCampaign:
+            return "Create a campaign to group missions for a table or ruleset"
         case .newRun:
             return "Create a new mission / job in the Runs library"
         case .newCharacter:
@@ -71,6 +76,8 @@ struct ContentView: View {
     @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
     @State private var newRunDetailID: UUID?
+    /// Open this campaign detail after Create → New Campaign (or toolbar create).
+    @State private var openCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) var openWindow
@@ -81,10 +88,10 @@ struct ContentView: View {
                 selection: $selection,
                 characterCount: summaries.count,
                 campaignCount: libraryEnvironment.campaignCount,
-                runCount: libraryEnvironment.runCount
-            ) {
-                requestNewRun()
-            }
+                runCount: libraryEnvironment.runCount,
+                onNewCampaign: { requestNewCampaign() },
+                onNewRun: { requestNewRun() }
+            )
         } detail: {
             NavigationStack {
                 detail
@@ -181,7 +188,14 @@ struct ContentView: View {
     private var detail: some View {
         switch selection {
         case .campaigns:
-            CampaignsListView()
+            CampaignsListView(
+                forcedOpenCampaignID: openCampaignID,
+                onOpenedForcedCampaign: { openCampaignID = nil }
+            )
+        case .newCampaign:
+            // Create action routes through requestNewCampaign → .campaigns + detail.
+            ProgressView("Creating campaign…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
@@ -349,6 +363,27 @@ struct ContentView: View {
         selectedCharacterID = nil
         beginNewRun()
         selection = .newRun
+    }
+
+    /// Create → New Campaign (re-click always mints another campaign, like New Run).
+    private func requestNewCampaign() {
+        selectedCharacterID = nil
+        var campaign = Campaign.makeDraft(name: "New Campaign")
+        let count = (try? libraryEnvironment.campaignLibrary.count(includeArchived: true)) ?? 0
+        if count > 0 {
+            campaign.name = "New Campaign \(count + 1)"
+        }
+        do {
+            try libraryEnvironment.campaignLibrary.save(campaign)
+            libraryEnvironment.refreshCampaignCount()
+            openCampaignID = campaign.id
+            selection = .campaigns
+            statusMessage = nil
+        } catch {
+            openCampaignID = nil
+            statusMessage = "Could not create campaign: \(error.localizedDescription)"
+            selection = .campaigns
+        }
     }
 
     private func beginNewRun() {
