@@ -239,6 +239,9 @@ struct CharacterGlanceVitalsGrid: View {
                 )
                 vital("Karma Total", "\(character.karmaTotal)", "chart.line.uptrend.xyaxis")
                 vital("Nuyen", "¥\(formatInt(character.nuyen))", "yensign.circle.fill")
+                vital("Street Cred", "\(character.streetCred)", "star.circle")
+                vital("Notoriety", "\(character.notoriety)", "exclamationmark.triangle")
+                vital("Pub. Awareness", "\(character.publicAwareness)", "eye")
                 vital(
                     "Lifestyle /mo",
                     "¥\(formatInt(LifestyleTracker.burnSummary(for: character).monthlyBurn))",
