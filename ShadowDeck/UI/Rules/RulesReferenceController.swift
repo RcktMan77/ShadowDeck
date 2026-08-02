@@ -309,10 +309,12 @@ final class RulesReferenceController: ObservableObject {
         Task { @MainActor [weak self] in
             await Task.yield()
             guard let self else { return }
+            // Page + epoch first so a newly mounted reader never opens on restored p.1
+            // before the intended jump is applied.
+            self.pdfTargetPage = resolvedPage
+            self.pdfNavigationEpoch &+= 1
             if self.mode != .library { self.mode = .library }
             if self.selectedLibraryItemID != id { self.selectedLibraryItemID = id }
-            if self.pdfTargetPage != resolvedPage { self.pdfTargetPage = resolvedPage }
-            self.pdfNavigationEpoch &+= 1
             self.persistUIState()
         }
     }
@@ -365,10 +367,13 @@ final class RulesReferenceController: ObservableObject {
             await Task.yield()
             guard let self else { return }
             if self.returnToCardID != cardID { self.returnToCardID = cardID }
+            // Always assign target page (even if equal) and bump epoch so a fresh
+            // document attach re-navigates. Set page *before* selecting the book so
+            // the first mount of PDFReaderWorkspace sees the correct page.
+            self.pdfTargetPage = pdfPage
+            self.pdfNavigationEpoch &+= 1
             if self.mode != .library { self.mode = .library }
             if self.selectedLibraryItemID != itemID { self.selectedLibraryItemID = itemID }
-            if self.pdfTargetPage != pdfPage { self.pdfTargetPage = pdfPage }
-            self.pdfNavigationEpoch &+= 1
             let status: String
             if offset > 0 {
                 status = "Opened \(label) · printed p. \(printPage) → PDF p. \(pdfPage)"
