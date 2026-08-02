@@ -2,81 +2,84 @@
 //  ContentView.swift
 //  ShadowDeck
 //
-//  Root window: library list, at-a-glance summary, import, and generation.
+//  Root window: sidebar shell, detail routing, library/import/generation.
 //
 
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
+enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case characters
-    case importCharacter
+    case runs
     case newCharacter
+    case newRun
+    case importCharacter
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .characters: "Characters"
-        case .importCharacter: "Import…"
+        case .runs: "Runs"
         case .newCharacter: "New Character"
+        case .newRun: "New Run"
+        case .importCharacter: "Import New Character"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .characters: "person.3"
-        case .importCharacter: "square.and.arrow.down"
-        case .newCharacter: "plus.circle"
+        case .characters: "person.3.fill"
+        case .runs: "list.clipboard.fill"
+        case .newCharacter: "plus.circle.fill"
+        case .newRun: "plus.rectangle.on.folder.fill"
+        case .importCharacter: "square.and.arrow.down.fill"
+        }
+    }
+
+    var help: String? {
+        switch self {
+        case .importCharacter:
+            return "Import a new character from Chummer (.json / .chum5) or a .shadowdeck package"
+        case .newRun:
+            return "Create a new mission / job in the Runs library"
+        case .newCharacter:
+            return "Start the character generation wizard"
+        case .characters:
+            return "Browse characters in your library"
+        case .runs:
+            return "Browse missions and jobs"
         }
     }
 }
 
 struct ContentView: View {
-    @Environment(LibraryEnvironment.self) private var libraryEnvironment
-    @State private var selection: SidebarItem? = .characters
+    // Marketing extension (ContentView+Marketing) needs cross-file access.
+    @Environment(LibraryEnvironment.self) var libraryEnvironment
+    @State var selection: SidebarItem? = .characters
     @State private var summaries: [CharacterSummary] = []
-    @State private var statusMessage: String?
-    @State private var selectedCharacterID: UUID?
-    /// Pending library delete (confirmation dialog).
+    @State var statusMessage: String?
+    @State var selectedCharacterID: UUID?
     @State private var characterPendingDelete: CharacterSummary?
-    @State private var libraryQuery = ""
+    @State var libraryQuery = ""
+    @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
-
-    private var filteredSummaries: [CharacterSummary] {
-        let q = libraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return summaries }
-        return summaries.filter {
-            $0.displayTitle.lowercased().contains(q)
-                || $0.concept.lowercased().contains(q)
-                || $0.editionRaw.lowercased().contains(q)
-                || $0.metatypeRaw.lowercased().contains(q)
-                || $0.name.lowercased().contains(q)
-                || $0.streetName.lowercased().contains(q)
-        }
-    }
+    @State private var newRunDetailID: UUID?
+    @State var marketingOpenRunID: UUID?
+    @State var marketingForceRunListOnly = false
+    @Environment(\.openWindow) var openWindow
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
-                Section("Library") {
-                    Label(SidebarItem.characters.title, systemImage: SidebarItem.characters.systemImage)
-                        .badge(summaries.count)
-                        .tag(SidebarItem.characters)
-                    Label(SidebarItem.importCharacter.title, systemImage: SidebarItem.importCharacter.systemImage)
-                        .tag(SidebarItem.importCharacter)
-                }
-                Section("Create") {
-                    Label(SidebarItem.newCharacter.title, systemImage: SidebarItem.newCharacter.systemImage)
-                        .tag(SidebarItem.newCharacter)
-                }
+            MainSidebarView(
+                selection: $selection,
+                characterCount: summaries.count,
+                runCount: libraryEnvironment.runCount
+            ) {
+                requestNewRun()
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 240)
-            .listStyle(.sidebar)
         } detail: {
-            // NavigationStack keeps the detail column a proper primary column;
-            // shared min frame prevents collapse under contentMinSize sizing.
             NavigationStack {
                 detail
                     .frame(
@@ -93,41 +96,57 @@ struct ContentView: View {
         .onAppear { refresh() }
         .onChange(of: selection) { _, newValue in
             if newValue == .characters {
-                // Stay on summary if a character is selected; refresh list data.
                 refresh()
             } else {
                 selectedCharacterID = nil
+            }
+            if newValue == .runs {
+                refresh()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newCharacter)) { _ in
             selection = .newCharacter
             selectedCharacterID = nil
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
+            requestNewRun()
+        }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.importCharacter)) { _ in
             selection = .importCharacter
             selectedCharacterID = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openPackage)) { _ in
-            // Unified with Import… (packages, Chummer JSON, .chum5).
             selection = .importCharacter
             selectedCharacterID = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openPackageURL)) { note in
             if let url = note.object as? URL {
-                importShadowDeckPackage(from: url)
+                Task { await importShadowDeckPackage(from: url) }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: MarketingScreenshotExporter.phaseNotification)) { note in
             guard let raw = note.object as? String,
                   let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
             else { return }
-            handleMarketingPhase(phase)
+            let step = note.userInfo?["step"] as? Int
+            handleMarketingPhase(phase, step: step)
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openCharacterForScreenshots)) { note in
             if let id = note.object as? UUID {
                 selection = .characters
                 selectedCharacterID = id
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openRulesReference)) { note in
+            let query = note.userInfo?["query"] as? String
+            let edition = note.userInfo?["edition"] as? Edition
+            let calc = note.userInfo?["calcContext"] as? RulesCalcContext
+            RulesReferenceSession.shared.prepare(
+                query: query,
+                edition: edition ?? calc?.edition,
+                calcContext: calc
+            )
+            openWindow(id: RulesReferenceOpener.windowID)
         }
         .confirmationDialog(
             "Delete this character?",
@@ -150,9 +169,37 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Detail routing
+
     @ViewBuilder
     private var detail: some View {
         switch selection {
+        case .runs:
+            RunsListView(
+                forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
+                forceListOnly: marketingForceRunListOnly
+            )
+            .id(marketingForceRunListOnly ? "runs-list-only" : "runs-\(marketingOpenRunID?.uuidString ?? "list")")
+        case .newRun:
+            if let newRunDetailID {
+                RunDetailView(
+                    runID: newRunDetailID,
+                    onBack: {
+                        self.newRunDetailID = nil
+                        selection = .runs
+                        refresh()
+                    },
+                    onDeleted: {
+                        self.newRunDetailID = nil
+                        selection = .runs
+                        refresh()
+                    }
+                )
+                .id(newRunDetailID)
+            } else {
+                ProgressView("Creating run…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case .importCharacter:
             ImportView { importedID in
                 finishImport(importedID: importedID)
@@ -183,221 +230,41 @@ struct ContentView: View {
                     }
                 )
             } else {
-                charactersLibrary
-            }
-        }
-    }
-
-    private var charactersLibrary: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Character Library")
-                    .font(.title2.weight(.semibold))
-                Spacer()
-                Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
-                    .help("Reload the library list from disk (useful after external changes).")
-                Button("Load Samples", systemImage: "tray.and.arrow.down") { seedSamplesIfEmpty() }
-                    .help("If the library is empty, add one sample runner for each edition (SR4 / SR5 / SR6). Does nothing when characters already exist.")
-                Button("New Character", systemImage: "plus.circle") {
-                    selection = .newCharacter
-                }
-                Button("Import…", systemImage: "square.and.arrow.down") {
-                    selection = .importCharacter
-                }
-                .help("Import Chummer (.json / .chum5) or a .shadowdeck package")
-            }
-
-            if isLibraryDropTargeted {
-                Text("Drop to import (.json / .chum5 / .shadowdeck)")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.tint)
-            }
-
-            if !summaries.isEmpty {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Filter by name, street name, concept, edition…", text: $libraryQuery)
-                        .textFieldStyle(.plain)
-                    if !libraryQuery.isEmpty {
-                        Button {
-                            libraryQuery = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(8)
-                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                .frame(maxWidth: 480)
-            }
-
-            if let statusMessage {
-                Text(statusMessage)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let error = libraryEnvironment.lastErrorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            if summaries.isEmpty {
-                ContentUnavailableView {
-                    Label("No Characters Yet", systemImage: "person.crop.rectangle.stack")
-                } description: {
-                    Text("Create a runner with the generation wizard, import Chummer or a .shadowdeck package, or load samples.")
-                } actions: {
-                    Button("New Character") { selection = .newCharacter }
-                    Button("Import…") { selection = .importCharacter }
-                    Button("Load Samples") { seedSamplesIfEmpty() }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filteredSummaries.isEmpty {
-                ContentUnavailableView {
-                    Label("No Matches", systemImage: "line.3.horizontal.decrease.circle")
-                } description: {
-                    Text("No characters match “\(libraryQuery)”.")
-                } actions: {
-                    Button("Clear Filter") { libraryQuery = "" }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                Text("Select a runner for the at-a-glance summary.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-
-                List {
-                    ForEach(filteredSummaries) { summary in
-                        HStack(spacing: 10) {
-                            // Tappable open area — separate from action buttons.
-                            HStack(spacing: 12) {
-                                libraryPortrait(summary)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(summary.displayTitle)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    Text("\(summary.editionRaw) · \(summary.metatypeRaw.capitalized) · \(summary.concept.isEmpty ? "—" : summary.concept)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Spacer(minLength: 8)
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedCharacterID = summary.id
-                            }
-                            .layoutPriority(1)
-
-                            // Compact trailing actions (fixed width so Menu doesn't expand).
-                            HStack(spacing: 4) {
-                                Menu {
-                                    Button("ShadowDeck Package…") {
-                                        exportCharacter(summary)
-                                    }
-                                    Button("PDF Character Sheet…") {
-                                        exportPDFSheet(summary)
-                                    }
-                                    Button("Chummer .chum5…") {
-                                        exportChummer(summary)
-                                    }
-                                } label: {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.body)
-                                        .frame(width: 28, height: 28)
-                                        .contentShape(Rectangle())
-                                }
-                                .menuStyle(.borderlessButton)
-                                .menuIndicator(.hidden)
-                                .fixedSize()
-                                .help("Export \(summary.displayTitle)")
-
-                                Button {
-                                    characterPendingDelete = summary
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.body)
-                                        .foregroundStyle(.red)
-                                        .frame(width: 28, height: 28)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.borderless)
-                                .help("Delete \(summary.displayTitle)")
-                            }
-                            .fixedSize()
-                        }
-                        .contextMenu {
-                            Button("Open Summary") {
-                                selectedCharacterID = summary.id
-                            }
-                            Button("Export ShadowDeck Package…") {
-                                exportCharacter(summary)
-                            }
-                            Button("Export PDF Character Sheet…") {
-                                exportPDFSheet(summary)
-                            }
-                            Button("Export Chummer .chum5…") {
-                                exportChummer(summary)
-                            }
-                            Button("Delete…", role: .destructive) {
-                                characterPendingDelete = summary
-                            }
-                        }
-                    }
-                }
-                .listStyle(.inset)
-                .frame(maxWidth: 720)
-            }
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    isLibraryDropTargeted ? Color.accentColor : Color.clear,
-                    style: StrokeStyle(lineWidth: 2, dash: [7, 5])
+                CharacterLibraryBrowserView(
+                    summaries: summaries,
+                    libraryQuery: $libraryQuery,
+                    libraryLayout: $libraryLayout,
+                    isDropTargeted: $isLibraryDropTargeted,
+                    statusMessage: statusMessage,
+                    libraryError: libraryEnvironment.lastErrorMessage,
+                    onRefresh: { refresh() },
+                    onLoadSamples: { seedSamplesIfEmpty() },
+                    onNewCharacter: { selection = .newCharacter },
+                    onImport: { selection = .importCharacter },
+                    onOpen: { openCharacterSheet($0) },
+                    onExportPackage: { exportCharacter($0) },
+                    onExportPDF: { exportPDFSheet($0) },
+                    onExportChummer: { exportChummer($0) },
+                    onDelete: { characterPendingDelete = $0 },
+                    onDropProviders: { handleLibraryFileDrop($0) }
                 )
-        )
-        .onDrop(of: [.fileURL], isTargeted: $isLibraryDropTargeted) { providers in
-            handleLibraryFileDrop(providers)
+            }
         }
     }
 
-    /// Drag-and-drop import for the library (`.json` / `.chum5` / `.shadowdeck`).
+    // MARK: - Import / drop
+
     private func handleLibraryFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            let url: URL?
-            if let data = item as? Data {
-                url = URL(dataRepresentation: data, relativeTo: nil)
-            } else if let urlItem = item as? URL {
-                url = urlItem
-            } else if let str = item as? String {
-                url = URL(fileURLWithPath: str)
-            } else {
-                url = nil
-            }
-            guard let url else { return }
-            DispatchQueue.main.async {
-                importDroppedFile(from: url)
-            }
+        Task { @MainActor in
+            guard let url = await LibraryFileDrop.firstFileURL(from: providers) else { return }
+            await importDroppedFile(from: url)
         }
         return true
     }
 
-    private func importDroppedFile(from url: URL) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
+    private func importDroppedFile(from url: URL) async {
         do {
-            let result = try libraryEnvironment.library.importAndSave(from: url)
+            let result = try await libraryEnvironment.library.importAndSave(from: url)
             selection = .characters
             selectedCharacterID = result.character.id
             refresh()
@@ -407,32 +274,6 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
-    private func libraryPortrait(_ summary: CharacterSummary) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
-        Group {
-            if let data = summary.thumbnailData, let image = NSImage(data: data) {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    Color.secondary.opacity(0.12)
-                    Image(systemName: "person.crop.rectangle")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .frame(width: 40, height: 40)
-        .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
-        }
-    }
-
-    /// After import: open the character only when they are the sole library entry;
-    /// otherwise land on the library list so the user can choose among runners.
     private func finishImport(importedID: UUID) {
         selection = .characters
         do {
@@ -451,15 +292,36 @@ struct ContentView: View {
         }
     }
 
-    private func refresh() {
+    private func importShadowDeckPackage(from url: URL) async {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+        do {
+            // Package import is lightweight vs Chummer parse; still async for UI consistency.
+            let character = try libraryEnvironment.library.importPackage(from: url)
+            selection = .characters
+            selectedCharacterID = character.id
+            refresh()
+            statusMessage = "Opened package “\(character.displayTitle)” into the library."
+        } catch {
+            selection = .characters
+            refresh()
+            statusMessage = "Could not open package: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Library actions
+
+    func refresh() {
         do {
             summaries = try libraryEnvironment.library.listSummaries()
+            libraryEnvironment.refreshRunCount()
             if selectedCharacterID != nil,
-               !summaries.contains(where: { $0.id == selectedCharacterID })
-            {
+               !summaries.contains(where: { $0.id == selectedCharacterID }) {
                 selectedCharacterID = nil
             }
-            if selectedCharacterID == nil {
+            if selectedCharacterID == nil, selection == .characters || selection == nil {
                 statusMessage = summaries.isEmpty
                     ? "Library is empty."
                     : "\(summaries.count) character(s) in library."
@@ -469,72 +331,47 @@ struct ContentView: View {
         }
     }
 
+    private func openCharacterSheet(_ id: UUID) {
+        Task { @MainActor in
+            selectedCharacterID = id
+        }
+    }
+
+    private func requestNewRun() {
+        selectedCharacterID = nil
+        beginNewRun()
+        selection = .newRun
+    }
+
+    private func beginNewRun() {
+        var run = Run.makeDraft(title: "New Run")
+        let count = (try? libraryEnvironment.runLibrary.count()) ?? 0
+        if count > 0 {
+            run.title = "New Run \(count + 1)"
+        }
+        do {
+            try libraryEnvironment.runLibrary.save(run)
+            libraryEnvironment.refreshRunCount()
+            newRunDetailID = run.id
+            statusMessage = nil
+        } catch {
+            newRunDetailID = nil
+            statusMessage = "Could not create run: \(error.localizedDescription)"
+            selection = .runs
+        }
+    }
+
     private func seedSamplesIfEmpty() {
         do {
             if try libraryEnvironment.library.count() == 0 {
-                for sample in SampleCharacters.makeAll() {
-                    try libraryEnvironment.library.save(sample)
-                }
-                statusMessage = "Seeded sample SR4 / SR5 / SR6 characters."
+                try libraryEnvironment.seedSampleCharactersWithPortraits()
+                statusMessage = "Seeded sample SR4 / SR5 / SR6 characters with role portraits."
             } else {
                 statusMessage = "Library already has characters. Use New Character or Import."
             }
             refresh()
         } catch {
             statusMessage = "Seed failed: \(error.localizedDescription)"
-        }
-    }
-
-    /// Drive UI into known-good states for README marquee captures.
-    private func handleMarketingPhase(_ phase: MarketingScreenshotExporter.Phase) {
-        switch phase {
-        case .splash:
-            break
-        case .library:
-            // Ensure the library has something photogenic.
-            do {
-                if try libraryEnvironment.library.count() == 0 {
-                    for sample in SampleCharacters.makeAll() {
-                        try libraryEnvironment.library.save(sample)
-                    }
-                }
-            } catch {
-                statusMessage = "Screenshot seed failed: \(error.localizedDescription)"
-            }
-            selection = .characters
-            selectedCharacterID = nil
-            libraryQuery = ""
-            refresh()
-        case .generationRole:
-            selection = .newCharacter
-            selectedCharacterID = nil
-            // Wizard observes and jumps to Concept & Role.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                NotificationCenter.default.post(name: AppCommand.wizardShowRoleStep, object: nil)
-            }
-        case .characterSheet:
-            selection = .characters
-            refresh()
-            // Prefer the SR5 sample combat mage if present; else first library row.
-            let preferred = SampleCharacters.sr5ID
-            if summaries.contains(where: { $0.id == preferred }) {
-                selectedCharacterID = preferred
-            } else if let first = summaries.first?.id {
-                selectedCharacterID = first
-            } else {
-                // Seed and open SR5 sample.
-                do {
-                    for sample in SampleCharacters.makeAll() {
-                        try libraryEnvironment.library.save(sample)
-                    }
-                    refresh()
-                    selectedCharacterID = preferred
-                } catch {
-                    statusMessage = "Screenshot open failed: \(error.localizedDescription)"
-                }
-            }
-        case .finished:
-            break
         }
     }
 
@@ -549,45 +386,26 @@ struct ContentView: View {
     }
 
     private func exportCharacter(_ summary: CharacterSummary) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.shadowdeckCharacter]
-        let baseName: String = {
-            if !summary.streetName.isEmpty { return summary.streetName }
-            if !summary.name.isEmpty { return summary.name }
-            return "Runner"
-        }()
-        panel.nameFieldStringValue = "\(baseName).\(ShadowDeckFormat.fileExtension)"
-        panel.canCreateDirectories = true
-        panel.message = "Export a portable ShadowDeck character package"
-        panel.prompt = "Export"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try libraryEnvironment.library.exportPackage(id: summary.id, to: url)
-            statusMessage = "Exported \(url.lastPathComponent)."
+            statusMessage = try CharacterLibraryExportActions.exportPackage(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled save panel.
         } catch {
             statusMessage = "Export failed: \(error.localizedDescription)"
         }
     }
 
-    /// Import a portable `.shadowdeck` package into the library (File menu / double-click).
     private func exportPDFSheet(_ summary: CharacterSummary) {
         do {
-            let character = try libraryEnvironment.library.require(summary.id)
-            let report = CampaignSheetReport.build(for: character)
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [.pdf]
-            let baseName: String = {
-                if !summary.streetName.isEmpty { return summary.streetName }
-                if !summary.name.isEmpty { return summary.name }
-                return "Runner"
-            }()
-            panel.nameFieldStringValue = "\(baseName)_sheet.pdf"
-            panel.canCreateDirectories = true
-            panel.message = "Export a printable ShadowDeck character sheet (PDF)"
-            panel.prompt = "Export PDF"
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-            try CharacterSheetPDF.write(report: report, to: url)
-            statusMessage = "Exported PDF sheet for \(summary.displayTitle)."
+            statusMessage = try CharacterLibraryExportActions.exportPDFSheet(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled.
         } catch {
             statusMessage = "PDF export failed: \(error.localizedDescription)"
         }
@@ -595,47 +413,14 @@ struct ContentView: View {
 
     private func exportChummer(_ summary: CharacterSummary) {
         do {
-            let character = try libraryEnvironment.library.require(summary.id)
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [UTType(filenameExtension: "chum5") ?? .xml]
-            let baseName: String = {
-                if !summary.streetName.isEmpty { return summary.streetName }
-                if !summary.name.isEmpty { return summary.name }
-                return "Runner"
-            }()
-            panel.nameFieldStringValue = "\(baseName).chum5"
-            panel.canCreateDirectories = true
-            let hasOriginal = character.importProvenance?.originalPayload != nil
-            panel.message = hasOriginal
-                ? "Export original imported Chummer file when available"
-                : "Best-effort regenerated Chummer .chum5"
-            panel.prompt = "Export .chum5"
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-            let result = try ChummerXMLExporter.export(character, mode: .preferOriginal)
-            try result.xmlData.write(to: url, options: .atomic)
-            statusMessage = result.usedOriginalPayload
-                ? "Exported original Chummer file for \(summary.displayTitle)."
-                : "Exported regenerated Chummer file for \(summary.displayTitle)."
+            statusMessage = try CharacterLibraryExportActions.exportChummer(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled.
         } catch {
             statusMessage = "Chummer export failed: \(error.localizedDescription)"
-        }
-    }
-
-    private func importShadowDeckPackage(from url: URL) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
-        do {
-            let character = try libraryEnvironment.library.importPackage(from: url)
-            selection = .characters
-            selectedCharacterID = character.id
-            refresh()
-            statusMessage = "Opened package “\(character.displayTitle)” into the library."
-        } catch {
-            selection = .characters
-            refresh()
-            statusMessage = "Could not open package: \(error.localizedDescription)"
         }
     }
 }
