@@ -248,4 +248,4 @@ ShadowDeckTests/ # Engine-heavy unit tests (good density)
 
 ---
 
-*Cleanup PRs 1–12 applied. Follow-ups landed: ContentView + RunDetail extractions, shared PDF document session, optional SwiftLint (`.swiftlint.yml` + `Scripts/lint.sh`), concurrency notes in `Docs/CONCURRENCY.md`. Remaining optional: ContentView shell further thinning, import off-main, full Swift 6 language mode. Ask before any non-trivial deletion or architecture rewrite.*
+*Cleanup PRs 1–12 + follow-ups applied (ContentView/RunDetail extracts, shared PDF session, SwiftLint, concurrency notes). Later: **Swift 6 language mode**, comprehensive SwiftLint defaults+opt-ins, ContentView shell thinning (`MainSidebarView` / export actions / file drop), **async off-main Chummer import**. Remaining optional: further god-view splits, import progress UI polish, expand SwiftLint toward zero warnings. Ask before any non-trivial deletion or architecture rewrite.*

@@ -749,7 +749,7 @@ struct GenerationWizardView: View {
                 ("first_impression", "First Impression", .positive, 11),
                 ("sinner", "SINner (National)", .negative, 5),
                 ("allergy", "Allergy (Common, Mild)", .negative, 10),
-                ("distinctive", "Distinctive Style", .negative, 5),
+                ("distinctive", "Distinctive Style", .negative, 5)
             ]
 
             ForEach(starters, id: \.0) { item in

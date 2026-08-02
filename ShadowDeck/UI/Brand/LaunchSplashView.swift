@@ -26,7 +26,7 @@ struct LaunchSplashView: View {
         "Greasing a fixer with leftover karma…",
         "Warming the cyberdeck coils…",
         "Decrypting your SIN (again)…",
-        "Telling the bouncer you’re on the list…",
+        "Telling the bouncer you’re on the list…"
     ]
 
     /// ~1.7s per quip × 4 quips + intro/outro ≈ readable without overstaying.
@@ -54,7 +54,7 @@ struct LaunchSplashView: View {
                         colors: [
                             Color(red: 0.05, green: 0.08, blue: 0.16),
                             Color(red: 0.12, green: 0.04, blue: 0.18),
-                            Color.black,
+                            Color.black
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -66,7 +66,7 @@ struct LaunchSplashView: View {
                     colors: [
                         .black.opacity(0.55),
                         .black.opacity(0.08),
-                        .black.opacity(0.72),
+                        .black.opacity(0.72)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -103,7 +103,7 @@ struct LaunchSplashView: View {
                             LinearGradient(
                                 colors: [
                                     Color(red: 0.45, green: 0.95, blue: 1.0),
-                                    Color(red: 0.85, green: 0.35, blue: 0.95),
+                                    Color(red: 0.85, green: 0.35, blue: 0.95)
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
@@ -244,7 +244,7 @@ enum BrandFonts {
                     .deletingLastPathComponent()
                     .deletingLastPathComponent()
                     .deletingLastPathComponent()
-                    .appendingPathComponent("Resources/Fonts/\(name)"),
+                    .appendingPathComponent("Resources/Fonts/\(name)")
             ]
             for url in candidates.compactMap({ $0 }) where FileManager.default.fileExists(atPath: url.path) {
                 var error: Unmanaged<CFError>?
@@ -256,8 +256,7 @@ enum BrandFonts {
 
     static func title(size: CGFloat) -> Font {
         if NSFont(name: "Orbitron", size: size) != nil
-            || NSFont(name: "Orbitron-Bold", size: size) != nil
-        {
+            || NSFont(name: "Orbitron-Bold", size: size) != nil {
             return .custom("Orbitron", size: size).weight(.bold)
         }
         if NSFont(name: "Rajdhani-Bold", size: size) != nil {
@@ -285,8 +284,7 @@ enum BrandArtLoader {
         // Xcode may flatten Resources/Brand into the Resources root.
         if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Brand")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/Brand")
-            ?? bundle.url(forResource: name, withExtension: "jpg")
-        {
+            ?? bundle.url(forResource: name, withExtension: "jpg") {
             return NSImage(contentsOf: url)
         }
         let dev = URL(fileURLWithPath: #filePath)
@@ -299,6 +297,6 @@ enum BrandArtLoader {
 }
 
 #Preview {
-    LaunchSplashView(onDismiss: {})
+    LaunchSplashView {}
         .frame(width: 1100, height: 720)
 }

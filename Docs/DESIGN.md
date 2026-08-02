@@ -154,8 +154,9 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 
 | Tool | Detail |
 |------|--------|
-| **SwiftLint** | Optional. Config: `.swiftlint.yml` (baseline `only_rules`). Run: `Scripts/lint.sh` (`brew install swiftlint`). |
-| **Concurrency notes** | `Docs/CONCURRENCY.md` — MainActor patterns, intentional caches, PDFKit task rules. |
+| **Swift language** | **Swift 6** (`SWIFT_VERSION = 6.0`) with complete strict concurrency on the app target. |
+| **SwiftLint** | Optional comprehensive config: `.swiftlint.yml` (defaults + recommended opt-ins). Run: `Scripts/lint.sh` (`brew install swiftlint`). |
+| **Concurrency notes** | `Docs/CONCURRENCY.md` — MainActor patterns, off-main import, intentional caches, PDFKit task rules. |
 
 ## Testing Strategy
 

@@ -60,7 +60,7 @@ public struct PDFLibraryStore: Sendable {
             .appendingPathComponent("PDFLibrary", isDirectory: true)
     }
 
-    public static func loadDefault(fileManager: FileManager = .default) -> PDFLibraryStore {
+    public static func loadDefault(fileManager: FileManager = .default) -> Self {
         do {
             let root = try defaultRoot(fileManager: fileManager)
             try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
@@ -70,23 +70,23 @@ public struct PDFLibraryStore: Sendable {
             let tmp = fileManager.temporaryDirectory
                 .appendingPathComponent("ShadowDeck-PDFLibrary-Empty", isDirectory: true)
             try? fileManager.createDirectory(at: tmp, withIntermediateDirectories: true)
-            return PDFLibraryStore(items: [], rootDirectory: tmp)
+            return Self(items: [], rootDirectory: tmp)
         }
     }
 
-    public static func load(rootDirectory: URL, fileManager: FileManager = .default) -> PDFLibraryStore {
+    public static func load(rootDirectory: URL, fileManager: FileManager = .default) -> Self {
         let manifest = rootDirectory.appendingPathComponent("library.json")
         guard fileManager.fileExists(atPath: manifest.path),
               let data = try? Data(contentsOf: manifest)
         else {
-            return PDFLibraryStore(items: [], rootDirectory: rootDirectory)
+            return Self(items: [], rootDirectory: rootDirectory)
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let file = try? decoder.decode(PDFLibraryFile.self, from: data) else {
-            return PDFLibraryStore(items: [], rootDirectory: rootDirectory)
+            return Self(items: [], rootDirectory: rootDirectory)
         }
-        return PDFLibraryStore(items: file.items, rootDirectory: rootDirectory)
+        return Self(items: file.items, rootDirectory: rootDirectory)
     }
 
     // MARK: - Query

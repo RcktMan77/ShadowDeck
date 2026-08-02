@@ -59,7 +59,7 @@ public enum ModifierTarget: String, Codable, Sendable, CaseIterable, Hashable {
         }
     }
 
-    public static func fromChummerAttribute(_ raw: String) -> ModifierTarget? {
+    public static func fromChummerAttribute(_ raw: String) -> Self? {
         switch raw.uppercased() {
         case "BOD", "BODY": return .body
         case "AGI", "AGILITY": return .agility

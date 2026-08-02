@@ -49,8 +49,7 @@ public final class CharacterLibrary {
             // Backfill short library taglines for rows saved before ConceptTagline existed
             // (empty denormalized concept but full story in the payload).
             if record.concept.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               let character = try? CharacterMapper.decodePayload(record.payload)
-            {
+               let character = try? CharacterMapper.decodePayload(record.payload) {
                 let label = ConceptTagline.libraryLabel(
                     concept: character.concept,
                     background: character.background,
@@ -67,8 +66,7 @@ public final class CharacterLibrary {
             // Prefer avatar store (file/inline), then raw inline snapshot bytes.
             let full: Data? = {
                 if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
-                   !loaded.isEmpty
-                {
+                   !loaded.isEmpty {
                     return loaded
                 }
                 if let inline = record.avatarSnapshot.inlineData, !inline.isEmpty {
