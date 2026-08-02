@@ -513,7 +513,7 @@ struct RulesReferenceView: View {
     }
 
     private func readerChrome(for item: PDFLibraryItem) -> some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             AppChromeButton.labeled(
                 "All books",
                 systemImage: "chevron.left",
@@ -542,44 +542,34 @@ struct RulesReferenceView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayTitle)
-                    .font(.headline)
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(item.shelfSection.displayName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    if let key = item.bookKey, !key.isEmpty {
-                        Text(key)
-                            .font(.caption2.weight(.semibold).monospaced())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color.accentColor.opacity(0.14), in: Capsule())
-                            .foregroundStyle(.tint)
-                    } else {
-                        Text("No book key")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    if let count = item.pageCount {
-                        Text("\(count) pages")
+            // Title + more menu (rename / reveal / remove) sit together on the left.
+            HStack(alignment: .center, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.displayTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(item.shelfSection.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        if let key = item.bookKey, !key.isEmpty {
+                            Text(key)
+                                .font(.caption2.weight(.semibold).monospaced())
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1)
+                                .background(Color.accentColor.opacity(0.14), in: Capsule())
+                                .foregroundStyle(.tint)
+                        } else {
+                            Text("No book key")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        if let count = item.pageCount {
+                            Text("\(count) pages")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            // Trailing chrome: Book settings + single ellipsis more (no pull-down caret).
-            HStack(alignment: .center, spacing: 8) {
-                AppChromeButton.labeled(
-                    (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
-                    systemImage: "slider.horizontal.3",
-                    help: "Section, book key, and metadata for page chips"
-                ) {
-                    beginBookSettings(item)
                 }
 
                 Menu {
@@ -603,7 +593,17 @@ struct RulesReferenceView: View {
                 .help("More book actions")
                 .accessibilityLabel("More")
             }
-            .frame(height: AppChromeButton.chromeHeight)
+
+            Spacer(minLength: 8)
+
+            // Flush trailing: book settings only.
+            AppChromeButton.labeled(
+                (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
+                systemImage: "slider.horizontal.3",
+                help: "Section, book key, and metadata for page chips"
+            ) {
+                beginBookSettings(item)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
