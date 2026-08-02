@@ -28,7 +28,9 @@ struct CatalogBrowserView: View {
                 Text(title)
                     .font(.title2.weight(.semibold))
                 Spacer()
-                Button("Cancel", action: onCancel)
+                AppChromeButton.title("Cancel", help: "Close catalog browser") {
+                    onCancel()
+                }
             }
 
             if catalog.isLoaded && catalog.result.isEmpty {
@@ -81,7 +83,9 @@ struct CatalogBrowserView: View {
 
             HStack {
                 if allowCustom, let onCustom {
-                    Button("Custom…", action: onCustom)
+                    AppChromeButton.title("Custom…", help: "Add a custom entry not in the catalog") {
+                        onCustom()
+                    }
                 }
                 Spacer()
                 Text("\(min(rows.count, 500)) shown" + (rows.count > 500 ? " (refine search)" : ""))

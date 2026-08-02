@@ -191,24 +191,25 @@ struct DiceRollerPanel: View {
                     .strokeBorder(Color.accentColor.opacity(0.25), lineWidth: 1)
             }
 
-            Button("Refresh Edge") {
+            AppChromeButton.title(
+                "Refresh Edge",
+                help: "Restore session Edge to the character’s Edge rating"
+            ) {
                 controller.refreshEdge()
             }
-            .controlSize(.small)
-            .help("Restore session Edge to the character’s Edge rating")
         }
     }
 
     private var rollButton: some View {
-        Button {
+        AppChromeButton.title(
+            "Roll",
+            help: "Roll the dice pool",
+            style: .prominent,
+            keyEquivalent: "\r"
+        ) {
             controller.roll()
-        } label: {
-            Text("Roll")
-                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .keyboardShortcut(.defaultAction)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Result
@@ -222,12 +223,13 @@ struct DiceRollerPanel: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button {
+                AppChromeButton.labeled(
+                    "Copy",
+                    systemImage: "doc.on.doc",
+                    help: "Copy last roll result"
+                ) {
                     controller.copyLastResult()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
                 }
-                .controlSize(.small)
             }
 
             HStack(spacing: 8) {
@@ -319,25 +321,28 @@ struct DiceRollerPanel: View {
                         }
                         diceFaceRow(preview.dice)
                         HStack {
-                            Button("Cancel") {
+                            AppChromeButton.title("Cancel", help: "Discard Second Chance preview") {
                                 controller.cancelSecondChancePreview()
                             }
-                            .controlSize(.small)
-                            Button("Commit Edge") {
+                            AppChromeButton.title(
+                                "Commit Edge",
+                                help: "Spend Edge and apply Second Chance",
+                                style: .prominent
+                            ) {
                                 controller.commitSecondChance()
                             }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
                         }
                     }
                     .padding(8)
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 } else {
-                    Button("Preview Second Chance…") {
+                    AppChromeButton.title(
+                        "Preview Second Chance…",
+                        help: "Preview re-rolling non-hits for 1 Edge",
+                        isEnabled: controller.canSecondChance
+                    ) {
                         controller.previewSecondChance()
                     }
-                    .controlSize(.small)
-                    .disabled(!controller.canSecondChance)
                 }
             }
             .padding(10)
