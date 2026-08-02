@@ -301,7 +301,8 @@ struct RulesReferenceView: View {
     private func scrollTopicsList(proxy: ScrollViewProxy) {
         guard let id = controller.selectedID else { return }
         // Wait a turn so List has applied the new data/selection after Look up.
-        DispatchQueue.main.async {
+        Task { @MainActor in
+            await Task.yield()
             withAnimation(.easeInOut(duration: 0.2)) {
                 proxy.scrollTo(id, anchor: .top)
             }
