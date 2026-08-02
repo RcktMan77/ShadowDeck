@@ -35,7 +35,11 @@ struct GearManagementView: View {
             title: "Gear",
             subtitle: "Catalog items charge nuyen when added. Equipped gear applies modifiers to Summary.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Gear"
+            addLabel: "Add Gear",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "gear", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             HStack {
                 Text("Nuyen: ¥\(character.nuyen)")

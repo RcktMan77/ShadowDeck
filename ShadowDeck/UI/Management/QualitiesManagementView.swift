@@ -24,7 +24,11 @@ struct QualitiesManagementView: View {
             title: "Qualities",
             subtitle: "Catalog qualities may include attribute/skill modifiers applied on Summary.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Quality"
+            addLabel: "Add Quality",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "quality", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             if character.qualities.isEmpty {
                 ManagementEmptyState(

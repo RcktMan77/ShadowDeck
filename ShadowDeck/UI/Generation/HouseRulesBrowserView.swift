@@ -45,6 +45,10 @@ struct HouseRulesBrowserView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button("Look up", systemImage: "book.pages") {
+                    RulesReferenceOpener.request(query: "house rules")
+                }
+                .help("Open Rules Reference for dice house rules and table variants")
                 Button("Cancel", action: onCancel)
             }
 
