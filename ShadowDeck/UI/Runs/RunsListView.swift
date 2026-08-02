@@ -186,8 +186,18 @@ struct RunsListView: View {
                 .font(.title2.weight(.semibold))
             Spacer()
             Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
-            Button("New Run", systemImage: "plus.circle") { createRun() }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
+            Menu {
+                Button("New Run") { createRun() }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                Button("New Run from Template…") {
+                    NotificationCenter.default.post(name: AppCommand.newRunFromTemplate, object: nil)
+                }
+            } label: {
+                Label("New Run", systemImage: "plus.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Create a blank run or start from a template")
         }
     }
 

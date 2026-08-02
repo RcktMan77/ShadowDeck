@@ -13,6 +13,8 @@ struct ImportView: View {
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
     /// Called after a successful import when the user taps Done (e.g. return to library).
     var onFinished: ((UUID) -> Void)?
+    /// Leave without importing (or after abandoning an in-progress session).
+    var onCancel: (() -> Void)?
 
     @State private var isDropTargeted = false
     @State private var isImporting = false
@@ -20,46 +22,64 @@ struct ImportView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 0) {
+            HStack {
                 Text("Import Character")
                     .font(.title2.weight(.semibold))
-
-                Text("Import Chummer5a (`.json` / `.chum5`) or native `.shadowdeck` packages into your library. One place for all character imports — original files are never modified.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 12) {
-                    Button {
-                        presentOpenPanel()
-                    } label: {
-                        Label("Choose File…", systemImage: "folder")
+                Spacer()
+                if let onCancel {
+                    Button("Cancel") {
+                        onCancel()
                     }
-                    .keyboardShortcut("o", modifiers: [.command, .shift])
+                    .keyboardShortcut(.cancelAction)
                     .disabled(isImporting)
-
-                    if isImporting {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Importing…")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                dropZone
-
-                if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                }
-
-                if let lastResult {
-                    resultPanel(lastResult)
+                    .help("Return to the character library without importing")
                 }
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 8)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Import Chummer5a (`.json` / `.chum5`) or native `.shadowdeck` packages into your library. One place for all character imports — original files are never modified.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 12) {
+                        Button {
+                            presentOpenPanel()
+                        } label: {
+                            Label("Choose File…", systemImage: "folder")
+                        }
+                        .keyboardShortcut("o", modifiers: [.command, .shift])
+                        .disabled(isImporting)
+
+                        if isImporting {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Importing…")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    dropZone
+
+                    if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    }
+
+                    if let lastResult {
+                        resultPanel(lastResult)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
