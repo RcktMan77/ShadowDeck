@@ -71,12 +71,22 @@ struct ApplyAwardsSheet: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Apply Awards")
-                .font(.title2.weight(.semibold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Apply Awards")
+                    .font(.title2.weight(.semibold))
+                Spacer(minLength: 8)
+                AppChromeButton.labeled(
+                    "Mission reputation",
+                    systemImage: "book.pages",
+                    help: "Open Rules Reference — Street Cred, Notoriety, and Public Awareness"
+                ) {
+                    RulesReferenceOpener.request(query: "mission reputation")
+                }
+            }
             Text(runTitle.isEmpty ? "Untitled run" : runTitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("Using \(preview.sourceLabel) payout. This credits linked runners and cannot be undone from the run.")
+            Text("Using \(preview.sourceLabel) payout. This credits linked runners and cannot be undone from the run. SC / Not / PA are optional per-runner reputation deltas.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -252,28 +262,32 @@ struct ApplyAwardsSheet: View {
 
     private var footer: some View {
         HStack {
-            Button("Cancel") {
+            AppChromeButton.title(
+                "Cancel",
+                help: "Close without applying",
+                isEnabled: !isApplying
+            ) {
                 onCancel()
             }
-            .keyboardShortcut(.cancelAction)
-            .disabled(isApplying)
 
             Spacer()
 
-            Button {
+            if isApplying {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            AppChromeButton.title(
+                "Apply",
+                help: "Credit nuyen, karma, and reputation to linked runners",
+                style: .prominent,
+                isEnabled: preview.canApply && !isApplying,
+                keyEquivalent: "\r"
+            ) {
                 guard !isApplying else { return }
                 isApplying = true
                 onConfirm(editableShares, note, heatNote)
-            } label: {
-                if isApplying {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Text("Apply")
-                }
             }
-            .keyboardShortcut(.defaultAction)
-            .disabled(!preview.canApply || isApplying)
         }
     }
 }

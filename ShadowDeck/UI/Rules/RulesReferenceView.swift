@@ -196,13 +196,14 @@ struct RulesReferenceView: View {
                 Text("Open Library to browse PDFs you own. Page chips jump there when a book key is set.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                Button {
+                AppChromeButton.labeled(
+                    "Open Library",
+                    systemImage: "books.vertical.fill",
+                    help: "Browse PDFs you own in Library mode"
+                ) {
                     controller.switchMode(.library)
                     controller.backToShelf()
-                } label: {
-                    rulesSidebarLabel("Open Library", systemImage: "books.vertical.fill")
                 }
-                .buttonStyle(.plain)
             }
 
             if !controller.loadErrors.isEmpty {
@@ -385,14 +386,15 @@ struct RulesReferenceView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button {
+            AppChromeButton.labeled(
+                "Open Library & Add PDF…",
+                systemImage: "doc.badge.plus",
+                help: "Switch to Library mode and add a PDF you own"
+            ) {
                 controller.switchMode(.library)
                 controller.backToShelf()
                 isImportingPDF = true
-            } label: {
-                Label("Open Library & Add PDF…", systemImage: "doc.badge.plus")
             }
-            .font(.caption)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -490,8 +492,16 @@ struct RulesReferenceView: View {
                         } description: {
                             Text("This shelf entry’s file is missing. Remove it and add the PDF again.")
                         } actions: {
-                            Button("Back to shelf") { controller.backToShelf() }
-                            Button("Remove", role: .destructive) { removePDF(item.id) }
+                            AppChromeButton.title("Back to shelf", help: "Return to the Library shelf") {
+                                controller.backToShelf()
+                            }
+                            AppChromeButton.title(
+                                "Remove",
+                                help: "Remove this shelf entry",
+                                style: .destructive
+                            ) {
+                                removePDF(item.id)
+                            }
                         }
                     }
                 }
@@ -503,42 +513,65 @@ struct RulesReferenceView: View {
     }
 
     private func readerChrome(for item: PDFLibraryItem) -> some View {
-        HStack(spacing: 12) {
-            Button {
+        HStack(alignment: .center, spacing: 8) {
+            AppChromeButton.labeled(
+                "All books",
+                systemImage: "chevron.left",
+                help: "Back to the Library shelf (clears PDF text search)"
+            ) {
                 controller.backToShelf()
-            } label: {
-                Label("All books", systemImage: "chevron.left")
             }
-            .controlSize(.small)
-            .help("Back to the Library shelf (clears PDF text search)")
-            .accessibilityLabel("All books")
 
             if controller.canReturnToSearchResults {
-                Button {
+                AppChromeButton.labeled(
+                    "Search results",
+                    systemImage: "doc.text.magnifyingglass",
+                    help: "Back to PDF text search results"
+                ) {
                     controller.backToSearchResults()
-                } label: {
-                    Label("Search results", systemImage: "doc.text.magnifyingglass")
                 }
-                .controlSize(.small)
-                .help("Back to PDF text search results")
-                .accessibilityLabel("Back to search results")
             }
 
             if controller.canReturnToCard {
-                Button {
+                AppChromeButton.labeled(
+                    "Back to card",
+                    systemImage: "doc.text",
+                    help: "Back to the Rules Reference card"
+                ) {
                     controller.backToCard()
-                } label: {
-                    Label("Back to card", systemImage: "doc.text")
                 }
-                .controlSize(.small)
-                .help("Back to the Rules Reference card")
-                .accessibilityLabel("Back to reference card")
             }
 
+            // More menu left of title (vertically centered on title line only);
+            // subtitle sits under the title, indented past the icon.
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayTitle)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack(alignment: .center, spacing: 6) {
+                    Menu {
+                        Button("Rename…") { beginRename(item) }
+                        Button("Reveal in Finder") { revealInFinder(item) }
+                        Button("Refresh cover from page 1") { refreshCover(item.id) }
+                        Divider()
+                        Button("Remove from library", role: .destructive) {
+                            removePDF(item.id)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 22, height: 22)
+                    .help("More book actions")
+                    .accessibilityLabel("More")
+
+                    Text(item.displayTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                }
+
                 HStack(spacing: 6) {
                     Text(item.shelfSection.displayName)
                         .font(.caption2)
@@ -561,35 +594,20 @@ struct RulesReferenceView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // Align metadata under title text (22 icon + 6 spacing).
+                .padding(.leading, 28)
             }
 
             Spacer(minLength: 8)
 
-            Button {
+            // Flush trailing: book settings only.
+            AppChromeButton.labeled(
+                (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
+                systemImage: "slider.horizontal.3",
+                help: "Section, book key, and metadata for page chips"
+            ) {
                 beginBookSettings(item)
-            } label: {
-                Label(
-                    (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
-                    systemImage: "slider.horizontal.3"
-                )
             }
-            .controlSize(.small)
-            .help("Section, book key, and metadata for page chips")
-
-            Menu {
-                Button("Rename…") { beginRename(item) }
-                Button("Reveal in Finder") { revealInFinder(item) }
-                Button("Refresh cover from page 1") { refreshCover(item.id) }
-                Divider()
-                Button("Remove from library", role: .destructive) {
-                    removePDF(item.id)
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .menuStyle(.borderlessButton)
-            .frame(width: 28)
-            .help("More")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

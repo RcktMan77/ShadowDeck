@@ -40,6 +40,8 @@ struct RunDetailView: View {
     @State var marketingHighlight: String?
     /// Non-nil while Apply Awards sheet is open (`sheet(item:)` avoids blank empty sheets).
     @State var applyAwardsPresentation: ApplyAwardsPresentation?
+    /// Non-nil while player briefing sheet is open (Phase 2E).
+    @State var playerBriefingPresentation: PlayerBriefingPresentation?
     @State var showSaveAsTemplate = false
     @State var saveTemplateName = ""
     @State var showAddContactSheet = false
@@ -103,6 +105,13 @@ struct RunDetailView: View {
                 onConfirm: { shares, note, heatNote in
                     applyAwards(shares: shares, note: note, heatNote: heatNote)
                 }
+            )
+        }
+        .sheet(item: $playerBriefingPresentation) { presentation in
+            PlayerBriefingView(
+                run: presentation.run,
+                teamNames: presentation.teamNames,
+                onDismiss: { playerBriefingPresentation = nil }
             )
         }
         .sheet(isPresented: $showSaveAsTemplate) {
@@ -280,11 +289,15 @@ struct RunDetailView: View {
             // Edits still auto-save while working; this is explicit confirmation + leave.
             HStack {
                 Spacer()
-                Button("Save") {
+                AppChromeButton.title(
+                    "Save",
+                    help: "Save and return to Run Library",
+                    style: .prominent,
+                    keyEquivalent: "s",
+                    keyModifiers: .command
+                ) {
                     saveAndReturn()
                 }
-                .keyboardShortcut("s", modifiers: [.command])
-                .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -301,43 +314,72 @@ struct RunDetailView: View {
     // MARK: - Sticky toolbar
 
     private func stickyToolbar(_ current: Run) -> some View {
-        HStack(spacing: 12) {
-            Button {
+        HStack(spacing: 4) {
+            AppChromeButton.labeled("Runs", systemImage: "chevron.left", help: "Back to Run Library") {
                 goBack()
-            } label: {
-                Label("Runs", systemImage: "chevron.left")
             }
 
-            Text(current.title.isEmpty ? "Untitled Run" : current.title)
-                .font(.headline)
-                .lineLimit(1)
-                .foregroundStyle(.secondary)
+            Text(PlayerBriefingMarkdown.displayTitle(
+                current.title.isEmpty ? "Untitled Run" : current.title
+            ))
+            .font(.headline)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .foregroundStyle(.secondary)
+            .layoutPriority(1)
+            .help(current.title.isEmpty ? "Untitled Run" : current.title)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            Picker("Status", selection: statusBinding) {
-                ForEach(RunStatus.allCases) { status in
-                    Text(status.displayName).tag(status)
+            // Tight trailing cluster (matches Character sheet toolbar).
+            HStack(spacing: 4) {
+                Picker("Status", selection: statusBinding) {
+                    ForEach(RunStatus.allCases) { status in
+                        Text(status.displayName).tag(status)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 120)
+                .help("Run status")
+
+                AppChromeButton.icon(
+                    "book.pages",
+                    help: "Look up — Rules Reference for awards, heat, and downtime"
+                ) {
+                    RulesReferenceOpener.request(query: "run")
+                }
+
+                AppChromeButton.icon(
+                    "person.3.sequence",
+                    help: "Player briefing — player-safe handout and Copy Markdown"
+                ) {
+                    presentPlayerBriefing()
+                }
+
+                AppChromeButton.icon(
+                    "list.bullet.rectangle",
+                    help: "Save as Template — reusable job pattern"
+                ) {
+                    prepareSaveAsTemplate()
+                }
+
+                AppChromeButton.icon(
+                    "trash",
+                    help: "Delete this run",
+                    style: .destructive
+                ) {
+                    confirmDelete = true
                 }
             }
-            .labelsHidden()
-            .frame(maxWidth: 160)
-            .help("Run status")
-
-            Button("Look up", systemImage: "book.pages") {
-                RulesReferenceOpener.request(query: "run")
-            }
-            .help("Open Rules Reference for awards, heat, and downtime topics")
-
-            Button("Save as Template…", systemImage: "list.bullet.rectangle") {
-                prepareSaveAsTemplate()
-            }
-            .help("Save this job’s structure as a reusable run template")
-
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                confirmDelete = true
-            }
         }
+    }
+
+    func presentPlayerBriefing() {
+        guard var current = run else { return }
+        commitRichTextDrafts(force: true)
+        current = run ?? current
+        let names = current.participantCharacterIDs.map { characterTitle($0) }
+        playerBriefingPresentation = PlayerBriefingPresentation(run: current, teamNames: names)
     }
 
     /// Scrolls with the form body — large editable title under sticky chrome.
