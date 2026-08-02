@@ -29,6 +29,7 @@ public enum RunMapper {
         record.schemaVersion = run.schemaVersion
         record.createdAt = run.createdAt
         record.participantIDsJSON = try encodeParticipantIDs(run.participantCharacterIDs)
+        record.campaignIDString = run.campaignID?.uuidString
     }
 
     public static func summary(from run: Run) -> RunSummary {
@@ -42,7 +43,8 @@ public enum RunMapper {
             startedAt: run.startedAt,
             completedAt: run.completedAt,
             modifiedAt: run.modifiedAt,
-            participantCharacterIDs: run.participantCharacterIDs
+            participantCharacterIDs: run.participantCharacterIDs,
+            campaignID: run.campaignID
         )
     }
 }

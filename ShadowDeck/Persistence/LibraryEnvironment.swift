@@ -15,22 +15,41 @@ public final class LibraryEnvironment {
     public let container: ModelContainer
     public let library: CharacterLibrary
     public let runLibrary: RunLibrary
+    public let campaignLibrary: CampaignLibrary
+    public let runTemplateStore: RunTemplateStore
     public var lastErrorMessage: String?
     /// Sidebar badge — kept in sync via `refreshRunCount()`.
     public private(set) var runCount: Int = 0
+    /// Sidebar badge for non-archived campaigns.
+    public private(set) var campaignCount: Int = 0
 
-    public init(container: ModelContainer, library: CharacterLibrary, runLibrary: RunLibrary) {
+    public init(
+        container: ModelContainer,
+        library: CharacterLibrary,
+        runLibrary: RunLibrary,
+        campaignLibrary: CampaignLibrary,
+        runTemplateStore: RunTemplateStore = RunTemplateStore()
+    ) {
         self.container = container
         self.library = library
         self.runLibrary = runLibrary
+        self.campaignLibrary = campaignLibrary
+        self.runTemplateStore = runTemplateStore
         refreshRunCount()
+        refreshCampaignCount()
     }
 
     public static func live() throws -> LibraryEnvironment {
         let container = try PersistenceController.makeContainer(inMemory: false)
         let library = try PersistenceController.makeLibrary(container: container)
         let runLibrary = PersistenceController.makeRunLibrary(container: container)
-        return LibraryEnvironment(container: container, library: library, runLibrary: runLibrary)
+        let campaignLibrary = PersistenceController.makeCampaignLibrary(container: container)
+        return LibraryEnvironment(
+            container: container,
+            library: library,
+            runLibrary: runLibrary,
+            campaignLibrary: campaignLibrary
+        )
     }
 
     /// Empty in-memory library (no disk, no seed data).
@@ -40,7 +59,16 @@ public final class LibraryEnvironment {
             .appendingPathComponent("ShadowDeck-Ephemeral-Avatars-\(UUID().uuidString)", isDirectory: true)
         let library = try PersistenceController.makeLibrary(container: container, avatarRoot: temp)
         let runLibrary = PersistenceController.makeRunLibrary(container: container)
-        return LibraryEnvironment(container: container, library: library, runLibrary: runLibrary)
+        let campaignLibrary = PersistenceController.makeCampaignLibrary(container: container)
+        let templatesURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ShadowDeck-Ephemeral-Templates-\(UUID().uuidString).json")
+        return LibraryEnvironment(
+            container: container,
+            library: library,
+            runLibrary: runLibrary,
+            campaignLibrary: campaignLibrary,
+            runTemplateStore: RunTemplateStore(fileURL: templatesURL)
+        )
     }
 
     /// In-memory library with SR4/5/6 samples (no runs — the mission GIF creates one).
@@ -49,6 +77,7 @@ public final class LibraryEnvironment {
         let env = try ephemeral()
         try env.seedSampleCharactersWithPortraits()
         env.refreshRunCount()
+        env.refreshCampaignCount()
         return env
     }
 
@@ -89,5 +118,22 @@ public final class LibraryEnvironment {
 
     public func refreshRunCount() {
         runCount = (try? runLibrary.count()) ?? 0
+    }
+
+    public func refreshCampaignCount() {
+        campaignCount = (try? campaignLibrary.count(includeArchived: false)) ?? 0
+    }
+
+    /// Deletes a campaign and moves its runs to Unassigned (`campaignID = nil`).
+    public func deleteCampaignUnassigningRuns(id: UUID) throws {
+        let runs = try runLibrary.listSummaries().filter { $0.campaignID == id }
+        for summary in runs {
+            var run = try runLibrary.require(summary.id)
+            run.campaignID = nil
+            try runLibrary.save(run)
+        }
+        try campaignLibrary.delete(id: id)
+        refreshRunCount()
+        refreshCampaignCount()
     }
 }

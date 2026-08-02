@@ -159,6 +159,27 @@ public final class RunLibrary {
         changeToken &+= 1
     }
 
+    /// Runs assigned to a campaign (by denormalized / payload summary).
+    public func listSummaries(campaignID: UUID?) throws -> [RunSummary] {
+        try listSummaries().filter { $0.campaignID == campaignID }
+    }
+
+    /// Shallow duplicate: new id, Planning status, cleared awards timestamps, “Copy of …” title.
+    public func duplicate(_ id: UUID) throws -> Run {
+        var source = try require(id)
+        source.id = UUID()
+        source.title = "Copy of \(source.title)"
+        source.status = .planning
+        source.startedAt = nil
+        source.completedAt = nil
+        source.awardsAppliedAt = nil
+        source.awardsAppliedNote = nil
+        source.createdAt = Date()
+        source.modifiedAt = Date()
+        try save(source)
+        return source
+    }
+
     // MARK: - Private
 
     private func fetchRecord(id: UUID) throws -> RunRecord? {

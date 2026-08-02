@@ -17,10 +17,13 @@ struct RunsListView: View {
 
     @State private var summaries: [RunSummary] = []
     @State private var characterSummaries: [CharacterSummary] = []
+    @State private var campaignSummaries: [CampaignSummary] = []
     @State private var selectedRunID: UUID?
     @State private var statusFilter: RunStatus?
     @State private var editionFilter: Edition?
     @State private var characterFilterID: UUID?
+    /// `nil` = all campaigns; special “unassigned” uses empty UUID sentinel via filter mode.
+    @State private var campaignFilter: CampaignListFilter = .all
     @State private var statusMessage: String?
     @State private var errorMessage: String?
     @State private var runPendingDelete: RunSummary?
@@ -32,6 +35,19 @@ struct RunsListView: View {
             if let characterFilterID,
                !summary.participantCharacterIDs.contains(characterFilterID) {
                 return false
+            }
+            switch campaignFilter {
+            case .all:
+                break
+            case .unassigned:
+                if summary.campaignID != nil { return false }
+            case .campaign(let id):
+                if summary.campaignID != id { return false }
+            case .inArchivedCampaign:
+                let archivedIDs = Set(campaignSummaries.filter(\.isArchived).map(\.id))
+                guard let cid = summary.campaignID, archivedIDs.contains(cid) else {
+                    return false
+                }
             }
             return true
         }
@@ -105,12 +121,11 @@ struct RunsListView: View {
             }
 
             if summaries.isEmpty {
+                // Create via Create → New Run or the New Run toolbar button (no duplicate empty-state CTA).
                 ContentUnavailableView {
                     Label("No Runs Yet", systemImage: "list.clipboard")
                 } description: {
-                    Text("Plan jobs for your table — briefings, objectives, team, and session log.")
-                } actions: {
-                    Button("New Run") { createRun() }
+                    Text("Plan jobs for your table — briefings, objectives, team, and session log. Use Create → New Run or New Run above.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filtered.isEmpty {
@@ -123,6 +138,7 @@ struct RunsListView: View {
                         statusFilter = nil
                         editionFilter = nil
                         characterFilterID = nil
+                        campaignFilter = .all
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -133,6 +149,7 @@ struct RunsListView: View {
                             .tag(summary.id)
                             .contextMenu {
                                 Button("Open") { selectedRunID = summary.id }
+                                Button("Duplicate") { duplicateRun(summary.id) }
                                 Button("Delete…", role: .destructive) {
                                     runPendingDelete = summary
                                 }
@@ -168,14 +185,44 @@ struct RunsListView: View {
             Text("Run Library")
                 .font(.title2.weight(.semibold))
             Spacer()
-            Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
-            Button("New Run", systemImage: "plus.circle") { createRun() }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
+            AppChromeButton.labeled("Refresh", systemImage: "arrow.clockwise", help: "Reload runs") {
+                refresh()
+            }
+            // Menu keeps SwiftUI for the pull-down; chrome button is the visible face.
+            Menu {
+                Button("New Run") { createRun() }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                Button("New Run from Template…") {
+                    NotificationCenter.default.post(name: AppCommand.newRunFromTemplate, object: nil)
+                }
+                Button("Draft Run from PDF… (Experimental)") {
+                    NotificationCenter.default.post(name: AppCommand.newRunFromPDF, object: nil)
+                }
+            } label: {
+                // Match AppChromeButton.toolbar bezel via empty chrome-looking Label;
+                // Menu cannot host NSButton as label easily — use bordered style.
+                Label("New Run", systemImage: "plus.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Create a blank run or start from a template")
         }
     }
 
     private var filters: some View {
         HStack(spacing: 12) {
+            Picker("Campaign", selection: $campaignFilter) {
+                Text("All campaigns").tag(CampaignListFilter.all)
+                Text("Unassigned").tag(CampaignListFilter.unassigned)
+                if campaignSummaries.contains(where: \.isArchived) {
+                    Text("In archived campaign").tag(CampaignListFilter.inArchivedCampaign)
+                }
+                ForEach(campaignSummaries.filter { !$0.isArchived }) { summary in
+                    Text(summary.name).tag(CampaignListFilter.campaign(summary.id))
+                }
+            }
+            .frame(maxWidth: 220)
+
             Picker("Status", selection: $statusFilter) {
                 Text("All statuses").tag(Optional<RunStatus>.none)
                 ForEach(RunStatus.allCases) { status in
@@ -217,6 +264,15 @@ struct RunsListView: View {
                         .lineLimit(1)
                     RunEditionBadge(edition: summary.edition)
                     RunStatusBadge(status: summary.status)
+                    if let name = campaignName(for: summary.campaignID) {
+                        Text(name)
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 RunTagChips(tags: summary.tags)
                 HStack(spacing: 12) {
@@ -293,11 +349,20 @@ struct RunsListView: View {
         return names.joined(separator: " · ")
     }
 
+    private func campaignName(for id: UUID?) -> String? {
+        guard let id else { return nil }
+        return campaignSummaries.first { $0.id == id }?.name
+    }
+
     private func refresh() {
         do {
             summaries = try libraryEnvironment.runLibrary.listSummaries()
             characterSummaries = try libraryEnvironment.library.listSummaries()
+            campaignSummaries = try libraryEnvironment.campaignLibrary.listSummaries(
+                includeArchived: true
+            )
             libraryEnvironment.refreshRunCount()
+            libraryEnvironment.refreshCampaignCount()
             errorMessage = nil
             if selectedRunID == nil {
                 statusMessage = summaries.isEmpty
@@ -316,6 +381,12 @@ struct RunsListView: View {
         if count > 0 {
             run.title = "New Run \(count + 1)"
         }
+        if case .campaign(let id) = campaignFilter {
+            run.campaignID = id
+            if let campaign = try? libraryEnvironment.campaignLibrary.fetch(id: id) {
+                run.edition = campaign.edition
+            }
+        }
         do {
             try libraryEnvironment.runLibrary.save(run)
             libraryEnvironment.refreshRunCount()
@@ -323,6 +394,18 @@ struct RunsListView: View {
             selectedRunID = run.id
             statusMessage = "Created “\(run.title)”."
             errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func duplicateRun(_ id: UUID) {
+        do {
+            let copy = try libraryEnvironment.runLibrary.duplicate(id)
+            libraryEnvironment.refreshRunCount()
+            refresh()
+            selectedRunID = copy.id
+            statusMessage = "Duplicated as “\(copy.title)”."
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -339,4 +422,13 @@ struct RunsListView: View {
             errorMessage = error.localizedDescription
         }
     }
+}
+
+// MARK: - Campaign filter
+
+enum CampaignListFilter: Hashable {
+    case all
+    case unassigned
+    case campaign(UUID)
+    case inArchivedCampaign
 }

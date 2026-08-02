@@ -23,6 +23,9 @@ public final class RunRecord {
     /// JSON-encoded `[UUID]` for participant filter without loading payload.
     public var participantIDsJSON: Data
 
+    /// Optional campaign soft-link (denormalized for list filters). UUID string or empty.
+    public var campaignIDString: String?
+
     /// Full `Run` JSON.
     @Attribute(.externalStorage) public var payload: Data
 
@@ -35,6 +38,7 @@ public final class RunRecord {
         schemaVersion: Int,
         createdAt: Date,
         participantIDsJSON: Data,
+        campaignIDString: String? = nil,
         payload: Data
     ) {
         self.id = id
@@ -45,6 +49,7 @@ public final class RunRecord {
         self.schemaVersion = schemaVersion
         self.createdAt = createdAt
         self.participantIDsJSON = participantIDsJSON
+        self.campaignIDString = campaignIDString
         self.payload = payload
     }
 
@@ -54,6 +59,10 @@ public final class RunRecord {
 
     public var participantIDs: [UUID] {
         (try? JSONDecoder().decode([UUID].self, from: participantIDsJSON)) ?? []
+    }
+
+    public var campaignID: UUID? {
+        campaignIDString.flatMap(UUID.init(uuidString:))
     }
 
     public var summary: RunSummary {
@@ -67,7 +76,8 @@ public final class RunRecord {
             startedAt: nil,
             completedAt: nil,
             modifiedAt: modifiedAt,
-            participantCharacterIDs: participantIDs
+            participantCharacterIDs: participantIDs,
+            campaignID: campaignID
         )
     }
 }
@@ -84,6 +94,8 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
     public var completedAt: Date?
     public var modifiedAt: Date
     public var participantCharacterIDs: [UUID]
+    /// Soft campaign link (`nil` = Unassigned).
+    public var campaignID: UUID?
 
     public var participantCount: Int { participantCharacterIDs.count }
 
@@ -97,7 +109,8 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
         startedAt: Date? = nil,
         completedAt: Date? = nil,
         modifiedAt: Date,
-        participantCharacterIDs: [UUID]
+        participantCharacterIDs: [UUID],
+        campaignID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -109,5 +122,6 @@ public struct RunSummary: Identifiable, Hashable, Sendable {
         self.completedAt = completedAt
         self.modifiedAt = modifiedAt
         self.participantCharacterIDs = participantCharacterIDs
+        self.campaignID = campaignID
     }
 }
