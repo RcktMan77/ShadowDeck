@@ -179,7 +179,7 @@ Patterns already successful in Lifestyle / Advancement / Dice / Runs / Awards:
 | `xcodebuild … build` (macOS) | **Succeeded** |
 | `xcodebuild … test` | **Succeeded** |
 | Compiler warnings (app code) | None significant (only AppIntents metadata noise) |
-| SwiftLint / swift-format | **Not configured** — recommend optional later |
+| SwiftLint / swift-format | **Optional** — `.swiftlint.yml` + `Scripts/lint.sh` (install via Homebrew) |
 | Dead code auto-removal | **Not run** (no tool); inventory is manual |
 
 ---
@@ -248,4 +248,4 @@ ShadowDeckTests/ # Engine-heavy unit tests (good density)
 
 ---
 
-*Cleanup PRs 1–12 applied. Remaining optional work: further god-view splits (`ContentView`, `RunDetailView`), dual-PDF document sharing for thumbs, SwiftLint, Swift 6 MainActor audit. Ask before any non-trivial deletion or architecture rewrite.*
+*Cleanup PRs 1–12 applied. Follow-ups landed: ContentView + RunDetail extractions, shared PDF document session, optional SwiftLint (`.swiftlint.yml` + `Scripts/lint.sh`), concurrency notes in `Docs/CONCURRENCY.md`. Remaining optional: ContentView shell further thinning, import off-main, full Swift 6 language mode. Ask before any non-trivial deletion or architecture rewrite.*

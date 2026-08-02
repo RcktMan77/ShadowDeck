@@ -168,7 +168,7 @@ struct ContentView: View {
         }
         .navigationTitle("ShadowDeck")
         .onAppear { refresh() }
-        .onChange(of: selection) { oldValue, newValue in
+        .onChange(of: selection) { _, newValue in
             if newValue == .characters {
                 // Stay on summary if a character is selected; refresh list data.
                 refresh()

@@ -25,7 +25,8 @@ extension ContentView {
             marketingOpenRunID = nil
             selection = .newCharacter
             selectedCharacterID = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
                 NotificationCenter.default.post(name: AppCommand.wizardShowRoleStep, object: nil)
             }
         case .characterSheet:
@@ -40,7 +41,8 @@ extension ContentView {
             refresh()
             selectedCharacterID = SampleCharacters.sr5ID
             // Let the sheet mount, then Skills + roller with a completed skill roll.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(450))
                 NotificationCenter.default.post(name: AppCommand.marketingShowDiceRoller, object: nil)
             }
         case .runLibrary:
@@ -361,7 +363,8 @@ extension ContentView {
         var info: [AnyHashable: Any] = ["anchor": anchor]
         if let highlight { info["highlight"] = highlight }
         // Delay so views finish reload before scrolling.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
             NotificationCenter.default.post(
                 name: AppCommand.marketingFocus,
                 object: nil,
