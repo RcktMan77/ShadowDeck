@@ -38,8 +38,8 @@ struct RunDetailView: View {
     /// Marketing GIF: scroll + pulse a section so storyboard action is on-screen.
     @State var marketingAnchor: String?
     @State var marketingHighlight: String?
-    @State var showApplyAwardsSheet = false
-    @State var applyAwardsPreview: AwardPreview?
+    /// Non-nil while Apply Awards sheet is open (`sheet(item:)` avoids blank empty sheets).
+    @State var applyAwardsPresentation: ApplyAwardsPresentation?
     @State var showSaveAsTemplate = false
     @State var saveTemplateName = ""
     @State var showAddContactSheet = false
@@ -94,20 +94,16 @@ struct RunDetailView: View {
         } message: {
             Text("You’re marking this run finished without an outcome summary. You can still save — a short write-up helps later when looking up the job.")
         }
-        .sheet(isPresented: $showApplyAwardsSheet) {
-            if let preview = applyAwardsPreview, let run {
-                ApplyAwardsSheet(
-                    runTitle: run.title,
-                    preview: preview,
-                    onCancel: {
-                        showApplyAwardsSheet = false
-                        applyAwardsPreview = nil
-                    },
-                    onConfirm: { note in
-                        applyAwards(note: note)
-                    }
-                )
-            }
+        .sheet(item: $applyAwardsPresentation) { presentation in
+            ApplyAwardsSheet(
+                runTitle: presentation.runTitle,
+                preview: presentation.preview,
+                runHeatDelta: presentation.heatDelta,
+                onCancel: { applyAwardsPresentation = nil },
+                onConfirm: { shares, note, heatNote in
+                    applyAwards(shares: shares, note: note, heatNote: heatNote)
+                }
+            )
         }
         .sheet(isPresented: $showSaveAsTemplate) {
             VStack(alignment: .leading, spacing: 16) {
@@ -132,9 +128,14 @@ struct RunDetailView: View {
         .sheet(isPresented: $showAddContactSheet) {
             AddRunContactSheet(
                 characterSummaries: characterSummaries,
+                existingLinkedKeys: RunContactLinkKey.set(from: run?.contacts ?? []),
                 onCancel: { showAddContactSheet = false },
-                onAdd: { link in
-                    updateRun { $0.addContactLink(link) }
+                onAdd: { links in
+                    updateRun { r in
+                        for link in links {
+                            r.addContactLink(link)
+                        }
+                    }
                     showAddContactSheet = false
                 }
             )
@@ -622,14 +623,16 @@ struct RunDetailView: View {
             }
         }
         let preview = RunAwardApplicator.preview(run: current, charactersByID: charactersByID)
-        applyAwardsPreview = preview
-        showApplyAwardsSheet = true
+        applyAwardsPresentation = ApplyAwardsPresentation(
+            runTitle: current.title,
+            heatDelta: current.heatDelta,
+            preview: preview
+        )
     }
 
-    func applyAwards(note: String) {
+    func applyAwards(shares: [AwardShare], note: String, heatNote: String) {
         guard var current = run else {
-            showApplyAwardsSheet = false
-            applyAwardsPreview = nil
+            applyAwardsPresentation = nil
             return
         }
         commitRichTextDrafts(force: true)
@@ -649,7 +652,9 @@ struct RunDetailView: View {
             let result = try RunAwardApplicator.apply(
                 run: &current,
                 characters: &characters,
-                note: note
+                shares: shares,
+                note: note,
+                heatNote: heatNote
             )
 
             // Persist characters first, then the run (applied marker last).
@@ -666,8 +671,7 @@ struct RunDetailView: View {
                 errorMessage =
                     "Some character saves failed (\(failedSaves.joined(separator: ", "))). "
                     + "Verify those sheets before applying again — awards were not marked applied on the run."
-                showApplyAwardsSheet = false
-                applyAwardsPreview = nil
+                applyAwardsPresentation = nil
                 // Do not save run with awardsAppliedAt if character saves failed mid-way.
                 // Note: pure apply already mutated `current` in memory; reload to discard.
                 reload()
@@ -679,12 +683,10 @@ struct RunDetailView: View {
             characterSummaries = try libraryEnvironment.library.listSummaries()
             statusMessage = awardsStatusMessage(result: result, missingCount: missingIDs.count)
             errorMessage = nil
-            showApplyAwardsSheet = false
-            applyAwardsPreview = nil
+            applyAwardsPresentation = nil
         } catch {
             errorMessage = error.localizedDescription
-            showApplyAwardsSheet = false
-            applyAwardsPreview = nil
+            applyAwardsPresentation = nil
         }
     }
 
@@ -694,6 +696,12 @@ struct RunDetailView: View {
         var message =
             "Applied awards to \(result.applied.count) runner(s): "
             + "\(RunSupport.formatNuyen(nuyen)) + \(karma) karma."
+        if result.applied.contains(where: \.hasReputationDelta) {
+            message += " Reputation updated."
+        }
+        if result.heatNote != nil {
+            message += " Heat note logged."
+        }
         if !result.skipped.isEmpty || missingCount > 0 {
             message += " Skipped \(result.skipped.count) missing."
         }

@@ -27,6 +27,9 @@ final class CharacterFidelityTests: XCTestCase {
         c.karmaTotal = 40
         c.karmaAvailable = 12
         c.nuyen = 15_000
+        c.streetCred = 4
+        c.notoriety = 1
+        c.publicAwareness = 2
         c.lifestyleNuyenReserve = 2_500
         c.lifestyleLastProcessedAt = ledgerDate
         c.houseRules = HouseRules.popularTable // includes dice
@@ -74,10 +77,11 @@ final class CharacterFidelityTests: XCTestCase {
             AdvancementLedgerEntry(
                 date: ledgerDate,
                 kind: .runAward,
-                summary: "Critic’s Choice — ¥1,000 + 2 karma",
+                summary: "Critic’s Choice — ¥1,000 + 2 karma, +1 SC",
                 karmaSpent: -2,
                 nuyenDelta: 1_000,
-                relatedRunID: runID
+                relatedRunID: runID,
+                streetCredDelta: 1
             )
         ]
 
@@ -175,6 +179,9 @@ final class CharacterFidelityTests: XCTestCase {
         XCTAssertEqual(a.karmaTotal, b.karmaTotal, file: file, line: line)
         XCTAssertEqual(a.karmaAvailable, b.karmaAvailable, file: file, line: line)
         XCTAssertEqual(a.nuyen, b.nuyen, file: file, line: line)
+        XCTAssertEqual(a.streetCred, b.streetCred, file: file, line: line)
+        XCTAssertEqual(a.notoriety, b.notoriety, file: file, line: line)
+        XCTAssertEqual(a.publicAwareness, b.publicAwareness, file: file, line: line)
         XCTAssertEqual(a.lifestyleNuyenReserve, b.lifestyleNuyenReserve, file: file, line: line)
         XCTAssertEqual(a.lifestyleLastProcessedAt, b.lifestyleLastProcessedAt, file: file, line: line)
         XCTAssertEqual(a.lifestyleLedger, b.lifestyleLedger, file: file, line: line)
