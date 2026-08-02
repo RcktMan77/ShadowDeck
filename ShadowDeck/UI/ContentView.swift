@@ -24,7 +24,7 @@ private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .runs: "Runs"
         case .newCharacter: "New Character"
         case .newRun: "New Run"
-        case .importCharacter: "Import Character…"
+        case .importCharacter: "Import New Character"
         }
     }
 
@@ -42,7 +42,7 @@ private enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     var help: String? {
         switch self {
         case .importCharacter:
-            return "Import a character from Chummer (.json / .chum5) or a .shadowdeck package"
+            return "Import a new character from Chummer (.json / .chum5) or a .shadowdeck package"
         case .newRun:
             return "Create a new mission / job in the Runs library"
         case .newCharacter:
@@ -72,6 +72,7 @@ struct ContentView: View {
     @State private var marketingOpenRunID: UUID?
     /// Marketing GIF: pin RunsListView to list mode (never detail).
     @State private var marketingForceRunListOnly = false
+    @Environment(\.openWindow) private var openWindow
 
     private var filteredSummaries: [CharacterSummary] {
         let q = libraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -87,50 +88,75 @@ struct ContentView: View {
     }
 
     /// Finder-like sidebar row: larger hierarchical SF Symbol + body label.
-    private func sidebarLabel(_ item: SidebarItem) -> some View {
+    private func sidebarLabel(_ item: SidebarItem, isSelected: Bool) -> some View {
         Label {
             Text(item.title)
-                .font(.body)
+                .font(.body.weight(isSelected ? .semibold : .regular))
         } icon: {
             Image(systemName: item.systemImage)
                 .font(.system(size: 17, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.primary)
+                // Keep icons readable; selected state uses accent via the row fill.
+                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                 .frame(width: 24, height: 20, alignment: .center)
         }
         .labelStyle(.titleAndIcon)
+        .foregroundStyle(isSelected ? Color.primary : Color.primary)
+    }
+
+    /// Custom selected-row fill so accent (green) shows even when the list is not
+    /// first responder. System `List(selection:)` uses a grey “inactive” highlight
+    /// until the sidebar is clicked — which is what users saw after splash / launch.
+    private func sidebarRowBackground(isSelected: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(isSelected ? Color.accentColor.opacity(0.22) : Color.clear)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 1)
+    }
+
+    /// Button-driven sidebar item (no system selection chrome).
+    private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
+        let isSelected = selection == item
+        return Button {
+            if item == .newRun {
+                // Re-clicking New Run while already selected still mints a fresh job.
+                requestNewRun()
+            } else {
+                selection = item
+            }
+        } label: {
+            HStack(spacing: 0) {
+                sidebarLabel(item, isSelected: isSelected)
+                Spacer(minLength: 8)
+                if let badge {
+                    Text("\(badge)")
+                        .font(.body.monospacedDigit())
+                        .foregroundStyle(isSelected ? Color.secondary : Color.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(sidebarRowBackground(isSelected: isSelected))
+        .help(item.help ?? "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
+            // No `List(selection:)` — system selection greys out when the list is
+            // not first responder (common right after splash / detail focus).
+            List {
                 Section("Library") {
-                    sidebarLabel(SidebarItem.characters)
-                        .badge(summaries.count)
-                        .tag(SidebarItem.characters)
-                        .help(SidebarItem.characters.help ?? "")
-                    sidebarLabel(SidebarItem.runs)
-                        .badge(libraryEnvironment.runCount)
-                        .tag(SidebarItem.runs)
-                        .help(SidebarItem.runs.help ?? "")
+                    sidebarItem(.characters, badge: summaries.count)
+                    sidebarItem(.runs, badge: libraryEnvironment.runCount)
                 }
                 Section("Create") {
-                    sidebarLabel(SidebarItem.newCharacter)
-                        .tag(SidebarItem.newCharacter)
-                        .help(SidebarItem.newCharacter.help ?? "")
-                    // Button (not selection-only) so re-clicking New Run while already on
-                    // Create → New Run still mints a fresh job instead of reusing the last id.
-                    Button {
-                        requestNewRun()
-                    } label: {
-                        sidebarLabel(SidebarItem.newRun)
-                    }
-                    .buttonStyle(.plain)
-                    .tag(SidebarItem.newRun)
-                    .help(SidebarItem.newRun.help ?? "")
-                    sidebarLabel(SidebarItem.importCharacter)
-                        .tag(SidebarItem.importCharacter)
-                        .help(SidebarItem.importCharacter.help ?? "")
+                    sidebarItem(.newCharacter)
+                    sidebarItem(.importCharacter)
+                    sidebarItem(.newRun)
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240)
@@ -202,6 +228,17 @@ struct ContentView: View {
                 selection = .characters
                 selectedCharacterID = id
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openRulesReference)) { note in
+            let query = note.userInfo?["query"] as? String
+            let edition = note.userInfo?["edition"] as? Edition
+            let calc = note.userInfo?["calcContext"] as? RulesCalcContext
+            RulesReferenceSession.shared.prepare(
+                query: query,
+                edition: edition ?? calc?.edition,
+                calcContext: calc
+            )
+            openWindow(id: RulesReferenceOpener.windowID)
         }
         .confirmationDialog(
             "Delete this character?",
@@ -296,27 +333,24 @@ struct ContentView: View {
                 Text("Character Library")
                     .font(.title2.weight(.semibold))
                 Spacer()
+                // Icon-only view mode (Finder-style List / Gallery glyphs).
                 Picker("Layout", selection: $libraryLayout) {
                     ForEach(CharacterLibraryLayout.allCases) { layout in
-                        Label(layout.title, systemImage: layout.systemImage).tag(layout)
+                        Image(systemName: layout.systemImage)
+                            .tag(layout)
+                            .help(layout.title)
+                            .accessibilityLabel(layout.title)
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 180)
+                .frame(maxWidth: 88)
                 .labelsHidden()
-                .help("Switch between list and portrait gallery")
+                .help("List or Gallery view")
 
                 Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
                     .help("Reload the library list from disk (useful after external changes).")
                 Button("Load Samples", systemImage: "tray.and.arrow.down") { seedSamplesIfEmpty() }
                     .help("If the library is empty, add one sample runner for each edition (SR4 / SR5 / SR6). Does nothing when characters already exist.")
-                Button("New Character", systemImage: "plus.circle") {
-                    selection = .newCharacter
-                }
-                Button("Import…", systemImage: "square.and.arrow.down") {
-                    selection = .importCharacter
-                }
-                .help("Import Chummer (.json / .chum5) or a .shadowdeck package")
             }
 
             if isLibraryDropTargeted {
@@ -391,7 +425,7 @@ struct ContentView: View {
                 case .gallery:
                     CharacterLibraryGalleryView(
                         summaries: filteredSummaries,
-                        onOpen: { selectedCharacterID = $0.id },
+                        onOpen: { openCharacterSheet($0.id) },
                         onExportPackage: { exportCharacter($0) },
                         onExportPDF: { exportPDFSheet($0) },
                         onExportChummer: { exportChummer($0) },
@@ -418,14 +452,14 @@ struct ContentView: View {
                                 }
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    selectedCharacterID = summary.id
+                                    openCharacterSheet(summary.id)
                                 }
                                 .layoutPriority(1)
 
                                 // Compact trailing actions (fixed width so Menu doesn't expand).
                                 HStack(spacing: 4) {
                                     Button {
-                                        selectedCharacterID = summary.id
+                                        openCharacterSheet(summary.id)
                                     } label: {
                                         Image(systemName: "square.and.pencil")
                                             .font(.body)
@@ -472,7 +506,7 @@ struct ContentView: View {
                             }
                             .contextMenu {
                                 Button("Open Character Sheet") {
-                                    selectedCharacterID = summary.id
+                                    openCharacterSheet(summary.id)
                                 }
                                 Button("Export ShadowDeck Package…") {
                                     exportCharacter(summary)
@@ -620,6 +654,14 @@ struct ContentView: View {
         let tag = summary.concept.trimmingCharacters(in: .whitespacesAndNewlines)
         let conceptPart = tag.isEmpty ? "—" : tag
         return "\(summary.editionRaw) · \(summary.metatypeRaw.capitalized) · \(conceptPart)"
+    }
+
+    /// Open the character sheet after the current view update finishes.
+    /// Avoids “Publishing changes within view updates” when navigating from gallery/list actions.
+    private func openCharacterSheet(_ id: UUID) {
+        Task { @MainActor in
+            selectedCharacterID = id
+        }
     }
 
     /// Sidebar / File menu: always mint a new run and show its detail under Create → New Run.

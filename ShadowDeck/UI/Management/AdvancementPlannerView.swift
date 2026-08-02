@@ -103,7 +103,11 @@ struct AdvancementPlannerView: View {
             title: "Advancement Planner",
             subtitle: "Raise skills and attributes with edition karma costs. The Skills tab can still adjust ranks without cost for imports or house rulings.",
             onAdd: { showNewSkill = true },
-            addLabel: "New Skill…"
+            addLabel: "New Skill…",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "karma", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 if let errorMessage {

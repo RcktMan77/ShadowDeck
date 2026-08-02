@@ -33,6 +33,10 @@ struct MagicManagementView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    Button("Look up", systemImage: "book.pages") {
+                        RulesReferenceOpener.request(query: "magic", character: character)
+                    }
+                    .help("Open Rules Reference for Drain, spirits, adepts, and astral topics (⌘R)")
                 }
 
                 powersSection
