@@ -405,154 +405,23 @@ struct RulesReferenceView: View {
         if controller.selectedPDFItem != nil {
             libraryReader
         } else {
-            libraryShelf
+            LibraryShelfBrowseView(
+                controller: controller,
+                isImportingPDF: $isImportingPDF,
+                isShelfDropTargeted: $isShelfDropTargeted,
+                libraryError: libraryError,
+                coverURL: { coverURL(for: $0) },
+                onOpen: { openBookDeferred($0.id) },
+                onBookSettings: { beginBookSettings($0) },
+                onRename: { beginRename($0) },
+                onReveal: { revealInFinder($0) },
+                onRemove: { removePDF($0.id) },
+                onDropProviders: { handleShelfFileDrop($0) }
+            )
         }
     }
 
-    // MARK: Shelf (browse phase)
-
-    private var libraryShelf: some View {
-        VStack(spacing: 0) {
-            shelfToolbar
-            Divider()
-            statusBanners
-            shelfBody
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onDrop(of: [.fileURL], isTargeted: $isShelfDropTargeted) { providers in
-            handleShelfFileDrop(providers)
-        }
-        .overlay {
-            if isShelfDropTargeted {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
-                    .padding(8)
-                    .allowsHitTesting(false)
-            }
-        }
-    }
-
-    private var shelfToolbar: some View {
-        // Single row: Filter (left) · Search inside PDFs (center) · chrome (right).
-        HStack(alignment: .center, spacing: 12) {
-            shelfSearchField
-
-            HStack(spacing: 8) {
-                shelfTextSearchField
-                if controller.libraryTextSearching {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-                Button("Search") {
-                    controller.runLibraryTextSearch()
-                }
-                .controlSize(.small)
-                .disabled(
-                    controller.libraryTextQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || controller.libraryTextSearching
-                )
-                if controller.libraryTextSearchActive || !controller.libraryTextQuery.isEmpty {
-                    Button("Clear") {
-                        controller.clearLibraryTextSearch()
-                    }
-                    .controlSize(.small)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            shelfChromeControls
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-    }
-
-    private var shelfChromeControls: some View {
-        HStack(spacing: 12) {
-            Picker("Layout", selection: Binding(
-                get: { controller.libraryLayout },
-                set: { controller.libraryLayout = $0; controller.persistUIState() }
-            )) {
-                ForEach(LibraryShelfLayout.allCases) { layout in
-                    Image(systemName: layout.systemImage)
-                        .tag(layout)
-                        .help(layout.title)
-                        .accessibilityLabel(layout.title)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 88)
-            .labelsHidden()
-            .help("List or Gallery view")
-
-            Picker("Sort", selection: Binding(
-                get: { controller.librarySort },
-                set: { controller.librarySort = $0; controller.persistUIState() }
-            )) {
-                ForEach(LibraryShelfSort.allCases) { sort in
-                    Text(sort.menuLabel).tag(sort)
-                }
-            }
-            .pickerStyle(.menu)
-            .frame(maxWidth: 140)
-            .controlSize(.small)
-            .help("Sort within each section")
-
-            Button {
-                isImportingPDF = true
-            } label: {
-                Label("Add PDF…", systemImage: "doc.badge.plus")
-            }
-            .controlSize(.small)
-        }
-    }
-
-    /// Equal widths so Filter and Search sit on one baseline.
-    private var shelfFieldWidth: CGFloat { 240 }
-
-    private var shelfSearchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Filter books…", text: $controller.libraryFilter)
-                .textFieldStyle(.plain)
-            if !controller.libraryFilter.isEmpty {
-                Button {
-                    Task { @MainActor in controller.libraryFilter = "" }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(7)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .frame(width: shelfFieldWidth, alignment: .leading)
-    }
-
-    private var shelfTextSearchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search inside PDFs…", text: $controller.libraryTextQuery)
-                .textFieldStyle(.plain)
-                .onSubmit { controller.runLibraryTextSearch() }
-            if !controller.libraryTextQuery.isEmpty {
-                Button {
-                    controller.clearLibraryTextSearch()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(7)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .frame(width: shelfFieldWidth, alignment: .leading)
-        .help("Search text inside shelf PDFs. Multi-word queries match pages that contain all words.")
-    }
+    // MARK: Reader status (shelf uses LibraryShelfBrowseView)
 
     @ViewBuilder
     private var statusBanners: some View {
@@ -573,185 +442,6 @@ struct RulesReferenceView: View {
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.accentColor.opacity(0.08))
-        }
-    }
-
-    @ViewBuilder
-    private var shelfBody: some View {
-        if controller.libraryTextSearchActive {
-            libraryTextResultsList
-        } else {
-            shelfBooksBody
-        }
-    }
-
-    @ViewBuilder
-    private var libraryTextResultsList: some View {
-        if controller.libraryTextSearching {
-            VStack(spacing: 12) {
-                ProgressView("Searching PDFs…")
-                Text("Large rulebooks can take a few seconds.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if controller.libraryTextHits.isEmpty {
-            ContentUnavailableView {
-                Label("No Matches", systemImage: "doc.text.magnifyingglass")
-            } description: {
-                Text(controller.libraryTextSearchStatus
-                    ?? "No text matches. Try fewer or different words.")
-            } actions: {
-                Button("Back to shelf") {
-                    controller.clearLibraryTextSearch()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            VStack(spacing: 0) {
-                libraryTextResultsChrome
-                Divider()
-                List(selection: Binding(
-                    get: { controller.libraryTextHitIndex },
-                    set: { controller.selectLibraryHitIndex($0) }
-                )) {
-                    Section {
-                        Text("\(controller.libraryTextHits.count) match(es) · best matches first")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(Array(controller.libraryTextHits.enumerated()), id: \.element.id) { index, hit in
-                        Button {
-                            controller.selectLibraryHitIndex(index)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack {
-                                    Text(hit.bookTitle)
-                                        .font(.body.weight(.medium))
-                                        .lineLimit(1)
-                                    Spacer()
-                                    Text(hit.relevanceLabel)
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(hit.matchedTokenCount >= hit.queryTokenCount ? Color.accentColor : Color.secondary)
-                                    Text("p. \(hit.page)")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(hit.snippet)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(3)
-                            }
-                            .padding(.vertical, 2)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .tag(index)
-                        .listRowBackground(
-                            index == controller.libraryTextHitIndex
-                                ? Color.accentColor.opacity(0.12)
-                                : Color.clear
-                        )
-                    }
-                }
-                .listStyle(.inset)
-            }
-        }
-    }
-
-    private var libraryTextResultsChrome: some View {
-        HStack(spacing: 10) {
-            Button {
-                controller.goToPreviousLibraryHit()
-            } label: {
-                Label("Previous", systemImage: "chevron.up")
-            }
-            .controlSize(.small)
-            .disabled(!controller.canGoToPreviousLibraryHit)
-            .help("Previous result")
-
-            Button {
-                controller.goToNextLibraryHit()
-            } label: {
-                Label("Next", systemImage: "chevron.down")
-            }
-            .controlSize(.small)
-            .disabled(!controller.canGoToNextLibraryHit)
-            .help("Next result")
-
-            if !controller.libraryTextHits.isEmpty {
-                Text("\(controller.libraryTextHitIndex + 1) of \(controller.libraryTextHits.count)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button("Back to shelf") {
-                controller.clearLibraryTextSearch()
-            }
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private var shelfBooksBody: some View {
-        let groups = controller.librarySectionGroups
-        if groups.isEmpty {
-            if controller.pdfLibrary.items.isEmpty {
-                ContentUnavailableView {
-                    Label("No Books Yet", systemImage: "books.vertical.fill")
-                } description: {
-                    Text("Add PDFs you legally own. They stay on this Mac only.\nDrag a PDF onto this shelf, or use Add PDF…")
-                } actions: {
-                    Button("Add PDF…") { isImportingPDF = true }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailableView {
-                    Label("No Matches", systemImage: "magnifyingglass")
-                } description: {
-                    Text("No books match the filter.")
-                } actions: {
-                    Button("Clear Filter") {
-                        Task { @MainActor in controller.libraryFilter = "" }
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("\(controller.pdfLibrary.items.count) book(s) · local only · grouped by type")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-
-                switch controller.libraryLayout {
-                case .gallery:
-                    PDFLibraryGalleryView(
-                        groups: groups,
-                        coverURL: { coverURL(for: $0) },
-                        onOpen: { openBookDeferred($0.id) },
-                        onBookSettings: { beginBookSettings($0) },
-                        onRename: { beginRename($0) },
-                        onReveal: { revealInFinder($0) },
-                        onRemove: { removePDF($0.id) }
-                    )
-                case .list:
-                    PDFLibraryListView(
-                        groups: groups,
-                        coverURL: { coverURL(for: $0) },
-                        onOpen: { openBookDeferred($0.id) },
-                        onBookSettings: { beginBookSettings($0) },
-                        onRename: { beginRename($0) },
-                        onReveal: { revealInFinder($0) },
-                        onRemove: { removePDF($0.id) }
-                    )
-                }
-            }
         }
     }
 
@@ -821,6 +511,7 @@ struct RulesReferenceView: View {
             }
             .controlSize(.small)
             .help("Back to the Library shelf (clears PDF text search)")
+            .accessibilityLabel("All books")
 
             if controller.canReturnToSearchResults {
                 Button {
@@ -830,6 +521,7 @@ struct RulesReferenceView: View {
                 }
                 .controlSize(.small)
                 .help("Back to PDF text search results")
+                .accessibilityLabel("Back to search results")
             }
 
             if controller.canReturnToCard {
@@ -840,6 +532,7 @@ struct RulesReferenceView: View {
                 }
                 .controlSize(.small)
                 .help("Back to the Rules Reference card")
+                .accessibilityLabel("Back to reference card")
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -1366,10 +1059,12 @@ private struct BookSettingsSheet: View {
 // MARK: - Window root
 
 struct RulesReferenceWindowRoot: View {
-    @ObservedObject private var controller = RulesReferenceSession.shared.controller
+    /// Observe the session root so the window stays tied to the process-wide session.
+    /// The controller is still the source of `@Published` UI state for the view tree.
+    @ObservedObject private var session = RulesReferenceSession.shared
 
     var body: some View {
-        RulesReferenceView(controller: controller)
+        RulesReferenceView(controller: session.controller)
             .frame(minWidth: 880, minHeight: 520)
     }
 }
