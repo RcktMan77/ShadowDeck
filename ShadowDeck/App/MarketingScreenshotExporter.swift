@@ -116,7 +116,8 @@ enum MarketingScreenshotExporter {
         await captureStill(named: "06-rules-reference", to: dir, window: .rulesReference)
 
         post(.pdfLibrary)
-        try? await Task.sleep(nanoseconds: 1_400_000_000)
+        // Sample shelf builds 5 illustrated PDFs + gallery layout.
+        try? await Task.sleep(nanoseconds: 2_200_000_000)
         await captureStill(named: "09-pdf-library", to: dir, window: .rulesReference)
 
         // —— GIFs (main deck) ——
