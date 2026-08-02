@@ -228,8 +228,7 @@ struct CharacterAtAGlanceView: View {
         sheetTab = .skills
         let skill = c.skills
             .filter { $0.category == .active && $0.rating > 0 }
-            .sorted { $0.rating > $1.rating }
-            .first
+            .max(by: { $0.rating < $1.rating })
             ?? c.skills.first
         if let skill {
             openDiceRoller(skill: skill)
@@ -237,7 +236,8 @@ struct CharacterAtAGlanceView: View {
             openDiceRollerManual()
         }
         // Let the inspector open, then roll so result + Second Chance chrome appear.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
             diceRoller.roll()
             // Leave Edge remaining so Push / Second Chance options read as available.
             if diceRoller.edgeRemaining == 0, diceRoller.edgeRating > 0 {
