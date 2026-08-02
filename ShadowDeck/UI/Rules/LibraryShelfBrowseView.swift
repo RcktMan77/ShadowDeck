@@ -85,9 +85,9 @@ struct LibraryShelfBrowseView: View {
     }
 
     private var shelfChromeControls: some View {
-        // Shared 28pt chrome height — pickers + AppChromeButton center in the same band.
+        // Match regular-size AppChromeButton (34pt host) with regular pickers.
         let h = AppChromeButton.chromeHeight
-        return HStack(alignment: .center, spacing: 8) {
+        return HStack(alignment: .center, spacing: 10) {
             Picker("Layout", selection: Binding(
                 get: { controller.libraryLayout },
                 set: { controller.libraryLayout = $0; controller.persistUIState() }
@@ -100,9 +100,9 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .controlSize(.small)
+            .controlSize(.regular)
             .labelsHidden()
-            .frame(width: 80, height: h)
+            .frame(width: 88, height: h)
             .help("List or Gallery view")
             .accessibilityLabel("Shelf layout")
 
@@ -115,8 +115,8 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.menu)
-            .controlSize(.small)
-            .frame(minWidth: 100, idealWidth: 120, maxWidth: 150, minHeight: h, maxHeight: h)
+            .controlSize(.regular)
+            .frame(minWidth: 110, idealWidth: 140, maxWidth: 160, minHeight: h, maxHeight: h)
             .help("Sort within each section")
             .accessibilityLabel("Sort shelf")
 

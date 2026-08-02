@@ -592,7 +592,7 @@ struct RulesReferenceView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16, weight: .regular))
+                        .font(.system(size: 18, weight: .regular))
                         .foregroundStyle(.primary)
                         .frame(width: AppChromeButton.chromeHeight, height: AppChromeButton.chromeHeight)
                         .contentShape(Rectangle())
