@@ -31,13 +31,21 @@ struct NewRunFromTemplateSheet: View {
         selected?.resolvedTitle(location: location) ?? "—"
     }
 
+    private var userTemplates: [RunTemplate] {
+        templates.filter { !$0.isBuiltin }
+    }
+
+    private var builtinTemplates: [RunTemplate] {
+        templates.filter(\.isBuiltin)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("New Run from Template")
                         .font(.headline)
-                    Text("Choose a job pattern. Only {location} is filled into the title.")
+                    Text("Choose a job pattern. Only {location} is filled into the title. Your saved templates appear under “Your templates”.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -52,17 +60,21 @@ struct NewRunFromTemplateSheet: View {
 
             Divider()
 
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 0) {
                 List(selection: $selectedID) {
                     Section("Built-in") {
-                        ForEach(templates.filter(\.isBuiltin)) { template in
+                        ForEach(builtinTemplates) { template in
                             templateRow(template)
                                 .tag(template.id)
                         }
                     }
-                    if templates.contains(where: { !$0.isBuiltin }) {
-                        Section("Your templates") {
-                            ForEach(templates.filter { !$0.isBuiltin }) { template in
+                    Section("Your templates") {
+                        if userTemplates.isEmpty {
+                            Text("None yet — use Save as Template… on a run.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(userTemplates) { template in
                                 templateRow(template)
                                     .tag(template.id)
                             }
@@ -70,75 +82,95 @@ struct NewRunFromTemplateSheet: View {
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
-                .frame(minWidth: 240)
+                .frame(width: 260)
+                .frame(maxHeight: .infinity)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    if let selected {
-                        Text(selected.name)
-                            .font(.title3.weight(.semibold))
-                        LabeledContent("Title preview") {
-                            Text(previewTitle)
-                                .font(.body.weight(.medium))
-                        }
-                        LabeledContent("Location") {
-                            TextField("District, city… (optional)", text: $location)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 280)
-                        }
-                        LabeledContent("Campaign") {
-                            Picker("Campaign", selection: $campaignID) {
-                                Text("Unassigned").tag(Optional<UUID>.none)
-                                ForEach(campaigns.filter { !$0.isArchived }) { c in
-                                    Text(c.name).tag(Optional(c.id))
-                                }
+                Divider()
+
+                // Fixed-size detail pane so switching templates does not resize the sheet.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let selected {
+                            Text(selected.name)
+                                .font(.title3.weight(.semibold))
+                            if selected.isBuiltin {
+                                Text("Built-in starter")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Your template")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            .labelsHidden()
-                            .frame(maxWidth: 280)
-                        }
-                        if !selected.tags.isEmpty {
-                            RunTagChips(tags: selected.tags)
-                        }
-                        Text("Objectives")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        ForEach(selected.objectives) { obj in
-                            Text("• \(obj.isPrimary ? "" : "(secondary) ")\(obj.text)")
-                                .font(.callout)
-                        }
-                        if !selected.oppositionPrompt.isEmpty {
-                            Text("Opposition")
+                            LabeledContent("Title preview") {
+                                Text(previewTitle)
+                                    .font(.body.weight(.medium))
+                                    .lineLimit(2)
+                            }
+                            LabeledContent("Location") {
+                                TextField("District, city… (optional)", text: $location)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 280)
+                            }
+                            LabeledContent("Campaign") {
+                                Picker("Campaign", selection: $campaignID) {
+                                    Text("Unassigned").tag(Optional<UUID>.none)
+                                    ForEach(campaigns.filter { !$0.isArchived }) { c in
+                                        Text(c.name).tag(Optional(c.id))
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(maxWidth: 280)
+                            }
+                            if !selected.tags.isEmpty {
+                                RunTagChips(tags: selected.tags)
+                            }
+                            Text("Objectives")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
-                                .padding(.top, 4)
-                            Text(selected.oppositionPrompt)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
+                            ForEach(selected.objectives) { obj in
+                                Text("• \(obj.isPrimary ? "" : "(secondary) ")\(obj.text)")
+                                    .font(.callout)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            if !selected.oppositionPrompt.isEmpty {
+                                Text("Opposition")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 4)
+                                Text(selected.oppositionPrompt)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Text(
+                                "Expected ¥\(selected.expectedPayout.nuyen) · \(selected.expectedPayout.karma) karma"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                        } else {
+                            ContentUnavailableView {
+                                Label("Select a template", systemImage: "list.clipboard")
+                            } description: {
+                                Text("Built-in starters and any templates you saved from a run.")
+                            }
                         }
-                        Text(
-                            "Expected ¥\(selected.expectedPayout.nuyen) · \(selected.expectedPayout.karma) karma"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                    } else {
-                        ContentUnavailableView {
-                            Label("Select a template", systemImage: "list.clipboard")
-                        } description: {
-                            Text("Built-in starters cover extraction, data steal, protection, and courier.")
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .foregroundStyle(.red)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        Spacer(minLength: 0)
                     }
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                    }
-                    Spacer()
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(minWidth: 640, minHeight: 420)
+        // Fixed outer size — content scrolls instead of growing the window.
+        .frame(width: 720, height: 520)
         .onAppear { refresh() }
     }
 
@@ -155,9 +187,10 @@ struct NewRunFromTemplateSheet: View {
     }
 
     private func refresh() {
+        // Always re-read store so templates saved this session appear under “Your templates”.
         templates = libraryEnvironment.runTemplateStore.allTemplates()
         campaigns = (try? libraryEnvironment.campaignLibrary.listSummaries(includeArchived: true)) ?? []
-        if selectedID == nil {
+        if selectedID == nil || templates.contains(where: { $0.id == selectedID }) == false {
             selectedID = templates.first?.id
         }
         if campaignID == nil, let preferredCampaignID {
