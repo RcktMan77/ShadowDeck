@@ -151,9 +151,9 @@ final class LifestyleTrackerTests: XCTestCase {
     // MARK: - Codable
 
     func testLifestyleLegacyJSONDefaultsIsActive() throws {
-        let json = """
+        let json = Data("""
         {"id":"AAAAAAAA-0000-4000-8000-000000000001","name":"Pad","level":"low","monthlyCost":2000,"monthsPrepaid":1,"notes":""}
-        """.data(using: .utf8)!
+        """.utf8)
         let life = try JSONDecoder().decode(Lifestyle.self, from: json)
         XCTAssertTrue(life.isActive)
         XCTAssertNil(life.nextDueDate)

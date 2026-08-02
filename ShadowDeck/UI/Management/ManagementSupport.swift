@@ -45,11 +45,11 @@ enum ManagementSupport {
             return n
         }
         // "0.25 * Rating" style
-        if let m = t.range(
+        if let match = t.range(
             of: #"^([\d.]+)\s*\*\s*Rating$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let coef = String(t[m])
+            let coef = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .replacingOccurrences(of: "*", with: "")
                 .trimmingCharacters(in: .whitespaces)

@@ -55,7 +55,7 @@ public enum ChummerXMLParser {
             c.elements(forName: name).first?.stringValue?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
 
         let qualities = mapQualities(c)
         var isAdept = boolText(text("adept"))
@@ -70,7 +70,7 @@ public enum ChummerXMLParser {
         }
 
         let essenceText = text("totaless").isEmpty ? text("essence") : text("totaless")
-        let essence = essenceText.isEmpty ? nil : H.decimalValue(essenceText)
+        let essence = essenceText.isEmpty ? nil : helpers.decimalValue(essenceText)
 
         return ChummerNormalizedCharacter(
             name: text("name"),
@@ -79,20 +79,20 @@ public enum ChummerXMLParser {
             gameEdition: text("gameedition").isEmpty ? "SR5" : text("gameedition"),
             buildMethod: text("buildmethod"),
             playerName: text("playername"),
-            concept: H.stripHTML(text("concept")),
-            description: H.stripHTML(text("description")),
-            background: H.stripHTML(text("background")),
+            concept: helpers.stripHTML(text("concept")),
+            description: helpers.stripHTML(text("description")),
+            background: helpers.stripHTML(text("background")),
             notes: {
-                let n = H.stripHTML(text("notes"))
-                let g = H.stripHTML(text("gamenotes"))
+                let n = helpers.stripHTML(text("notes"))
+                let g = helpers.stripHTML(text("gamenotes"))
                 if !n.isEmpty, !g.isEmpty { return n + "\n\n" + g }
                 return n.isEmpty ? g : n
             }(),
             gender: text("gender"),
             age: text("age"),
-            nuyen: H.decimalValue(text("nuyen")),
-            karmaAvailable: H.intValue(text("karma")),
-            karmaTotal: H.intValue(text("totalkarma"), default: H.intValue(text("karma"))),
+            nuyen: helpers.decimalValue(text("nuyen")),
+            karmaAvailable: helpers.intValue(text("karma")),
+            karmaTotal: helpers.intValue(text("totalkarma"), default: helpers.intValue(text("karma"))),
             priorityMetatype: optionalLetter(text("prioritymetatype")),
             priorityAttributes: optionalLetter(text("priorityattributes")),
             prioritySpecial: optionalLetter(text("priorityspecial")),
@@ -117,8 +117,8 @@ public enum ChummerXMLParser {
             complexForms: mapNamedItems(c, parent: "complexforms", child: "complexform"),
             contacts: mapContacts(c),
             lifestyles: mapLifestyles(c),
-            physicalDamage: H.intValue(text("physicalcmfilled")),
-            stunDamage: H.intValue(text("stuncmfilled"))
+            physicalDamage: helpers.intValue(text("physicalcmfilled")),
+            stunDamage: helpers.intValue(text("stuncmfilled"))
         )
     }
 
@@ -145,21 +145,21 @@ public enum ChummerXMLParser {
     }
 
     private static func mapAttributes(_ c: XMLElement) -> [ChummerNormalizedAttribute] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "attributes").first else { return [] }
         return container.elements(forName: "attribute").compactMap { a in
             let name = childText(a, "name")
             guard !name.isEmpty else { return nil }
-            let total = H.intValue(childText(a, "totalvalue").isEmpty ? childText(a, "total") : childText(a, "totalvalue"))
-            let base = H.intValue(childText(a, "base"), default: total)
+            let total = helpers.intValue(childText(a, "totalvalue").isEmpty ? childText(a, "total") : childText(a, "totalvalue"))
+            let base = helpers.intValue(childText(a, "base"), default: total)
             let min = childText(a, "metatypemin")
             let max = childText(a, "metatypemax")
             return ChummerNormalizedAttribute(
                 name: name,
                 base: base,
                 total: total == 0 ? base : total,
-                metatypeMin: min.isEmpty ? nil : H.intValue(min),
-                metatypeMax: max.isEmpty ? nil : H.intValue(max)
+                metatypeMin: min.isEmpty ? nil : helpers.intValue(min),
+                metatypeMax: max.isEmpty ? nil : helpers.intValue(max)
             )
         }
     }
@@ -192,7 +192,7 @@ public enum ChummerXMLParser {
             }
         }
 
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         var seen = Set<String>()
         return collected.compactMap { item -> ChummerNormalizedSkill? in
             let s = item.element
@@ -201,9 +201,9 @@ public enum ChummerXMLParser {
             let isKnowledge = item.forceKnowledge || boolText(childText(s, "knowledge"))
             let category = childText(s, "skillcategory")
             let isLanguage = category.localizedCaseInsensitiveContains("language")
-            let rating = H.intValue(
+            let rating = helpers.intValue(
                 childText(s, "rating"),
-                default: H.intValue(childText(s, "base")) + H.intValue(childText(s, "karma"))
+                default: helpers.intValue(childText(s, "base")) + helpers.intValue(childText(s, "karma"))
             )
             if rating <= 0 || rating > 13 { return nil }
             let isKnowledgeFlag = isKnowledge
@@ -244,7 +244,7 @@ public enum ChummerXMLParser {
     }
 
     private static func mapSkillGroups(_ c: XMLElement) -> [ChummerNormalizedSkillGroup] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         var groups: [XMLElement] = []
         if let legacy = c.elements(forName: "skills").first {
             groups.append(contentsOf: legacy.elements(forName: "skillgroup"))
@@ -258,21 +258,21 @@ public enum ChummerXMLParser {
         }
         return groups.compactMap { g in
             let name = childText(g, "name")
-            let rating = H.intValue(childText(g, "rating").isEmpty ? childText(g, "base") : childText(g, "rating"))
+            let rating = helpers.intValue(childText(g, "rating").isEmpty ? childText(g, "base") : childText(g, "rating"))
             guard !name.isEmpty, rating > 0 else { return nil }
             return ChummerNormalizedSkillGroup(name: name, rating: rating)
         }
     }
 
     private static func mapQualities(_ c: XMLElement) -> [ChummerNormalizedQuality] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "qualities").first else { return [] }
         return container.elements(forName: "quality").compactMap { q in
             let name = childText(q, "name")
             guard !name.isEmpty else { return nil }
             let type = childText(q, "qualitytype").isEmpty ? childText(q, "type") : childText(q, "qualitytype")
             let isPositive = type.lowercased().contains("positive") || type.isEmpty
-            let karma = abs(H.intValue(childText(q, "karma").isEmpty ? childText(q, "bp") : childText(q, "karma")))
+            let karma = abs(helpers.intValue(childText(q, "karma").isEmpty ? childText(q, "bp") : childText(q, "karma")))
             return ChummerNormalizedQuality(
                 name: name,
                 karma: karma,
@@ -288,20 +288,20 @@ public enum ChummerXMLParser {
         child: String,
         bioware: Bool
     ) -> [ChummerNormalizedAugmentation] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: parent).first else { return [] }
         return container.elements(forName: child).compactMap { a in
             let name = childText(a, "name")
             guard !name.isEmpty else { return nil }
-            let ess = H.decimalValue(childText(a, "ess").isEmpty ? childText(a, "essence") : childText(a, "ess"))
-            let rating = H.intValue(childText(a, "rating"))
+            let ess = helpers.decimalValue(childText(a, "ess").isEmpty ? childText(a, "essence") : childText(a, "ess"))
+            let rating = helpers.intValue(childText(a, "rating"))
             return ChummerNormalizedAugmentation(
                 name: name,
                 essence: ess,
                 grade: childText(a, "grade").isEmpty ? "Standard" : childText(a, "grade"),
                 rating: rating > 0 ? rating : nil,
                 isBioware: bioware,
-                notes: H.stripHTML(childText(a, "notes"))
+                notes: helpers.stripHTML(childText(a, "notes"))
             )
         }
     }
@@ -312,14 +312,14 @@ public enum ChummerXMLParser {
         child: String,
         category: String
     ) -> [ChummerNormalizedGear] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: parent).first else { return [] }
         return container.elements(forName: child).compactMap { g in
             let name = childText(g, "name")
             guard !name.isEmpty else { return nil }
             if name.localizedCaseInsensitiveContains("Unarmed Attack") { return nil }
-            let qty = max(1, H.intValue(childText(g, "qty").isEmpty ? childText(g, "quantity") : childText(g, "qty"), default: 1))
-            let cost = H.intValue(childText(g, "cost").isEmpty ? childText(g, "totalcost") : childText(g, "cost"))
+            let qty = max(1, helpers.intValue(childText(g, "qty").isEmpty ? childText(g, "quantity") : childText(g, "qty"), default: 1))
+            let cost = helpers.intValue(childText(g, "cost").isEmpty ? childText(g, "totalcost") : childText(g, "cost"))
             let damage = childText(g, "damage")
             return ChummerNormalizedGear(
                 name: name,
@@ -328,40 +328,40 @@ public enum ChummerXMLParser {
                 category: category,
                 damageCode: damage.isEmpty ? nil : damage,
                 equipped: boolText(childText(g, "equipped")) || category == "weapon",
-                notes: H.stripHTML(childText(g, "notes"))
+                notes: helpers.stripHTML(childText(g, "notes"))
             )
         }
     }
 
     private static func mapArmor(_ c: XMLElement) -> [ChummerNormalizedGear] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "armors").first else { return [] }
         return container.elements(forName: "armor").compactMap { a in
             let name = childText(a, "name")
             guard !name.isEmpty else { return nil }
             let armorText = childText(a, "armor").isEmpty ? childText(a, "totalarmor") : childText(a, "armor")
-            let armor = H.intValue(armorText)
+            let armor = helpers.intValue(armorText)
             return ChummerNormalizedGear(
                 name: name,
                 quantity: 1,
-                cost: H.intValue(childText(a, "cost")),
+                cost: helpers.intValue(childText(a, "cost")),
                 category: "armor",
                 armorRating: armor > 0 ? armor : nil,
                 equipped: true,
-                notes: H.stripHTML(childText(a, "notes"))
+                notes: helpers.stripHTML(childText(a, "notes"))
             )
         }
     }
 
     private static func mapPowers(_ c: XMLElement) -> [ChummerNormalizedPower] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "powers").first else { return [] }
         return container.elements(forName: "power").compactMap { p in
             let name = childText(p, "name")
             guard !name.isEmpty else { return nil }
-            let rating = max(1, H.intValue(childText(p, "rating").isEmpty ? childText(p, "total") : childText(p, "rating"), default: 1))
+            let rating = max(1, helpers.intValue(childText(p, "rating").isEmpty ? childText(p, "total") : childText(p, "rating"), default: 1))
             let costText = childText(p, "totalpoints").isEmpty ? childText(p, "pointsperlevel") : childText(p, "totalpoints")
-            return ChummerNormalizedPower(name: name, rating: rating, pointCost: H.decimalValue(costText))
+            return ChummerNormalizedPower(name: name, rating: rating, pointCost: helpers.decimalValue(costText))
         }
     }
 
@@ -375,7 +375,7 @@ public enum ChummerXMLParser {
     }
 
     private static func mapContacts(_ c: XMLElement) -> [ChummerNormalizedContact] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "contacts").first else { return [] }
         return container.elements(forName: "contact").compactMap { el in
             let name = childText(el, "name")
@@ -383,9 +383,9 @@ public enum ChummerXMLParser {
             return ChummerNormalizedContact(
                 name: name,
                 role: childText(el, "role"),
-                loyalty: H.intValue(childText(el, "loyalty"), default: 1),
-                connection: H.intValue(childText(el, "connection"), default: 1),
-                notes: H.stripHTML(childText(el, "notes")),
+                loyalty: helpers.intValue(childText(el, "loyalty"), default: 1),
+                connection: helpers.intValue(childText(el, "connection"), default: 1),
+                notes: helpers.stripHTML(childText(el, "notes")),
                 contactType: childText(el, "type").isEmpty ? childText(el, "contacttype") : childText(el, "type"),
                 metatype: childText(el, "metatype"),
                 gender: childText(el, "gender"),
@@ -399,7 +399,7 @@ public enum ChummerXMLParser {
     }
 
     private static func mapLifestyles(_ c: XMLElement) -> [ChummerNormalizedLifestyle] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let container = c.elements(forName: "lifestyles").first else { return [] }
         return container.elements(forName: "lifestyle").compactMap { el in
             let name = childText(el, "name").isEmpty ? "Lifestyle" : childText(el, "name")
@@ -408,8 +408,8 @@ public enum ChummerXMLParser {
             return ChummerNormalizedLifestyle(
                 name: name,
                 level: level.isEmpty ? "Low" : level,
-                monthlyCost: H.intValue(costText),
-                monthsPrepaid: max(1, H.intValue(childText(el, "months"), default: 1))
+                monthlyCost: helpers.intValue(costText),
+                monthsPrepaid: max(1, helpers.intValue(childText(el, "months"), default: 1))
             )
         }
     }
