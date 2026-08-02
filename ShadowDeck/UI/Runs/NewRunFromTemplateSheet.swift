@@ -10,6 +10,8 @@ import SwiftUI
 struct NewRunFromTemplateSheet: View {
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
 
+    /// Pre-select this campaign (e.g. opened from campaign detail).
+    var preferredCampaignID: UUID? = nil
     var onCancel: () -> Void
     /// Called with the new run id after save.
     var onCreated: (UUID) -> Void
@@ -157,6 +159,9 @@ struct NewRunFromTemplateSheet: View {
         campaigns = (try? libraryEnvironment.campaignLibrary.listSummaries(includeArchived: true)) ?? []
         if selectedID == nil {
             selectedID = templates.first?.id
+        }
+        if campaignID == nil, let preferredCampaignID {
+            campaignID = preferredCampaignID
         }
         errorMessage = nil
     }

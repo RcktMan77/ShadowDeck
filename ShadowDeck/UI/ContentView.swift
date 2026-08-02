@@ -51,7 +51,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     /// When true, sidebar draws a consistent top-trailing plus badge (system `.badge.plus` glyphs place + differently).
     var showsCreatePlusBadge: Bool {
         switch self {
-        case .newRun, .newCampaign: true
+        case .newRun, .newRunFromTemplate, .newCampaign: true
         default: false
         }
     }
@@ -93,6 +93,7 @@ struct ContentView: View {
     /// Open this campaign detail after Create → New Campaign (or toolbar create).
     @State private var openCampaignID: UUID?
     @State private var showNewRunFromTemplate = false
+    @State private var templatePreferredCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) var openWindow
@@ -140,11 +141,20 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
             requestNewRun()
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromTemplate)) { note in
+            templatePreferredCampaignID = note.userInfo?["campaignID"] as? UUID
+            showNewRunFromTemplate = true
+        }
         .sheet(isPresented: $showNewRunFromTemplate) {
             NewRunFromTemplateSheet(
-                onCancel: { showNewRunFromTemplate = false },
+                preferredCampaignID: templatePreferredCampaignID,
+                onCancel: {
+                    showNewRunFromTemplate = false
+                    templatePreferredCampaignID = nil
+                },
                 onCreated: { runID in
                     showNewRunFromTemplate = false
+                    templatePreferredCampaignID = nil
                     newRunDetailID = runID
                     selection = .newRun
                     libraryEnvironment.refreshRunCount()
