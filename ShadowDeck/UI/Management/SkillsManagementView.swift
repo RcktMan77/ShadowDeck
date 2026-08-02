@@ -30,13 +30,17 @@ struct SkillsManagementView: View {
             title: "Skills",
             subtitle: "Browse the skill catalog or add a custom skill. Pools use linked attributes on Summary.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Skill"
+            addLabel: "Add Skill",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "skill", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             if character.skills.isEmpty {
                 ManagementEmptyState(
                     title: "No Skills",
                     systemImage: "list.bullet.rectangle",
-                    message: "Add from the catalog or import a Chummer sheet."
+                    message: "Add from the catalog or import a Chummer sheet. Use Look up for skill raise and specialization rules."
                 )
             } else {
                 List {
