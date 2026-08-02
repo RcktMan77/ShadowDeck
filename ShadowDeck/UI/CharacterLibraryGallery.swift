@@ -21,6 +21,7 @@ enum CharacterLibraryLayout: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Finder / Photos–style view mode glyphs (icon-only segmented control).
     var systemImage: String {
         switch self {
         case .list: "list.bullet"

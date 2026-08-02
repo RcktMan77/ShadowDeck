@@ -51,6 +51,21 @@ struct DiceRollerPanel: View {
             }
             Spacer()
             Button {
+                var ctx = RulesReferenceSession.shared.controller.calcContext
+                ctx.edition = controller.edition
+                ctx.diceRules = controller.diceRules
+                // Approximate skill+attr pool for glitch calculator prefill.
+                if controller.effectivePool > 0 {
+                    ctx.sampleSkillRating = max(0, controller.effectivePool - ctx.agility)
+                }
+                RulesReferenceOpener.request(query: "dice", edition: controller.edition)
+                RulesReferenceSession.shared.controller.calcContext = ctx
+            } label: {
+                Label("Look up", systemImage: "book.pages")
+            }
+            .controlSize(.small)
+            .help("Open Rules Reference for hits, glitches, Edge, and house rules")
+            Button {
                 onClose()
             } label: {
                 Image(systemName: "xmark.circle.fill")
