@@ -370,7 +370,19 @@ struct CharacterAtAGlanceView: View {
                             onCancel: { showHouseRulesBrowser = false }
                         )
                     }
-                    storySection(c)
+                    CharacterGlanceStorySection(
+                        character: c,
+                        isEditing: $isEditingStory,
+                        conceptDraft: $conceptDraft,
+                        backgroundDraft: $backgroundDraft,
+                        onBeginEdit: {
+                            conceptDraft = c.concept
+                            backgroundDraft = resolvedBackground(for: c)
+                            isEditingStory = true
+                        },
+                        onCancel: { isEditingStory = false },
+                        onSave: { commitStory() }
+                    )
                 }
 
                 // Hero: portrait | attributes — bottoms aligned (caption baseline ≈ card edge).
@@ -380,29 +392,46 @@ struct CharacterAtAGlanceView: View {
                         CharacterGlancePortraitColumn(character: c) {
                             isPortraitImporterPresented = true
                         }
-                        attributesColumn(c)
-                            .frame(
-                                maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
-                                alignment: .leading
-                            )
+                        CharacterGlanceAttributesColumn(
+                            character: c,
+                            essenceDisplay: essenceString(c),
+                            onAdjust: { adjustAttribute($0, by: $1) },
+                            onRoll: { openDiceRoller(attribute: $0) }
+                        )
+                        .frame(
+                            maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                            alignment: .leading
+                        )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .leading, spacing: 16) {
                         CharacterGlancePortraitColumn(character: c) {
                             isPortraitImporterPresented = true
                         }
-                        attributesColumn(c)
-                            .frame(
-                                maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
-                                alignment: .leading
-                            )
+                        CharacterGlanceAttributesColumn(
+                            character: c,
+                            essenceDisplay: essenceString(c),
+                            onAdjust: { adjustAttribute($0, by: $1) },
+                            onRoll: { openDiceRoller(attribute: $0) }
+                        )
+                        .frame(
+                            maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                            alignment: .leading
+                        )
                     }
                 }
 
                 // Resource vitals (Karma, Nuyen, …)
-                vitalsGrid(c)
+                CharacterGlanceVitalsGrid(
+                    character: c,
+                    derived: derived,
+                    canUndoKarma: !manualKarmaAwardStack.isEmpty,
+                    onAwardKarma: { advanceKarma(by: 1) },
+                    onAwardKarmaFive: { advanceKarma(by: 5) },
+                    onUndoKarma: { undoLastManualKarmaAward() }
+                )
 
-                lifestyleBanner(c)
+                CharacterGlanceLifestyleBanner(character: c)
 
                 // Combat readiness
                 ViewThatFits(in: .horizontal) {
@@ -531,430 +560,12 @@ struct CharacterAtAGlanceView: View {
         }
     }
 
-    // MARK: - Attributes (editable base; display effective)
-
-    private func attributesColumn(_ c: Character) -> some View {
-        let effects = c.effects
-        // Three dense columns keep overall card height close to the large portrait + caption.
-        let columns = [
-            GridItem(.flexible(minimum: 96), spacing: 6),
-            GridItem(.flexible(minimum: 96), spacing: 6),
-            GridItem(.flexible(minimum: 96), spacing: 6)
-        ]
-        return sectionCard("Attributes") {
-            LazyVGrid(columns: columns, spacing: 6) {
-                ForEach(AttributeID.standardGenerationAttributes, id: \.self) { id in
-                    editableAttributeTile(
-                        id,
-                        base: c.attributes[id],
-                        bonus: effects.attributeBonus(for: id)
-                    )
-                }
-                editableAttributeTile(
-                    .edge,
-                    base: c.attributes.edge,
-                    bonus: effects.attributeBonus(for: .edge)
-                )
-                if c.awakened.usesMagic {
-                    editableAttributeTile(
-                        .magic,
-                        base: c.attributes.magic,
-                        bonus: effects.attributeBonus(for: .magic)
-                    )
-                }
-                if c.awakened.usesResonance {
-                    editableAttributeTile(
-                        .resonance,
-                        base: c.attributes.resonance,
-                        bonus: effects.attributeBonus(for: .resonance)
-                    )
-                }
-                attributeTile("Essence", value: essenceString(c), editable: false)
-            }
-            Text("± edits base rating. Bonuses from equipped gear, augs, qualities, and powers show as +N.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            if !effects.applied.isEmpty {
-                DisclosureGroup("Active modifiers (\(effects.applied.count))") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(effects.applied) { mod in
-                            Text(mod.summary)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .font(.caption)
-            }
-        }
-    }
-
-    private func editableAttributeTile(_ id: AttributeID, base: Int, bonus: Int) -> some View {
-        let effective = base + bonus
-        return VStack(spacing: 3) {
-            HStack(spacing: 2) {
-                Text(id.displayName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                Spacer(minLength: 0)
-                if id != .essence {
-                    Button {
-                        openDiceRoller(attribute: id)
-                    } label: {
-                        Image(systemName: "dice")
-                            .font(.caption2)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Roll \(id.displayName) (pool \(effective))")
-                }
-            }
-            HStack(spacing: 4) {
-                Button {
-                    adjustAttribute(id, by: -1)
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .imageScale(.medium)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-
-                VStack(spacing: 0) {
-                    Text("\(effective)")
-                        .font(.body.monospacedDigit().weight(.semibold))
-                        .frame(minWidth: 22)
-                    if bonus != 0 {
-                        Text(bonus > 0 ? "\(base)+\(bonus)" : "\(base)\(bonus)")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.tint)
-                    }
-                }
-
-                Button {
-                    adjustAttribute(id, by: 1)
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .imageScale(.medium)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .padding(.horizontal, 4)
-        .background(
-            (bonus != 0 ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08)),
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-        )
-        .help(bonus != 0 ? "Base \(base), modifiers \(bonus >= 0 ? "+" : "")\(bonus)" : "Base \(base)")
-    }
-
-    @ViewBuilder
-    private func lifestyleBanner(_ c: Character) -> some View {
-        let burn = LifestyleTracker.burnSummary(for: c)
-        if burn.activeCount > 0 {
-            let status = burn.overallStatus
-            let icon: String = {
-                switch status {
-                case .covered: "checkmark.seal.fill"
-                case .due: "calendar.badge.exclamationmark"
-                case .underfunded: "exclamationmark.triangle.fill"
-                case .inactive: "house"
-                }
-            }()
-            let color: Color = {
-                switch status {
-                case .covered: .green
-                case .due: .orange
-                case .underfunded: .red
-                case .inactive: .secondary
-                }
-            }()
-            let message: String = {
-                switch status {
-                case .covered:
-                    return "Lifestyle covered — min \(burn.minimumPrepaidMonths) prepaid month(s). Burn ¥\(formatInt(burn.monthlyBurn))/mo."
-                case .due:
-                    return "Lifestyle due — ¥\(formatInt(burn.cashDue)) cash this process (reserve used first). Open the Lifestyle tab."
-                case .underfunded:
-                    return "Lifestyle underfunded — need ¥\(formatInt(burn.cashDue)), have ¥\(formatInt(burn.liquidity)) (nuyen + reserve)."
-                case .inactive:
-                    return "Lifestyle inactive."
-                }
-            }()
-
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-    }
-
-    /// Resource / derived vitals — after portrait / attributes.
-    private func vitalsGrid(_ c: Character) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
-                vital("Edge", "\(c.attributes.edge)", "bolt.fill")
-                // Available = unspent; Total = career earned (including already spent).
-                // + awards (total & available up); undo reverts the last manual award only.
-                karmaAwardVital(
-                    title: "Karma Available",
-                    value: c.karmaAvailable,
-                    systemImage: "sparkles",
-                    canUndo: !manualKarmaAwardStack.isEmpty,
-                    onAward: { advanceKarma(by: 1) },
-                    onAwardFive: { advanceKarma(by: 5) },
-                    onUndo: { undoLastManualKarmaAward() }
-                )
-                vital("Karma Total", "\(c.karmaTotal)", "chart.line.uptrend.xyaxis")
-                vital("Nuyen", "¥\(formatInt(c.nuyen))", "yensign.circle.fill")
-                vital(
-                    "Lifestyle /mo",
-                    "¥\(formatInt(LifestyleTracker.burnSummary(for: c).monthlyBurn))",
-                    "house"
-                )
-                vital(
-                    "Life. Reserve",
-                    "¥\(formatInt(c.lifestyleNuyenReserve))",
-                    "building.columns"
-                )
-                vital("Essence", essenceString(c), "heart.fill")
-                vital("Armor", "\(derived.armor)", "shield.lefthalf.filled")
-                vital("Initiative", initiativeString(c), "gauge.with.dots.needle.67percent")
-                if let phys = derived.physicalLimit {
-                    vital("Phys. Limit", "\(phys)", "shield")
-                }
-                vital("Contacts", "\(c.contacts.count)", "person.2")
-                vital("Augmentations", "\(c.augmentations.count)", "cpu")
-                if !c.adeptPowers.isEmpty {
-                    vital("Adept Powers", "\(c.adeptPowers.count)", "bolt.heart")
-                }
-                if !c.spells.isEmpty {
-                    vital("Spells", "\(c.spells.count)", "wand.and.stars")
-                }
-            }
-            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Undo reverts the last manual award. Plan spends on the Advance tab.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    // MARK: - Story / Background
-
-    private func storySection(_ c: Character) -> some View {
-        sectionCard("Concept & Background") {
-            if isEditingStory {
-                storyEditor
-            } else {
-                storyModeDisplay(c)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        conceptDraft = c.concept
-                        backgroundDraft = resolvedBackground(for: c)
-                        isEditingStory = true
-                    }
-                    .help("Click to edit concept and background")
-            }
-        }
-    }
-
-    private var storyEditor: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Concept")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextField("Short tagline (e.g. Ex-Renraku coder adept)", text: $conceptDraft)
-                .textFieldStyle(.roundedBorder)
-
-            Text("Background")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextEditor(text: $backgroundDraft)
-                .font(.body)
-                .frame(minHeight: 120, maxHeight: 180)
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-                }
-
-            HStack {
-                Spacer()
-                Button("Cancel") {
-                    isEditingStory = false
-                }
-                .keyboardShortcut(.cancelAction)
-                Button("Save Story") {
-                    commitStory()
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-    }
-
-    private func storyModeDisplay(_ c: Character) -> some View {
-        let concept = c.concept.trimmingCharacters(in: .whitespacesAndNewlines)
-        let background = resolvedBackground(for: c)
-
-        return VStack(alignment: .leading, spacing: 10) {
-            if concept.isEmpty && background.isEmpty {
-                HStack(spacing: 10) {
-                    Image(systemName: "book.closed")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("No concept or background yet")
-                            .font(.callout.weight(.medium))
-                        Text("Click to add a tagline and story blurb for this runner.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
-            } else {
-                if !concept.isEmpty {
-                    Text(concept)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
-
-                if !background.isEmpty {
-                    Text(background)
-                        .font(.body)
-                        .foregroundStyle(.primary.opacity(0.9))
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
-
-                Text("Click to edit")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Prefer dedicated background; fall back to legacy “Background\\n…” block in notes.
+    /// Prefer dedicated background; fall back to legacy “Background\n…” block in notes.
     private func resolvedBackground(for c: Character) -> String {
         if let bg = c.background?.trimmingCharacters(in: .whitespacesAndNewlines), !bg.isEmpty {
             return bg
         }
-        return Self.extractLegacyBackground(from: c.notes) ?? ""
-    }
-
-    private static func extractLegacyBackground(from notes: String) -> String? {
-        // Older imports stuffed “Background\\n…” into notes.
-        let plain = ChummerParsingHelpers.cleanRichText(notes)
-        guard let range = plain.range(of: "Background", options: [.caseInsensitive, .anchored])
-                ?? plain.range(of: "\nBackground\n", options: .caseInsensitive)
-                ?? plain.range(of: "Background\n", options: .caseInsensitive)
-        else {
-            return nil
-        }
-        var rest = String(plain[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        if rest.hasPrefix("\n") { rest = String(rest.dropFirst()) }
-        // Stop at next major section if present.
-        let cutMarkers = ["\nImported from Chummer", "\nPlayer:", "\nSRM ", "\nMale,", "\nFemale,"]
-        var end = rest.endIndex
-        for marker in cutMarkers {
-            if let r = rest.range(of: marker) {
-                end = min(end, r.lowerBound)
-            }
-        }
-        let extracted = String(rest[..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
-        return extracted.isEmpty ? nil : extracted
-    }
-
-    private func vital(_ title: String, _ value: String, _ systemImage: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.headline.monospacedDigit())
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    /// Session karma awards only — spending happens when buying skills/augs/etc.
-    private func karmaAwardVital(
-        title: String,
-        value: Int,
-        systemImage: String,
-        canUndo: Bool,
-        onAward: @escaping () -> Void,
-        onAwardFive: @escaping () -> Void,
-        onUndo: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    Text("\(value)")
-                        .font(.headline.monospacedDigit())
-                        .frame(minWidth: 24)
-
-                    Button(action: onAward) {
-                        Image(systemName: "plus.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help("Award 1 Karma (available + total). Right-click for Award 5.")
-                    .contextMenu {
-                        Button("Award 1 Karma") { onAward() }
-                        Button("Award 5 Karma") { onAwardFive() }
-                        if canUndo {
-                            Divider()
-                            Button("Undo Last Award") { onUndo() }
-                        }
-                    }
-
-                    Button(action: onUndo) {
-                        Image(systemName: "arrow.uturn.backward.circle")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(canUndo ? .secondary : Color.secondary.opacity(0.35))
-                    .disabled(!canUndo)
-                    .help(
-                        canUndo
-                            ? "Undo last manual karma award (available + total)."
-                            : "No manual karma award to undo this session."
-                    )
-                    .accessibilityLabel("Undo last karma award")
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        return CharacterGlanceStorySection.extractLegacyBackground(from: c.notes) ?? ""
     }
 
     // MARK: - Notes (end of sheet)
@@ -1179,7 +790,7 @@ struct CharacterAtAGlanceView: View {
                 // Lift legacy background out of notes once, if dedicated field is empty.
                 // Defer save so we don't nest Observable/state publishes during onAppear.
                 if c.background == nil || c.background?.isEmpty == true,
-                   let legacy = Self.extractLegacyBackground(from: c.notes) {
+                   let legacy = CharacterGlanceStorySection.extractLegacyBackground(from: c.notes) {
                     Task { @MainActor in
                         self.updateCharacter { char in
                             char.background = legacy
