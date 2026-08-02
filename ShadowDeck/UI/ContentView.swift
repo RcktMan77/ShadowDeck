@@ -273,9 +273,16 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case .importCharacter:
-            ImportView { importedID in
-                finishImport(importedID: importedID)
-            }
+            ImportView(
+                onFinished: { importedID in
+                    finishImport(importedID: importedID)
+                },
+                onCancel: {
+                    selection = .characters
+                    selectedCharacterID = nil
+                    refresh()
+                }
+            )
             .onDisappear { refresh() }
         case .newCharacter:
             GenerationWizardView(
