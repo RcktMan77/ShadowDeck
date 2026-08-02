@@ -572,7 +572,7 @@ struct RulesReferenceView: View {
 
             Spacer(minLength: 8)
 
-            // Trailing chrome: Book settings + single “more” (ellipsis.circle only).
+            // Trailing chrome: Book settings + single ellipsis more (no pull-down caret).
             HStack(alignment: .center, spacing: 8) {
                 AppChromeButton.labeled(
                     (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
@@ -592,15 +592,18 @@ struct RulesReferenceView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .imageScale(.large)
-                        .frame(width: 28, height: 28)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(.primary)
+                        .frame(width: AppChromeButton.chromeHeight, height: AppChromeButton.chromeHeight)
                         .contentShape(Rectangle())
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 28, height: 28)
+                .menuIndicator(.hidden)
+                .frame(width: AppChromeButton.chromeHeight, height: AppChromeButton.chromeHeight)
                 .help("More book actions")
                 .accessibilityLabel("More")
             }
+            .frame(height: AppChromeButton.chromeHeight)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

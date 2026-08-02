@@ -17,6 +17,8 @@ import SwiftUI
 /// Toolbar / chrome control backed by `NSButton` (native tooltips + matching chrome).
 ///
 /// Always **hugs content** (never expands to fill an `HStack` / `Spacer` region).
+/// Height is fixed at 28pt and the AppKit control is vertically centered so it
+/// lines up with SwiftUI segmented/menu pickers.
 struct AppChromeButton: View {
     enum Kind: Equatable {
         /// Symbol only (export, delete, look up, …).
@@ -32,6 +34,9 @@ struct AppChromeButton: View {
         case prominent
         case destructive
     }
+
+    /// Shared chrome height — keep pickers at this height for alignment.
+    static let chromeHeight: CGFloat = 28
 
     var kind: Kind
     /// Hover help; defaults to the visible title / accessibility name.
@@ -130,7 +135,7 @@ struct AppChromeButton: View {
             keyModifiers: keyModifiers,
             action: action
         )
-        // Critical: hug content so labeled buttons never stretch across an HStack.
+        .frame(height: Self.chromeHeight)
         .fixedSize(horizontal: true, vertical: true)
         .layoutPriority(1)
         .accessibilityLabel(resolvedHelp)
@@ -169,6 +174,8 @@ struct IconToolbarButton: View {
 
 // MARK: - AppKit bridge
 
+/// Host that reports a fixed height and centers the real `NSButton` so SwiftUI
+/// HStacks line it up with segmented controls / menu pickers.
 private struct ChromeNSButton: NSViewRepresentable {
     var kind: AppChromeButton.Kind
     var help: String
@@ -182,40 +189,29 @@ private struct ChromeNSButton: NSViewRepresentable {
         Coordinator(action: action)
     }
 
-    func makeNSView(context: Context) -> IntrinsicSizingButton {
-        let button = IntrinsicSizingButton(frame: .zero)
-        // Rounded bezel: clearer edge on light backgrounds than flat `.toolbar`.
-        button.bezelStyle = .rounded
-        button.isBordered = true
-        button.controlSize = .regular
-        button.setButtonType(.momentaryPushIn)
-        button.target = context.coordinator
-        button.action = #selector(Coordinator.clicked)
-        button.imageScaling = .scaleProportionallyDown
-        // Refuse to stretch when SwiftUI proposes a huge width.
-        button.setContentHuggingPriority(.required, for: .horizontal)
-        button.setContentHuggingPriority(.required, for: .vertical)
-        button.setContentCompressionResistancePriority(.required, for: .horizontal)
-        button.setContentCompressionResistancePriority(.required, for: .vertical)
-        apply(button)
-        return button
+    func makeNSView(context: Context) -> ChromeButtonHost {
+        let host = ChromeButtonHost()
+        host.button.target = context.coordinator
+        host.button.action = #selector(Coordinator.clicked)
+        apply(to: host.button)
+        return host
     }
 
-    func updateNSView(_ button: IntrinsicSizingButton, context: Context) {
+    func updateNSView(_ host: ChromeButtonHost, context: Context) {
         context.coordinator.action = action
-        apply(button)
-        button.invalidateIntrinsicContentSize()
-        button.needsLayout = true
+        apply(to: host.button)
+        host.needsLayout = true
+        host.invalidateIntrinsicContentSize()
     }
 
-    private func apply(_ button: IntrinsicSizingButton) {
+    private func apply(to button: NSButton) {
         button.toolTip = help
         button.isEnabled = isEnabled
         button.keyEquivalent = keyEquivalent
         button.keyEquivalentModifierMask = keyModifiers
         button.setAccessibilityLabel(help)
 
-        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
 
         switch kind {
         case .icon(let systemImage):
@@ -262,30 +258,72 @@ private struct ChromeNSButton: NSViewRepresentable {
     }
 }
 
-/// Intrinsic size from the bezel + label so SwiftUI `fixedSize()` gets a real width.
-private final class IntrinsicSizingButton: NSButton {
+/// Fixed-height host; button is centered so neighboring SwiftUI controls align.
+private final class ChromeButtonHost: NSView {
+    let button: NSButton = {
+        let b = NSButton(frame: .zero)
+        b.bezelStyle = .rounded
+        b.isBordered = true
+        b.controlSize = .small // closer to 28pt bar height than .regular
+        b.setButtonType(.momentaryPushIn)
+        b.imageScaling = .scaleProportionallyDown
+        b.setContentHuggingPriority(.required, for: .horizontal)
+        b.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return b
+    }()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        addSubview(button)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override var intrinsicContentSize: NSSize {
-        // Measure fitting size for current title/image rather than relying on
-        // super (toolbar/rounded can report NSView.noIntrinsicMetric).
-        sizeToFit()
-        var size = bounds.size
-        if size.width < 1 || size.height < 1 {
-            size = super.intrinsicContentSize
+        button.sizeToFit()
+        var w = button.fittingSize.width
+        if w < 1 {
+            w = button.intrinsicContentSize.width
         }
-        size.height = max(size.height, 28)
-        if imagePosition == .imageOnly {
-            // Square-ish icon control.
-            let side = max(size.height, 28)
-            return NSSize(width: side + 6, height: side)
+        if button.imagePosition == .imageOnly {
+            w = max(w, 28)
+        } else {
+            w = max(w + 4, 52)
         }
-        // Padding for labeled / title buttons.
-        size.width = max(size.width + 8, 56)
-        return size
+        return NSSize(width: w, height: AppChromeButton.chromeHeight)
     }
 
     override func layout() {
         super.layout()
-        // After Auto Layout, keep hugging so we don't fill parent.
-        setContentHuggingPriority(.required, for: .horizontal)
+        button.sizeToFit()
+        var size = button.fittingSize
+        if size.width < 1 || size.height < 1 {
+            size = button.intrinsicContentSize
+        }
+        if button.imagePosition == .imageOnly {
+            size.width = max(size.width, 28)
+            size.height = min(max(size.height, 24), AppChromeButton.chromeHeight)
+        } else {
+            size.width = max(size.width + 4, 52)
+            size.height = min(max(size.height, 24), AppChromeButton.chromeHeight)
+        }
+        // Vertically center within the fixed host height.
+        let y = (bounds.height - size.height) / 2
+        let x = max(0, (bounds.width - size.width) / 2)
+        // Prefer leading-aligned content when host is exactly fitting width.
+        button.frame = NSRect(
+            x: bounds.width > size.width + 1 ? x : 0,
+            y: max(0, y),
+            width: min(size.width, bounds.width),
+            height: size.height
+        )
+    }
+
+    /// Zero out AppKit alignment insets so SwiftUI doesn’t offset us downward.
+    override var alignmentRectInsets: NSEdgeInsets {
+        .init(top: 0, left: 0, bottom: 0, right: 0)
     }
 }
