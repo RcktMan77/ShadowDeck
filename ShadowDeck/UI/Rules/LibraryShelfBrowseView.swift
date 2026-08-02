@@ -85,7 +85,8 @@ struct LibraryShelfBrowseView: View {
     }
 
     private var shelfChromeControls: some View {
-        HStack(spacing: 12) {
+        // Center-align so segmented / menu / AppChromeButton share one baseline height.
+        HStack(alignment: .center, spacing: 8) {
             Picker("Layout", selection: Binding(
                 get: { controller.libraryLayout },
                 set: { controller.libraryLayout = $0; controller.persistUIState() }
@@ -98,7 +99,8 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 88)
+            .controlSize(.regular)
+            .frame(width: 88, height: 28)
             .labelsHidden()
             .help("List or Gallery view")
             .accessibilityLabel("Shelf layout")
@@ -112,8 +114,8 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.menu)
-            .frame(maxWidth: 140)
-            .controlSize(.small)
+            .controlSize(.regular)
+            .frame(minWidth: 100, idealWidth: 130, maxWidth: 160, minHeight: 28)
             .help("Sort within each section")
             .accessibilityLabel("Sort shelf")
 
@@ -125,6 +127,7 @@ struct LibraryShelfBrowseView: View {
                 isImportingPDF = true
             }
         }
+        .frame(height: 32)
     }
 
     private var shelfSearchField: some View {
