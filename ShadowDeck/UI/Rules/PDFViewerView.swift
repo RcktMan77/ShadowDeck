@@ -184,6 +184,21 @@ final class PDFSearchBridge: ObservableObject {
     }
 }
 
+// MARK: - Shared document (one PDFDocument for reader + thumbnails)
+
+/// Loads a book once and shares the same `PDFDocument` instance with the continuous
+/// reader and the thumbnail strip (avoids 2× decode / peak memory on large CRBs).
+@MainActor
+final class SharedPDFDocumentSession: ObservableObject {
+    let url: URL
+    let document: PDFDocument?
+
+    init(url: URL) {
+        self.url = url
+        self.document = PDFDocument(url: url)
+    }
+}
+
 // MARK: - Workspace
 
 struct PDFReaderWorkspace: View {
@@ -195,19 +210,40 @@ struct PDFReaderWorkspace: View {
     var searchBridge: PDFSearchBridge?
     var onPageChange: ((Int) -> Void)?
 
+    @StateObject private var session: SharedPDFDocumentSession
+
+    init(
+        url: URL,
+        page: Binding<Int>,
+        zoomPreset: Binding<PDFZoomPreset>,
+        navigationEpoch: Int = 0,
+        thumbnailWidth: CGFloat = 128,
+        searchBridge: PDFSearchBridge? = nil,
+        onPageChange: ((Int) -> Void)? = nil
+    ) {
+        self.url = url
+        self._page = page
+        self._zoomPreset = zoomPreset
+        self.navigationEpoch = navigationEpoch
+        self.thumbnailWidth = thumbnailWidth
+        self.searchBridge = searchBridge
+        self.onPageChange = onPageChange
+        _session = StateObject(wrappedValue: SharedPDFDocumentSession(url: url))
+    }
+
     var body: some View {
         GeometryReader { geo in
             let thumbW = min(thumbnailWidth, max(100, geo.size.width * 0.18))
 
             HStack(spacing: 0) {
-                PDFThumbnailPane(url: url, page: $page)
+                PDFThumbnailPane(session: session, page: $page)
                     .frame(width: thumbW)
                     .frame(maxHeight: .infinity)
 
                 Divider()
 
                 PDFCanvasView(
-                    url: url,
+                    session: session,
                     page: $page,
                     zoomPreset: $zoomPreset,
                     navigationEpoch: navigationEpoch,
@@ -219,13 +255,14 @@ struct PDFReaderWorkspace: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .layoutPriority(1)
+        .id(url) // remount session when the open book changes
     }
 }
 
-// MARK: - Thumbnails (separate driver PDFView)
+// MARK: - Thumbnails (hidden driver PDFView; shared document)
 
 private struct PDFThumbnailPane: NSViewRepresentable {
-    let url: URL
+    @ObservedObject var session: SharedPDFDocumentSession
     @Binding var page: Int
 
     func makeCoordinator() -> Coord { Coord(page: $page) }
@@ -254,16 +291,14 @@ private struct PDFThumbnailPane: NSViewRepresentable {
 
         context.coordinator.driver = driver
         context.coordinator.observe(driver)
-        context.coordinator.load(url)
+        context.coordinator.attach(session: session)
         context.coordinator.syncFromBinding()
         return box
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         context.coordinator.page = $page
-        if context.coordinator.loadedURL != url {
-            context.coordinator.load(url)
-        }
+        context.coordinator.attach(session: session)
         context.coordinator.syncFromBinding()
     }
 
@@ -275,7 +310,7 @@ private struct PDFThumbnailPane: NSViewRepresentable {
     final class Coord: NSObject {
         var page: Binding<Int>
         weak var driver: PDFView?
-        var loadedURL: URL?
+        private var attachedURL: URL?
         private var suppress = 0
 
         init(page: Binding<Int>) { self.page = page }
@@ -290,9 +325,10 @@ private struct PDFThumbnailPane: NSViewRepresentable {
         func teardown() { NotificationCenter.default.removeObserver(self) }
         deinit { NotificationCenter.default.removeObserver(self) }
 
-        func load(_ url: URL) {
-            driver?.document = PDFDocument(url: url)
-            loadedURL = url
+        func attach(session: SharedPDFDocumentSession) {
+            guard attachedURL != session.url else { return }
+            driver?.document = session.document
+            attachedURL = session.url
         }
 
         func syncFromBinding() {
@@ -508,7 +544,7 @@ private final class PDFCanvasHostView: NSView {
 // MARK: - Main canvas
 
 private struct PDFCanvasView: NSViewRepresentable {
-    let url: URL
+    @ObservedObject var session: SharedPDFDocumentSession
     @Binding var page: Int
     @Binding var zoomPreset: PDFZoomPreset
     var navigationEpoch: Int
@@ -532,7 +568,7 @@ private struct PDFCanvasView: NSViewRepresentable {
             c?.applyZoom(reason: "layout")
         }
 
-        c.open(url)
+        c.attach(session: session)
         return host
     }
 
@@ -542,8 +578,8 @@ private struct PDFCanvasView: NSViewRepresentable {
         c.host = host
         searchBridge?.pdfView = host.pdfView
 
-        if c.loadedURL != url {
-            c.open(url)
+        if c.loadedURL != session.url {
+            c.attach(session: session)
             return
         }
 
@@ -623,11 +659,12 @@ private struct PDFCanvasView: NSViewRepresentable {
 
         deinit { NotificationCenter.default.removeObserver(self) }
 
-        func open(_ url: URL) {
+        /// Attach the shared document (no second decode).
+        func attach(session: SharedPDFDocumentSession) {
             guard let pdfView else { return }
             pdfView.autoScales = false
-            pdfView.document = PDFDocument(url: url)
-            loadedURL = url
+            pdfView.document = session.document
+            loadedURL = session.url
             lastPage = -1
             lastZoom = nil
             // Do not clear search here — open runs under makeNSView/updateNSView.
