@@ -24,9 +24,20 @@ final class RulesReferenceSession: ObservableObject {
     func prepare(
         query: String? = nil,
         edition: Edition? = nil,
-        calcContext: RulesCalcContext? = nil
+        calcContext: RulesCalcContext? = nil,
+        mode: RulesReferenceMode = .reference
     ) {
-        controller.applyOpenContext(query: query, edition: edition, calcContext: calcContext)
+        controller.applyOpenContext(
+            query: query,
+            edition: edition,
+            calcContext: calcContext,
+            mode: mode
+        )
+    }
+
+    /// Open directly on the PDF shelf (main-window shortcut).
+    func preparePDFLibraryShelf() {
+        prepare(mode: .library)
     }
 
     // MARK: - Marketing marquees
@@ -288,13 +299,15 @@ enum RulesReferenceOpener {
         query: String? = nil,
         edition: Edition? = nil,
         character: Character? = nil,
+        mode: RulesReferenceMode = .reference,
         openWindow: OpenWindowAction
     ) {
         let ctx = character.map { RulesCalcContext.from(character: $0) }
         RulesReferenceSession.shared.prepare(
             query: query,
             edition: edition ?? ctx?.edition,
-            calcContext: ctx
+            calcContext: ctx,
+            mode: mode
         )
         openWindow(id: windowID)
     }
@@ -305,7 +318,8 @@ enum RulesReferenceOpener {
     static func request(
         query: String? = nil,
         edition: Edition? = nil,
-        character: Character? = nil
+        character: Character? = nil,
+        mode: RulesReferenceMode = .reference
     ) {
         var info: [AnyHashable: Any] = [:]
         if let query {
@@ -318,10 +332,19 @@ enum RulesReferenceOpener {
         } else if let edition {
             info["edition"] = edition
         }
+        if mode != .reference {
+            info["mode"] = mode.rawValue
+        }
         NotificationCenter.default.post(
             name: AppCommand.openRulesReference,
             object: nil,
             userInfo: info.isEmpty ? nil : info
         )
+    }
+
+    /// Shortcut: open Rules Reference already on the PDF shelf.
+    @MainActor
+    static func requestPDFLibrary() {
+        request(mode: .library)
     }
 }

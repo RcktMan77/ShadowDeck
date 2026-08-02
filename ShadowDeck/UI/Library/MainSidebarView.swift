@@ -18,6 +18,8 @@ struct MainSidebarView: View {
     var onNewRun: () -> Void
     var onNewRunFromTemplate: () -> Void
     var onNewRunFromPDF: () -> Void = {}
+    /// Opens Rules Reference already on the PDF shelf (separate window).
+    var onOpenPDFShelf: () -> Void = {}
 
     var body: some View {
         // No `List(selection:)` — system selection greys out when the list is
@@ -28,6 +30,7 @@ struct MainSidebarView: View {
                 sidebarItem(.characters, badge: characterCount)
                 sidebarItem(.runs, badge: runCount)
                 sidebarItem(.campaigns, badge: campaignCount)
+                pdfShelfRow
             }
             // Create: character menu, run menu, campaign.
             Section("Create") {
@@ -39,6 +42,35 @@ struct MainSidebarView: View {
         .navigationSplitViewColumnWidth(min: 180, ideal: 240)
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, 28)
+    }
+
+    /// PDF shelf lives in the Rules Reference window — open it there in Library mode.
+    private var pdfShelfRow: some View {
+        Button {
+            onOpenPDFShelf()
+        } label: {
+            HStack(spacing: 0) {
+                Label {
+                    Text("PDF Shelf")
+                        .font(.body.weight(.regular))
+                } icon: {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 26, height: 22, alignment: .center)
+                }
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(Color.primary)
+                Spacer(minLength: 8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .help("Open your PDF rulebook shelf (Rules Reference → Library)")
+        .accessibilityLabel("PDF Shelf")
     }
 
     /// New Character as a menu (wizard + import) — one Create row.
