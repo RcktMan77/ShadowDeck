@@ -572,30 +572,35 @@ struct RulesReferenceView: View {
 
             Spacer(minLength: 8)
 
-            AppChromeButton.labeled(
-                (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
-                systemImage: "slider.horizontal.3",
-                help: "Section, book key, and metadata for page chips"
-            ) {
-                beginBookSettings(item)
-            }
-
-            // Pull-down menu stays SwiftUI; icon face matches chrome size.
-            Menu {
-                Button("Rename…") { beginRename(item) }
-                Button("Reveal in Finder") { revealInFinder(item) }
-                Button("Refresh cover from page 1") { refreshCover(item.id) }
-                Divider()
-                Button("Remove from library", role: .destructive) {
-                    removePDF(item.id)
+            // Trailing chrome: Book settings + single “more” (ellipsis.circle only).
+            HStack(alignment: .center, spacing: 8) {
+                AppChromeButton.labeled(
+                    (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
+                    systemImage: "slider.horizontal.3",
+                    help: "Section, book key, and metadata for page chips"
+                ) {
+                    beginBookSettings(item)
                 }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .frame(minWidth: 28, minHeight: 22)
+
+                Menu {
+                    Button("Rename…") { beginRename(item) }
+                    Button("Reveal in Finder") { revealInFinder(item) }
+                    Button("Refresh cover from page 1") { refreshCover(item.id) }
+                    Divider()
+                    Button("Remove from library", role: .destructive) {
+                        removePDF(item.id)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .imageScale(.large)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 28, height: 28)
+                .help("More book actions")
+                .accessibilityLabel("More")
             }
-            .menuStyle(.borderlessButton)
-            .help("More book actions")
-            .accessibilityLabel("More")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
