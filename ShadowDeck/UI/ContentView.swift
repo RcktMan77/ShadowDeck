@@ -94,6 +94,7 @@ struct ContentView: View {
     /// Open this campaign detail after Create → New Campaign (or toolbar create).
     @State private var openCampaignID: UUID?
     @State private var showNewRunFromTemplate = false
+    @State private var showDraftRunFromPDF = false
     @State private var templatePreferredCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
@@ -116,7 +117,8 @@ struct ContentView: View {
                     selection = .importCharacter
                 },
                 onNewRun: { requestNewRun() },
-                onNewRunFromTemplate: { showNewRunFromTemplate = true }
+                onNewRunFromTemplate: { showNewRunFromTemplate = true },
+                onNewRunFromPDF: { showDraftRunFromPDF = true }
             )
         } detail: {
             NavigationStack {
@@ -154,6 +156,9 @@ struct ContentView: View {
             templatePreferredCampaignID = note.userInfo?["campaignID"] as? UUID
             showNewRunFromTemplate = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromPDF)) { _ in
+            showDraftRunFromPDF = true
+        }
         .sheet(isPresented: $showNewRunFromTemplate) {
             NewRunFromTemplateSheet(
                 preferredCampaignID: templatePreferredCampaignID,
@@ -164,6 +169,19 @@ struct ContentView: View {
                 onCreated: { runID in
                     showNewRunFromTemplate = false
                     templatePreferredCampaignID = nil
+                    newRunDetailID = runID
+                    selection = .newRun
+                    libraryEnvironment.refreshRunCount()
+                }
+            )
+            .environment(libraryEnvironment)
+        }
+        .sheet(isPresented: $showDraftRunFromPDF) {
+            DraftRunFromPDFSheet(
+                preferredCampaignID: templatePreferredCampaignID,
+                onCancel: { showDraftRunFromPDF = false },
+                onCreated: { runID in
+                    showDraftRunFromPDF = false
                     newRunDetailID = runID
                     selection = .newRun
                     libraryEnvironment.refreshRunCount()
