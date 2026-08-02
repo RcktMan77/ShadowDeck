@@ -542,56 +542,60 @@ struct RulesReferenceView: View {
                 }
             }
 
-            // Title + more menu (rename / reveal / remove) sit together on the left.
-            HStack(alignment: .center, spacing: 6) {
-                VStack(alignment: .leading, spacing: 2) {
+            // More menu left of title (vertically centered on title line only);
+            // subtitle sits under the title, indented past the icon.
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .center, spacing: 6) {
+                    Menu {
+                        Button("Rename…") { beginRename(item) }
+                        Button("Reveal in Finder") { revealInFinder(item) }
+                        Button("Refresh cover from page 1") { refreshCover(item.id) }
+                        Divider()
+                        Button("Remove from library", role: .destructive) {
+                            removePDF(item.id)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 22, height: 22)
+                    .help("More book actions")
+                    .accessibilityLabel("More")
+
                     Text(item.displayTitle)
                         .font(.headline)
                         .lineLimit(1)
-                    HStack(spacing: 6) {
-                        Text(item.shelfSection.displayName)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        if let key = item.bookKey, !key.isEmpty {
-                            Text(key)
-                                .font(.caption2.weight(.semibold).monospaced())
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 1)
-                                .background(Color.accentColor.opacity(0.14), in: Capsule())
-                                .foregroundStyle(.tint)
-                        } else {
-                            Text("No book key")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        if let count = item.pageCount {
-                            Text("\(count) pages")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                 }
 
-                Menu {
-                    Button("Rename…") { beginRename(item) }
-                    Button("Reveal in Finder") { revealInFinder(item) }
-                    Button("Refresh cover from page 1") { refreshCover(item.id) }
-                    Divider()
-                    Button("Remove from library", role: .destructive) {
-                        removePDF(item.id)
+                HStack(spacing: 6) {
+                    Text(item.shelfSection.displayName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if let key = item.bookKey, !key.isEmpty {
+                        Text(key)
+                            .font(.caption2.weight(.semibold).monospaced())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color.accentColor.opacity(0.14), in: Capsule())
+                            .foregroundStyle(.tint)
+                    } else {
+                        Text("No book key")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(.primary)
-                        .frame(width: AppChromeButton.chromeHeight, height: AppChromeButton.chromeHeight)
-                        .contentShape(Rectangle())
+                    if let count = item.pageCount {
+                        Text("\(count) pages")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .frame(width: AppChromeButton.chromeHeight, height: AppChromeButton.chromeHeight)
-                .help("More book actions")
-                .accessibilityLabel("More")
+                // Align metadata under title text (22 icon + 6 spacing).
+                .padding(.leading, 28)
             }
 
             Spacer(minLength: 8)
