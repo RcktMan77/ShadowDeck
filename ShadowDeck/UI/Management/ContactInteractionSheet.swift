@@ -99,8 +99,16 @@ struct ContactInteractionSheet: View {
 
             HStack {
                 Spacer()
-                Button("Cancel", action: onCancel)
-                Button("Save") {
+                AppChromeButton.title("Cancel", help: "Close without saving") {
+                    onCancel()
+                }
+                AppChromeButton.title(
+                    "Save",
+                    help: "Save this interaction",
+                    style: .prominent,
+                    isEnabled: !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    keyEquivalent: "\r"
+                ) {
                     var entry = ContactInteraction(
                         date: date,
                         summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -113,8 +121,6 @@ struct ContactInteractionSheet: View {
                     }
                     onSave(entry, updateCurrentFavor && favorDirection != .none)
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)
