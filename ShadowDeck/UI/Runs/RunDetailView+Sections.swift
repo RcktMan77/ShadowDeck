@@ -13,6 +13,21 @@ extension RunDetailView {
     var overviewSection: some View {
         RunSectionCard(title: "Overview") {
             VStack(alignment: .leading, spacing: 10) {
+                LabeledContent("Campaign") {
+                    Picker("Campaign", selection: campaignBinding) {
+                        Text("Unassigned").tag(Optional<UUID>.none)
+                        ForEach(campaignOptions) { summary in
+                            Text(summary.isArchived ? "\(summary.name) (archived)" : summary.name)
+                                .tag(Optional(summary.id))
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 360)
+                }
+                Text("Optional folder for this job. Deleting a campaign leaves runs Unassigned.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
                 LabeledContent("Ruleset") {
                     Picker("Ruleset", selection: editionBinding) {
                         ForEach(Edition.allCases) { edition in
