@@ -238,35 +238,43 @@ final class RulesReferenceController: ObservableObject {
         selectedID = store.entries.first?.id
     }
 
+    /// Apply Look up / menu open context **synchronously** on the main actor.
+    /// Must not defer via `Task`/`yield`: the Rules window can paint one frame with the
+    /// restored Library mode before a deferred switch to Reference (visual flash).
     func applyOpenContext(
         query initialQuery: String? = nil,
         edition: Edition? = nil,
         calcContext: RulesCalcContext? = nil
     ) {
-        Task { @MainActor in
-            self.mode = .reference
-            self.returnToCardID = nil
-            self.selectedCategory = nil
-            if let calcContext {
-                self.calcContext = calcContext
-                self.editionFilter = calcContext.edition
-            } else if let edition {
-                self.editionFilter = edition
-            }
-            if let initialQuery {
-                let trimmed = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    self.query = trimmed
-                    self.selectedID = self.results.first?.entry.id ?? self.store.entries.first?.id
-                    self.requestTopicsScrollToSelection()
-                    self.persistUIState()
-                    return
-                }
-            }
-            self.syncRuleSelectionToResults()
-            self.requestTopicsScrollToSelection()
-            self.persistUIState()
+        mode = .reference
+        returnToCardID = nil
+        selectedCategory = nil
+        if let calcContext {
+            self.calcContext = calcContext
+            editionFilter = calcContext.edition
+        } else if let edition {
+            editionFilter = edition
         }
+        if let initialQuery {
+            let trimmed = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                query = trimmed
+                selectedID = results.first?.entry.id ?? store.entries.first?.id
+                // Scroll after the topics list has mounted with the new selection.
+                Task { @MainActor in
+                    await Task.yield()
+                    self.requestTopicsScrollToSelection()
+                }
+                persistUIState()
+                return
+            }
+        }
+        syncRuleSelectionToResults()
+        Task { @MainActor in
+            await Task.yield()
+            self.requestTopicsScrollToSelection()
+        }
+        persistUIState()
     }
 
     /// Ask the topics List to scroll so `selectedID` is visible (top-aligned).
