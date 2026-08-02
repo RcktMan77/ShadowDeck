@@ -104,6 +104,66 @@ public struct RunPayout: Codable, Sendable, Hashable {
     public var isZero: Bool { nuyen == 0 && karma == 0 }
 }
 
+// MARK: - People on the job (Phase 2C)
+
+/// Role of a person linked to this run (not a full relationship graph).
+public enum RunContactRole: String, Codable, Sendable, CaseIterable, Identifiable, Hashable {
+    case johnson
+    case fixer
+    case target
+    case other
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .johnson: "Johnson"
+        case .fixer: "Fixer"
+        case .target: "Target"
+        case .other: "Other"
+        }
+    }
+}
+
+/// Soft link to a character’s contact, or an unlinked name+role on this run only.
+public struct RunContactLink: Codable, Sendable, Hashable, Identifiable {
+    public var id: UUID
+    public var role: RunContactRole
+    /// Character whose contact list this came from (when linked).
+    public var sourceCharacterID: UUID?
+    /// Contact id on that character (when linked).
+    public var contactID: UUID?
+    /// Display name (always set; snapshot so missing contacts still show).
+    public var displayName: String
+    /// Optional free-text role when `role == .other` or to override.
+    public var displayRoleLabel: String?
+
+    public init(
+        id: UUID = UUID(),
+        role: RunContactRole = .other,
+        sourceCharacterID: UUID? = nil,
+        contactID: UUID? = nil,
+        displayName: String,
+        displayRoleLabel: String? = nil
+    ) {
+        self.id = id
+        self.role = role
+        self.sourceCharacterID = sourceCharacterID
+        self.contactID = contactID
+        self.displayName = displayName
+        self.displayRoleLabel = displayRoleLabel
+    }
+
+    public var roleLabel: String {
+        let custom = displayRoleLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return custom.isEmpty ? role.displayName : custom
+    }
+
+    public var isLinked: Bool {
+        sourceCharacterID != nil && contactID != nil
+    }
+}
+
 public struct RunObjective: Codable, Sendable, Hashable, Identifiable {
     public var id: UUID
     public var text: String
@@ -194,6 +254,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
     public var participantCharacterIDs: [UUID]
     /// Soft link into `CampaignLibrary` (`nil` = Unassigned).
     public var campaignID: UUID?
+    /// Johnson / fixer / target / other people on this job (Phase 2C).
+    public var contacts: [RunContactLink]
 
     public var sessionLog: [RunLogEntry]
     public var outcomeSummary: String
@@ -229,6 +291,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         heatDelta: Int = 0,
         participantCharacterIDs: [UUID] = [],
         campaignID: UUID? = nil,
+        contacts: [RunContactLink] = [],
         sessionLog: [RunLogEntry] = [],
         outcomeSummary: String = "",
         gmNotes: String = "",
@@ -256,6 +319,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.heatDelta = heatDelta
         self.participantCharacterIDs = participantCharacterIDs
         self.campaignID = campaignID
+        self.contacts = contacts
         self.sessionLog = sessionLog
         self.outcomeSummary = outcomeSummary
         self.gmNotes = gmNotes
@@ -265,14 +329,14 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.modifiedAt = modifiedAt
     }
 
-    // MARK: Codable (legacy payloads may omit `edition` / awards fields)
+    // MARK: Codable (legacy payloads may omit `edition` / awards / contacts)
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, title, tags, status, edition
         case plannedDate, startedAt, completedAt
         case client, location, objectives, opposition, complicationsNotes
         case expectedPayout, actualPayout, heatDelta
-        case participantCharacterIDs, campaignID
+        case participantCharacterIDs, campaignID, contacts
         case sessionLog, outcomeSummary, gmNotes
         case awardsAppliedAt, awardsAppliedNote
         case createdAt, modifiedAt
@@ -299,6 +363,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         heatDelta = try c.decodeIfPresent(Int.self, forKey: .heatDelta) ?? 0
         participantCharacterIDs = try c.decodeIfPresent([UUID].self, forKey: .participantCharacterIDs) ?? []
         campaignID = try c.decodeIfPresent(UUID.self, forKey: .campaignID)
+        contacts = try c.decodeIfPresent([RunContactLink].self, forKey: .contacts) ?? []
         sessionLog = try c.decodeIfPresent([RunLogEntry].self, forKey: .sessionLog) ?? []
         outcomeSummary = try c.decodeIfPresent(String.self, forKey: .outcomeSummary) ?? ""
         gmNotes = try c.decodeIfPresent(String.self, forKey: .gmNotes) ?? ""
@@ -329,6 +394,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         try c.encode(heatDelta, forKey: .heatDelta)
         try c.encode(participantCharacterIDs, forKey: .participantCharacterIDs)
         try c.encodeIfPresent(campaignID, forKey: .campaignID)
+        try c.encode(contacts, forKey: .contacts)
         try c.encode(sessionLog, forKey: .sessionLog)
         try c.encode(outcomeSummary, forKey: .outcomeSummary)
         try c.encode(gmNotes, forKey: .gmNotes)
@@ -340,6 +406,31 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
 
     public mutating func touch() {
         modifiedAt = Date()
+    }
+
+    /// First Johnson link when present.
+    public var primaryJohnson: RunContactLink? {
+        contacts.first { $0.role == .johnson }
+    }
+
+    /// Display client for UI / briefing: Johnson link name, else free-text `client`.
+    public var displayClientName: String {
+        if let johnson = primaryJohnson {
+            let name = johnson.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty { return name }
+        }
+        return client.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Add a contact link. If role is Johnson and `client` is empty, seed `client` once.
+    public mutating func addContactLink(_ link: RunContactLink) {
+        contacts.append(link)
+        if link.role == .johnson {
+            let trimmed = client.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                client = link.displayName
+            }
+        }
     }
 
     /// Non-empty after trimming whitespace.
