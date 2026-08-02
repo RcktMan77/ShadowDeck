@@ -376,6 +376,7 @@ enum MarketingScreenshotExporter {
         return snapshotViaLayer(view: view, window: window)
     }
 
+    @MainActor
     private static func isRulesReferenceWindow(_ window: NSWindow) -> Bool {
         if window.identifier?.rawValue == RulesReferenceOpener.windowID { return true }
         if window.title == "Rules Reference" { return true }
