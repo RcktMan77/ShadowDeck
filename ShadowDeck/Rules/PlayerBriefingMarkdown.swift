@@ -12,25 +12,43 @@ public enum PlayerBriefingMarkdown {
     public struct Options: Sendable, Hashable {
         /// Include secondary objectives in the briefing.
         public var includeSecondaryObjectives: Bool
-        /// When true, omit objectives marked failed (post-run spoiler hygiene).
+        /// When true, omit objectives marked failed.
         public var hideFailedObjectives: Bool
+        /// When true, annotate objectives with complete/failed (post-run debrief style).
+        public var showObjectiveProgress: Bool
+        /// Display names for linked runners (optional one-line team roster).
+        public var teamNames: [String]
 
         public init(
             includeSecondaryObjectives: Bool = true,
-            hideFailedObjectives: Bool = true
+            hideFailedObjectives: Bool = true,
+            showObjectiveProgress: Bool = false,
+            teamNames: [String] = []
         ) {
             self.includeSecondaryObjectives = includeSecondaryObjectives
             self.hideFailedObjectives = hideFailedObjectives
+            self.showObjectiveProgress = showObjectiveProgress
+            self.teamNames = teamNames
         }
 
         public static let `default` = Options()
+
+        /// Defaults that match UI: progress off for planning/active, on for terminal runs.
+        public static func defaults(for status: RunStatus, teamNames: [String] = []) -> Options {
+            Options(
+                includeSecondaryObjectives: true,
+                hideFailedObjectives: true,
+                showObjectiveProgress: status.isTerminal,
+                teamNames: teamNames
+            )
+        }
     }
 
     /// Markdown suitable for paste to players / Discord / notes.
     public static func render(_ run: Run, options: Options = .default) -> String {
         var lines: [String] = []
 
-        let title = run.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = displayTitle(run.title)
         lines.append("# \(title.isEmpty ? "Untitled Job" : title)")
         lines.append("")
         lines.append("_What runners know — GM-only prep is not included._")
@@ -49,6 +67,13 @@ public enum PlayerBriefingMarkdown {
             lines.append("**Tags:** \(run.tags.joined(separator: ", "))")
         }
         lines.append("**Status:** \(run.status.displayName)")
+
+        let team = options.teamNames
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !team.isEmpty {
+            lines.append("**Runners:** \(team.joined(separator: ", "))")
+        }
         lines.append("")
 
         // Player-facing summary
@@ -73,7 +98,7 @@ public enum PlayerBriefingMarkdown {
                 lines.append("### Primary")
                 lines.append("")
                 for obj in primary {
-                    lines.append("- \(objectiveLine(obj))")
+                    lines.append("- \(objectiveLine(obj, showProgress: options.showObjectiveProgress))")
                 }
                 lines.append("")
             }
@@ -81,7 +106,7 @@ public enum PlayerBriefingMarkdown {
                 lines.append("### Secondary")
                 lines.append("")
                 for obj in secondary {
-                    lines.append("- \(objectiveLine(obj))")
+                    lines.append("- \(objectiveLine(obj, showProgress: options.showObjectiveProgress))")
                 }
                 lines.append("")
             }
@@ -96,7 +121,7 @@ public enum PlayerBriefingMarkdown {
             lines.append("")
         }
 
-        // Known risks (player-safe; not full opposition)
+        // Known risks (player-safe; not full opposition) — after pay
         let risks = run.knownRisks.trimmingCharacters(in: .whitespacesAndNewlines)
         if !risks.isEmpty {
             lines.append("## Known risks")
@@ -114,6 +139,16 @@ public enum PlayerBriefingMarkdown {
         return lines.joined(separator: "\n")
     }
 
+    /// Ensure readable spacing after a colon (e.g. `SRM 05-01: Chasing the Wind`).
+    public static func displayTitle(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        // Normalize `:` / `:  ` / missing space → single space after each colon.
+        guard let regex = try? NSRegularExpression(pattern: ":\\s*") else { return trimmed }
+        let range = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
+        return regex.stringByReplacingMatches(in: trimmed, range: range, withTemplate: ": ")
+    }
+
     // MARK: - Internals
 
     private static func filteredObjectives(
@@ -128,9 +163,9 @@ public enum PlayerBriefingMarkdown {
         }
     }
 
-    private static func objectiveLine(_ obj: RunObjective) -> String {
+    private static func objectiveLine(_ obj: RunObjective, showProgress: Bool) -> String {
         let text = obj.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Status only when not pending — still player-safe (complete / pending).
+        guard showProgress else { return text }
         switch obj.status {
         case .pending:
             return text

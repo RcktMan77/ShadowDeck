@@ -12,25 +12,38 @@ import SwiftUI
 struct PlayerBriefingPresentation: Identifiable, Hashable {
     let id = UUID()
     var run: Run
+    /// Display titles for linked team members (order preserved).
+    var teamNames: [String] = []
 }
 
 struct PlayerBriefingView: View {
     let run: Run
+    var teamNames: [String] = []
     var onDismiss: () -> Void
 
     @State private var includeSecondary = true
     @State private var hideFailed = true
+    /// Progress chips / complete labels — off for pre-run handouts by default.
+    @State private var showProgress = false
     @State private var copyStatus: String?
+    @State private var didConfigureDefaults = false
 
     private var options: PlayerBriefingMarkdown.Options {
         PlayerBriefingMarkdown.Options(
             includeSecondaryObjectives: includeSecondary,
-            hideFailedObjectives: hideFailed
+            hideFailedObjectives: hideFailed,
+            showObjectiveProgress: showProgress,
+            teamNames: teamNames
         )
     }
 
     private var markdown: String {
         PlayerBriefingMarkdown.render(run, options: options)
+    }
+
+    private var titleText: String {
+        let t = PlayerBriefingMarkdown.displayTitle(run.title)
+        return t.isEmpty ? "Untitled job" : t
     }
 
     var body: some View {
@@ -50,23 +63,26 @@ struct PlayerBriefingView: View {
                 .padding(16)
         }
         .frame(width: 520, height: 600)
+        .onAppear {
+            guard !didConfigureDefaults else { return }
+            didConfigureDefaults = true
+            // Pre-run handout: no completion chips. Terminal runs: show progress by default.
+            showProgress = run.status.isTerminal
+        }
     }
 
     // MARK: - Chrome
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Player briefing")
-                    .font(.title2.weight(.semibold))
-                Text(run.title.isEmpty ? "Untitled job" : run.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Done", action: onDismiss)
-                .keyboardShortcut(.cancelAction)
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Player briefing")
+                .font(.title2.weight(.semibold))
+            Text(titleText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
     }
 
@@ -78,8 +94,11 @@ struct PlayerBriefingView: View {
             HStack(spacing: 16) {
                 Toggle("Secondary objectives", isOn: $includeSecondary)
                     .toggleStyle(.checkbox)
-                Toggle("Hide failed objectives", isOn: $hideFailed)
+                Toggle("Hide failed", isOn: $hideFailed)
                     .toggleStyle(.checkbox)
+                Toggle("Show progress", isOn: $showProgress)
+                    .toggleStyle(.checkbox)
+                    .help("Annotate objectives as complete/failed (handy for post-run debrief; off for pre-game handouts)")
                 Spacer()
             }
             .font(.callout)
@@ -100,6 +119,8 @@ struct PlayerBriefingView: View {
                     .transition(.opacity)
             }
             Spacer()
+            Button("Done", action: onDismiss)
+                .keyboardShortcut(.cancelAction)
             Button("Copy Markdown") {
                 copyMarkdown()
             }
@@ -141,7 +162,7 @@ struct PlayerBriefingView: View {
 
     private var metaBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(run.title.isEmpty ? "Untitled Job" : run.title)
+            Text(titleText == "Untitled job" ? "Untitled Job" : titleText)
                 .font(.title3.weight(.semibold))
                 .textSelection(.enabled)
             if !run.displayClientName.isEmpty {
@@ -155,6 +176,10 @@ struct PlayerBriefingView: View {
                 labeled("Tags", run.tags.joined(separator: ", "))
             }
             labeled("Status", run.status.displayName)
+            let team = cleanedTeamNames
+            if !team.isEmpty {
+                labeled("Runners", team.joined(separator: ", "))
+            }
         }
     }
 
@@ -233,7 +258,7 @@ struct PlayerBriefingView: View {
             Text(obj.text.trimmingCharacters(in: .whitespacesAndNewlines))
                 .font(.body)
                 .textSelection(.enabled)
-            if obj.status != .pending {
+            if showProgress, obj.status != .pending {
                 Text(obj.status.displayName)
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 6)
@@ -254,6 +279,12 @@ struct PlayerBriefingView: View {
         run.knownRisks.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var cleanedTeamNames: [String] {
+        teamNames
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
     private var isMostlyEmpty: Bool {
         summaryText.isEmpty
             && risksText.isEmpty
@@ -262,6 +293,7 @@ struct PlayerBriefingView: View {
             && filterObjectives(run.objectives).isEmpty
             && run.expectedPayout.isZero
             && (run.actualPayout?.isZero ?? true)
+            && cleanedTeamNames.isEmpty
     }
 
     private func filterObjectives(_ list: [RunObjective]) -> [RunObjective] {
