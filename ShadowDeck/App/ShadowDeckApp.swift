@@ -21,8 +21,8 @@ struct ShadowDeckApp: App {
         // Show splash on every cold launch (skip with click/key).
         _showSplash = State(initialValue: true)
         // Clear legacy key so Settings / docs stay accurate.
-        UserDefaults.standard.removeObject(forKey: "hasSeenLaunchSplash")
-        UserDefaults.standard.set(Self.splashRevision, forKey: "launchSplashRevision")
+        AppPreferences.remove(.hasSeenLaunchSplash)
+        AppPreferences.set(Self.splashRevision, for: .launchSplashRevision)
         do {
             // Marketing captures never open the on-disk personal library.
             if MarketingScreenshotExporter.isEnabled {

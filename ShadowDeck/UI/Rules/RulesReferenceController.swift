@@ -104,9 +104,15 @@ final class RulesReferenceController: ObservableObject {
     @Published var mode: RulesReferenceMode = .reference
 
     // MARK: Reference mode
-    @Published var query: String = ""
-    @Published var selectedCategory: RuleCategory?
-    @Published var editionFilter: Edition?
+    @Published var query: String = "" {
+        didSet { if query != oldValue { refreshResults() } }
+    }
+    @Published var selectedCategory: RuleCategory? {
+        didSet { if selectedCategory != oldValue { refreshResults() } }
+    }
+    @Published var editionFilter: Edition? {
+        didSet { if editionFilter != oldValue { refreshResults() } }
+    }
     @Published var selectedID: String?
     /// Bumped when the topics list should scroll to `selectedID` (Look up / deep link).
     @Published private(set) var topicsScrollEpoch: Int = 0
@@ -146,6 +152,9 @@ final class RulesReferenceController: ObservableObject {
     private var libraryTextSearchTask: Task<Void, Never>?
     private var didRestoreState = false
 
+    /// Cached search rows — invalidated only when query / category / edition change.
+    @Published private(set) var results: [RulesReferenceSearchResult] = []
+
     init(
         store: RulesReferenceStore = .loadBundled(),
         pdfLibrary: PDFLibraryStore = PDFLibraryStore.loadDefault()
@@ -153,6 +162,16 @@ final class RulesReferenceController: ObservableObject {
         self.store = store
         self.pdfLibrary = pdfLibrary
         restoreUIState()
+        refreshResults()
+    }
+
+    private func refreshResults() {
+        results = store.search(
+            query: query,
+            category: selectedCategory,
+            edition: editionFilter,
+            limit: 80
+        )
     }
 
     /// Library is in reader phase when a book is open.
@@ -169,15 +188,6 @@ final class RulesReferenceController: ObservableObject {
     var selectedPDFItem: PDFLibraryItem? {
         guard let selectedLibraryItemID else { return nil }
         return pdfLibrary.item(id: selectedLibraryItemID)
-    }
-
-    var results: [RulesReferenceSearchResult] {
-        store.search(
-            query: query,
-            category: selectedCategory,
-            edition: editionFilter,
-            limit: 80
-        )
     }
 
     /// PDF shelf filtered + sorted for the browse phase.
@@ -425,11 +435,15 @@ final class RulesReferenceController: ObservableObject {
         }
 
         libraryTextSearchTask = Task.detached(priority: .userInitiated) {
-            // Parallelize across books (one PDFDocument per task — PDFKit is not cross-thread safe).
+            // Cap concurrent PDFDocument opens to limit peak memory on large CRBs.
             let bookResults = await withTaskGroup(
                 of: (opened: Bool, failed: Bool, hits: [LibraryTextSearchHit]).self
             ) { group in
-                for (id, title, url) in fileURLs {
+                var iterator = fileURLs.makeIterator()
+                let limit = PDFLibrarySearchEngine.maxConcurrentBooks
+
+                func enqueueNext() -> Bool {
+                    guard let (id, title, url) = iterator.next() else { return false }
                     group.addTask {
                         if Task.isCancelled {
                             return (false, false, [])
@@ -440,7 +454,7 @@ final class RulesReferenceController: ObservableObject {
                         guard let doc = PDFDocument(url: url) else {
                             return (false, true, [])
                         }
-                        let pageHits = Self.rankPDFDocument(doc, query: q)
+                        let pageHits = PDFLibrarySearchEngine.rankDocument(doc, query: q)
                         let hits = pageHits.prefix(15).map { hit in
                             LibraryTextSearchHit(
                                 itemID: id,
@@ -454,6 +468,12 @@ final class RulesReferenceController: ObservableObject {
                         }
                         return (true, false, Array(hits))
                     }
+                    return true
+                }
+
+                var inFlight = 0
+                while inFlight < limit, enqueueNext() {
+                    inFlight += 1
                 }
 
                 var opened = 0
@@ -464,6 +484,10 @@ final class RulesReferenceController: ObservableObject {
                     if result.opened { opened += 1 }
                     if result.failed { failed += 1 }
                     all.append(contentsOf: result.hits)
+                    inFlight -= 1
+                    if enqueueNext() {
+                        inFlight += 1
+                    }
                 }
                 return (opened, failed, all)
             }
@@ -505,191 +529,6 @@ final class RulesReferenceController: ObservableObject {
                 self.libraryTextSearchStatus = status
             }
         }
-    }
-
-    /// Ranked page hits for one document.
-    private struct RankedPageHit: Sendable {
-        var page: Int
-        var snippet: String
-        var score: Int
-        var matchedTokens: Int
-        var tokenCount: Int
-    }
-
-    /// Phrase-first, then token intersection via PDFKit `findString` (not page.string alone).
-    /// Multi-word queries prefer pages containing **all** tokens; partial matches rank lower.
-    nonisolated private static func rankPDFDocument(
-        _ doc: PDFDocument,
-        query: String
-    ) -> [RankedPageHit] {
-        let options: NSString.CompareOptions = [.caseInsensitive]
-        let tokens = tokenizeQuery(query)
-        let tokenCount = max(1, tokens.count)
-
-        // 1) Contiguous phrase — highest relevance.
-        let phraseSels = doc.findString(query, withOptions: options)
-        if !phraseSels.isEmpty {
-            var hits: [RankedPageHit] = []
-            var seen = Set<Int>()
-            for sel in phraseSels {
-                guard let page = sel.pages.first else { continue }
-                let pageIndex = doc.index(for: page) + 1
-                if seen.contains(pageIndex) { continue }
-                seen.insert(pageIndex)
-                hits.append(RankedPageHit(
-                    page: pageIndex,
-                    snippet: snippet(from: sel, fallback: query, page: page, tokens: tokens),
-                    score: 10_000 + tokenCount * 100,
-                    matchedTokens: tokenCount,
-                    tokenCount: tokenCount
-                ))
-                if hits.count >= 20 { break }
-            }
-            return hits
-        }
-
-        guard !tokens.isEmpty else { return [] }
-
-        // 2) Per-token page sets from PDFKit (reliable even when page.string is sparse).
-        var pagesByToken: [String: Set<Int>] = [:]
-        for token in tokens {
-            var pages = Set<Int>()
-            for sel in doc.findString(token, withOptions: options) {
-                guard let page = sel.pages.first else { continue }
-                pages.insert(doc.index(for: page) + 1)
-            }
-            pagesByToken[token] = pages
-        }
-
-        // Union of all pages that match at least one token.
-        var candidatePages = Set<Int>()
-        for pages in pagesByToken.values {
-            candidatePages.formUnion(pages)
-        }
-
-        // Prefer full intersection; if empty, allow strong partials (≥ ceil(n*2/3) or n-1).
-        let minTokensForPartial: Int = {
-            if tokens.count <= 1 { return 1 }
-            if tokens.count == 2 { return 2 }
-            return max(2, tokens.count - 1)
-        }()
-
-        var ranked: [RankedPageHit] = []
-        for pageIndex in candidatePages {
-            let matched = tokens.filter { pagesByToken[$0]?.contains(pageIndex) == true }
-            let matchedCount = matched.count
-            guard matchedCount >= minTokensForPartial else { continue }
-
-            let page = doc.page(at: pageIndex - 1)
-            let pageText = page?.string ?? ""
-            let snippet = multiTokenSnippet(pageText: pageText, tokens: matched, pageIndex: pageIndex)
-
-            // Score: full match >> partial; density of matched tokens; rarity (fewer total hits).
-            var score = matchedCount * 1_000
-            if matchedCount == tokenCount {
-                score += 5_000
-            }
-            // Prefer pages where tokens cluster (simple window check).
-            if matchedCount >= 2, tokenProximityBonus(pageText: pageText, tokens: matched) {
-                score += 800
-            }
-            // Slight boost for rarer multi-token pages (fewer total attribute-only noise).
-            score += matchedCount * matchedCount * 50
-
-            ranked.append(RankedPageHit(
-                page: pageIndex,
-                snippet: snippet,
-                score: score,
-                matchedTokens: matchedCount,
-                tokenCount: tokenCount
-            ))
-        }
-
-        ranked.sort {
-            if $0.score != $1.score { return $0.score > $1.score }
-            if $0.matchedTokens != $1.matchedTokens { return $0.matchedTokens > $1.matchedTokens }
-            return $0.page < $1.page
-        }
-        // Prefer all-token hits first when listing; keep partials only if few full hits.
-        let full = ranked.filter { $0.matchedTokens == tokenCount }
-        if full.count >= 3 {
-            return Array(full.prefix(20))
-        }
-        return Array(ranked.prefix(20))
-    }
-
-    nonisolated private static func tokenizeQuery(_ query: String) -> [String] {
-        query
-            .lowercased()
-            .split(whereSeparator: { $0.isWhitespace || ",.;:·/\\()[]{}".contains($0) })
-            .map(String.init)
-            .filter { $0.count >= 3 }
-            // Drop ultra-common filler that blows up result sets.
-            .filter { !["the", "and", "for", "with", "from", "that", "this", "your"].contains($0) }
-    }
-
-    nonisolated private static func snippet(
-        from sel: PDFSelection,
-        fallback: String,
-        page: PDFPage,
-        tokens: [String]
-    ) -> String {
-        let raw = (sel.string ?? fallback)
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if raw.count >= 12 {
-            return raw.count > 140 ? String(raw.prefix(137)) + "…" : raw
-        }
-        return multiTokenSnippet(pageText: page.string ?? "", tokens: tokens, pageIndex: 0)
-    }
-
-    nonisolated private static func multiTokenSnippet(
-        pageText: String,
-        tokens: [String],
-        pageIndex: Int
-    ) -> String {
-        let collapsed = pageText
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        let lower = collapsed.lowercased()
-        // Find earliest token occurrence and take a window around it.
-        var bestRange: Range<String.Index>?
-        for token in tokens {
-            if let r = lower.range(of: token) {
-                if bestRange == nil || r.lowerBound < bestRange!.lowerBound {
-                    bestRange = r
-                }
-            }
-        }
-        guard let range = bestRange else {
-            let joined = tokens.joined(separator: " · ")
-            return pageIndex > 0 ? "p. \(pageIndex): \(joined)" : joined
-        }
-        let start = collapsed.index(range.lowerBound, offsetBy: -40, limitedBy: collapsed.startIndex)
-            ?? collapsed.startIndex
-        let end = collapsed.index(range.upperBound, offsetBy: 80, limitedBy: collapsed.endIndex)
-            ?? collapsed.endIndex
-        var slice = String(collapsed[start..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
-        if start != collapsed.startIndex { slice = "…" + slice }
-        if end != collapsed.endIndex { slice += "…" }
-        return slice.isEmpty ? "Match on page \(pageIndex)" : slice
-    }
-
-    /// True if at least two tokens appear within a short character window.
-    nonisolated private static func tokenProximityBonus(pageText: String, tokens: [String]) -> Bool {
-        let lower = pageText.lowercased()
-        var positions: [Int] = []
-        for token in tokens {
-            if let r = lower.range(of: token) {
-                positions.append(lower.distance(from: lower.startIndex, to: r.lowerBound))
-            }
-        }
-        guard positions.count >= 2 else { return false }
-        positions.sort()
-        for i in 0..<(positions.count - 1) {
-            if positions[i + 1] - positions[i] <= 80 { return true }
-        }
-        return false
     }
 
     func clearLibraryTextSearch() {
@@ -739,60 +578,46 @@ final class RulesReferenceController: ObservableObject {
 
     // MARK: - UI state persistence
 
-    private enum DefaultsKey {
-        static let mode = "RulesRef.mode"
-        static let query = "RulesRef.query"
-        static let category = "RulesRef.category"
-        static let edition = "RulesRef.edition"
-        static let selectedID = "RulesRef.selectedID"
-        static let libraryLayout = "RulesRef.libraryLayout"
-        static let librarySort = "RulesRef.librarySort"
-        static let libraryItem = "RulesRef.libraryItem"
-        static let pdfPage = "RulesRef.pdfPage"
-        static let zoomMap = "RulesRef.zoomMap"
-    }
-
     private func restoreUIState() {
         guard !didRestoreState else { return }
         didRestoreState = true
-        let d = UserDefaults.standard
-        if let raw = d.string(forKey: DefaultsKey.mode),
+        if let raw = AppPreferences.string(.rulesRefMode),
            let m = RulesReferenceMode(rawValue: raw)
         {
             mode = m
         }
-        query = d.string(forKey: DefaultsKey.query) ?? ""
-        if let raw = d.string(forKey: DefaultsKey.category),
+        query = AppPreferences.string(.rulesRefQuery) ?? ""
+        if let raw = AppPreferences.string(.rulesRefCategory),
            let c = RuleCategory(rawValue: raw)
         {
             selectedCategory = c
         }
-        if let raw = d.string(forKey: DefaultsKey.edition),
+        if let raw = AppPreferences.string(.rulesRefEdition),
            let e = Edition(rawValue: raw)
         {
             editionFilter = e
         }
-        if let id = d.string(forKey: DefaultsKey.selectedID), store.entry(id: id) != nil {
+        if let id = AppPreferences.string(.rulesRefSelectedID), store.entry(id: id) != nil {
             selectedID = id
         }
-        if let raw = d.string(forKey: DefaultsKey.libraryLayout),
+        if let raw = AppPreferences.string(.rulesRefLibraryLayout),
            let layout = LibraryShelfLayout(rawValue: raw)
         {
             libraryLayout = layout
         }
-        if let raw = d.string(forKey: DefaultsKey.librarySort),
+        if let raw = AppPreferences.string(.rulesRefLibrarySort),
            let sort = LibraryShelfSort(rawValue: raw)
         {
             librarySort = sort
         }
-        if let uuid = d.string(forKey: DefaultsKey.libraryItem).flatMap(UUID.init(uuidString:)),
+        if let uuid = AppPreferences.string(.rulesRefLibraryItem).flatMap(UUID.init(uuidString:)),
            pdfLibrary.item(id: uuid) != nil
         {
             selectedLibraryItemID = uuid
         }
-        let page = d.integer(forKey: DefaultsKey.pdfPage)
+        let page = AppPreferences.int(.rulesRefPDFPage)
         if page > 0 { pdfTargetPage = page }
-        if let data = d.data(forKey: DefaultsKey.zoomMap),
+        if let data = AppPreferences.data(.rulesRefZoomMap),
            let decoded = try? JSONDecoder().decode([String: String].self, from: data)
         {
             var map: [UUID: PDFZoomPreset] = [:]
@@ -809,22 +634,21 @@ final class RulesReferenceController: ObservableObject {
     }
 
     func persistUIState() {
-        let d = UserDefaults.standard
-        d.set(mode.rawValue, forKey: DefaultsKey.mode)
-        d.set(query, forKey: DefaultsKey.query)
-        d.set(selectedCategory?.rawValue, forKey: DefaultsKey.category)
-        d.set(editionFilter?.rawValue, forKey: DefaultsKey.edition)
-        d.set(selectedID, forKey: DefaultsKey.selectedID)
-        d.set(libraryLayout.rawValue, forKey: DefaultsKey.libraryLayout)
-        d.set(librarySort.rawValue, forKey: DefaultsKey.librarySort)
-        d.set(selectedLibraryItemID?.uuidString, forKey: DefaultsKey.libraryItem)
-        d.set(pdfTargetPage, forKey: DefaultsKey.pdfPage)
+        AppPreferences.set(mode.rawValue, for: .rulesRefMode)
+        AppPreferences.set(query, for: .rulesRefQuery)
+        AppPreferences.set(selectedCategory?.rawValue, for: .rulesRefCategory)
+        AppPreferences.set(editionFilter?.rawValue, for: .rulesRefEdition)
+        AppPreferences.set(selectedID, for: .rulesRefSelectedID)
+        AppPreferences.set(libraryLayout.rawValue, for: .rulesRefLibraryLayout)
+        AppPreferences.set(librarySort.rawValue, for: .rulesRefLibrarySort)
+        AppPreferences.set(selectedLibraryItemID?.uuidString, for: .rulesRefLibraryItem)
+        AppPreferences.set(pdfTargetPage, for: .rulesRefPDFPage)
         var zoomRaw: [String: String] = [:]
         for (id, preset) in pdfZoomByItemID {
             zoomRaw[id.uuidString] = preset.rawValue
         }
         if let data = try? JSONEncoder().encode(zoomRaw) {
-            d.set(data, forKey: DefaultsKey.zoomMap)
+            AppPreferences.set(data, for: .rulesRefZoomMap)
         }
     }
 
