@@ -28,12 +28,13 @@ struct ImportView: View {
                     .font(.title2.weight(.semibold))
                 Spacer()
                 if let onCancel {
-                    Button("Cancel") {
+                    AppChromeButton.title(
+                        "Cancel",
+                        help: "Return to the character library without importing",
+                        isEnabled: !isImporting
+                    ) {
                         onCancel()
                     }
-                    .keyboardShortcut(.cancelAction)
-                    .disabled(isImporting)
-                    .help("Return to the character library without importing")
                 }
             }
             .padding(.horizontal, 24)
@@ -47,13 +48,16 @@ struct ImportView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 12) {
-                        Button {
+                        AppChromeButton.labeled(
+                            "Choose File…",
+                            systemImage: "folder",
+                            help: "Choose a Chummer or ShadowDeck character file",
+                            isEnabled: !isImporting,
+                            keyEquivalent: "o",
+                            keyModifiers: [.command, .shift]
+                        ) {
                             presentOpenPanel()
-                        } label: {
-                            Label("Choose File…", systemImage: "folder")
                         }
-                        .keyboardShortcut("o", modifiers: [.command, .shift])
-                        .disabled(isImporting)
 
                         if isImporting {
                             ProgressView()
@@ -162,18 +166,24 @@ struct ImportView: View {
                 Divider()
 
                 HStack {
-                    Button("Import Another…") {
+                    AppChromeButton.title(
+                        "Import Another…",
+                        help: "Import another character file",
+                        isEnabled: !isImporting
+                    ) {
                         presentOpenPanel()
                     }
-                    .disabled(isImporting)
 
                     Spacer()
 
-                    Button("Done") {
+                    AppChromeButton.title(
+                        "Done",
+                        help: "Finish and open the imported character",
+                        style: .prominent,
+                        keyEquivalent: "\r"
+                    ) {
                         onFinished?(result.character.id)
                     }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
                 }
             }
             .frame(maxWidth: 520, alignment: .leading)
