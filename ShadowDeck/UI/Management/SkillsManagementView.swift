@@ -9,7 +9,7 @@ struct SkillsManagementView: View {
     @Binding var character: Character
     var onPersist: () -> Void
     /// One-click dice roller launch (pool from derived stats).
-    var onRollSkill: ((SkillRating) -> Void)? = nil
+    var onRollSkill: ((SkillRating) -> Void)?
 
     @State private var showCatalog = false
     @State private var isCustom = false
@@ -169,8 +169,7 @@ struct SkillsManagementView: View {
         if cat.contains("language") {
             category = .language
         } else if notes == "knowledge" || cat.contains("knowledge")
-            || ["academic", "interest", "professional", "street"].contains(cat)
-        {
+            || ["academic", "interest", "professional", "street"].contains(cat) {
             category = .knowledge
         } else {
             category = .active

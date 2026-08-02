@@ -35,7 +35,7 @@ final class ManagementTests: XCTestCase {
     func testSkillRatingEditPersists() throws {
         var character = SampleCharacters.sr5CombatMage()
         character.skills = [
-            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4),
+            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4)
         ]
         try library.save(character)
 
@@ -56,7 +56,7 @@ final class ManagementTests: XCTestCase {
                 category: .armor,
                 equipped: false,
                 armorRating: 12
-            ),
+            )
         ]
         character.contacts = []
         try library.save(character)
@@ -83,7 +83,7 @@ final class ManagementTests: XCTestCase {
                 name: "Improved Reflexes",
                 level: 2,
                 powerPointCost: Decimal(string: "2.5") ?? 2
-            ),
+            )
         ]
         try library.save(character)
 

@@ -70,7 +70,7 @@ public final class RulesReferenceStore: @unchecked Sendable {
             URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent() // Rules/
                 .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Rules/RulesSeed.json"),
+                .appendingPathComponent("Resources/Rules/RulesSeed.json")
         ]
         guard let url = candidates.compactMap({ $0 }).first(where: {
             FileManager.default.fileExists(atPath: $0.path)
@@ -120,7 +120,7 @@ public final class RulesReferenceStore: @unchecked Sendable {
 
         let tokens = trimmed
             .lowercased()
-            .split(whereSeparator: { $0.isWhitespace || $0 == "," })
+            .split { $0.isWhitespace || $0 == "," }
             .map(String.init)
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty else {

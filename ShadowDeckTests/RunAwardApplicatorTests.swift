@@ -9,7 +9,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class RunAwardApplicatorTests: XCTestCase {
-
     // MARK: - Fixtures
 
     private func makeCharacter(
@@ -65,7 +64,7 @@ final class RunAwardApplicatorTests: XCTestCase {
         let chars: [UUID: Character] = [
             a: makeCharacter(id: a, name: "Alpha"),
             b: makeCharacter(id: b, name: "Bravo"),
-            c: makeCharacter(id: c, name: "Charlie"),
+            c: makeCharacter(id: c, name: "Charlie")
         ]
         let run = finishedRun(
             participantIDs: [a, b, c],
@@ -115,7 +114,7 @@ final class RunAwardApplicatorTests: XCTestCase {
         let c = UUID()
         let chars: [UUID: Character] = [
             a: makeCharacter(id: a, name: "Alpha"),
-            c: makeCharacter(id: c, name: "Charlie"),
+            c: makeCharacter(id: c, name: "Charlie")
         ]
         // 10_000 / 2 = 5000; 5 / 2 = 2 rem 1 → first gets 3 karma
         let run = finishedRun(
@@ -227,7 +226,7 @@ final class RunAwardApplicatorTests: XCTestCase {
         let b = UUID()
         var chars = [
             makeCharacter(id: a, name: "Alpha", nuyen: 100, karmaAvailable: 5, karmaTotal: 20),
-            makeCharacter(id: b, name: "Bravo", nuyen: 200, karmaAvailable: 3, karmaTotal: 10),
+            makeCharacter(id: b, name: "Bravo", nuyen: 200, karmaAvailable: 3, karmaTotal: 10)
         ]
         var run = finishedRun(
             title: "Critic's Choice",

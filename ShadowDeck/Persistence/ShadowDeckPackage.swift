@@ -113,8 +113,7 @@ public enum ShadowDeckPackage {
         // Prefer avatar/ folder if present.
         let avatarDir = url.appendingPathComponent(ShadowDeckFormat.avatarDirectoryName, isDirectory: true)
         if let avatarFile = try? fm.contentsOfDirectory(at: avatarDir, includingPropertiesForKeys: nil)
-            .first(where: { !$0.lastPathComponent.hasPrefix(".") })
-        {
+            .first(where: { !$0.lastPathComponent.hasPrefix(".") }) {
             let bytes = try Data(contentsOf: avatarFile)
             character.avatar.inlineData = bytes
             character.avatar.fileName = avatarFile.lastPathComponent

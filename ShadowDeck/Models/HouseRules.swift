@@ -128,16 +128,16 @@ public struct HouseRules: Codable, Sendable, Hashable {
     }
 
     /// Strict core-book defaults — no house rules.
-    public static let coreBook = HouseRules()
+    public static let coreBook = Self()
 
     /// A sensible “popular table” preset covering the most common conveniences.
-    public static let popularTable = HouseRules(
+    public static let popularTable = Self(
         enabled: [
             .sumToTen,
             .bonusStartingKarma,
             .freeKnowledgeSkills,
             .expandedContacts,
-            .qualityBudgetAdjustment,
+            .qualityBudgetAdjustment
         ],
         bonusKarma: 25,
         freeKnowledgePoints: 0, // edition rules compute from Logic/Intuition when 0 means “auto”
@@ -147,13 +147,13 @@ public struct HouseRules: Codable, Sendable, Hashable {
     )
 
     /// Prime-runner leaning preset.
-    public static let primeRunner = HouseRules(
+    public static let primeRunner = Self(
         enabled: [
             .sumToTen,
             .primeRunnerPackage,
             .bonusStartingKarma,
             .expandedContacts,
-            .exceptionalAttributeAtChargen,
+            .exceptionalAttributeAtChargen
         ],
         bonusKarma: 50,
         freeKnowledgePoints: 0,
