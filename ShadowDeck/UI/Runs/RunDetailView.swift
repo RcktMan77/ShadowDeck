@@ -197,6 +197,11 @@ struct RunDetailView: View {
             .frame(maxWidth: 160)
             .help("Run status")
 
+            Button("Look up", systemImage: "book.pages") {
+                RulesReferenceOpener.request(query: "run")
+            }
+            .help("Open Rules Reference for awards, heat, and downtime topics")
+
             Button("Delete", systemImage: "trash", role: .destructive) {
                 confirmDelete = true
             }

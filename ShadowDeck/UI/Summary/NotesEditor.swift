@@ -118,12 +118,23 @@ final class NotesTextBridge: ObservableObject {
     }
 
     /// Re-read attributes at the caret/selection and update toolbar state.
+    /// Avoids publishing when nothing changed (reduces SwiftUI update churn).
     func refreshFormatState() {
-        guard let textView else {
-            formatState = NotesFormatState()
-            return
+        let next: NotesFormatState
+        if let textView {
+            next = Self.snapshot(from: textView)
+        } else {
+            next = NotesFormatState()
         }
-        formatState = Self.snapshot(from: textView)
+        guard next != formatState else { return }
+        formatState = next
+    }
+
+    /// Safe from `NSViewRepresentable.make/updateNSView` — never publish mid-view-update.
+    func refreshFormatStateDeferred() {
+        Task { @MainActor in
+            self.refreshFormatState()
+        }
     }
 
     func bold() {
@@ -713,7 +724,8 @@ private struct NotesTextView: NSViewRepresentable {
         context.coordinator.textView = textView
         context.coordinator.bridge = bridge
         bridge.textView = textView
-        bridge.refreshFormatState()
+        // Defer: publishing @Published from makeNSView runs during a view update.
+        bridge.refreshFormatStateDeferred()
 
         scroll.documentView = textView
         return scroll
@@ -730,7 +742,7 @@ private struct NotesTextView: NSViewRepresentable {
         guard text != context.coordinator.lastExported else { return }
         Coordinator.load(text, into: textView)
         context.coordinator.lastExported = text
-        bridge.refreshFormatState()
+        bridge.refreshFormatStateDeferred()
     }
 
     @MainActor

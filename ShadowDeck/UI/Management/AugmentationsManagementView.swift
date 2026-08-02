@@ -31,7 +31,11 @@ struct AugmentationsManagementView: View {
             title: "Augmentations",
             subtitle: "Installing catalog cyber/bioware charges nuyen and applies modifiers to Summary.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Aug"
+            addLabel: "Add Aug",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "cyberware", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             HStack {
                 Text("Installed essence cost: \(formatEssence(totalEssence))")

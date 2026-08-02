@@ -6,7 +6,7 @@
 
 ShadowDeck is an unofficial fan project. Build characters with a guided wizard, import from Chummer, keep a living library, run jobs for your table, and export sheets your GM or hub can use.
 
-**Why ShadowDeck?** Chummer remains excellent for deep builds and data. ShadowDeck is for **running the campaign** — play sheets, runs, lifestyle, advancement, contacts, and an edition-aware dice roller in one Mac-native app.
+**Why ShadowDeck?** Chummer remains excellent for deep builds and data. ShadowDeck is for **running the campaign** — play sheets, runs, lifestyle, advancement, contacts, dice, and a **rules reference** with your own PDF shelf in one Mac-native app.
 
 > Shadowrun is a trademark of its respective owners. ShadowDeck is **not** affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.
 
@@ -86,6 +86,7 @@ A **strong single-user foundation** for tabletop Shadowrun campaigns on the Mac:
 | **Advancement** | Plan tab with edition costs, cart, Buy Now / Apply, ledger |
 | **Contacts** | Tags, favor standing, interaction log, optional soft run links |
 | **Dice** | Edition-aware hits & glitches, house-rule toggles, Edge (Push the Limit / Second Chance), one-click from skills & attributes |
+| **Rules** | Searchable mechanical cards + calculators; personal PDF library with page-chip deep links |
 
 That combination is meant to be a **campaign companion** — not only a character keeper.
 
@@ -137,6 +138,18 @@ That combination is meant to be a **campaign companion** — not only a characte
 - Bundled **SR5** reference catalog (gear, weapons, armor, cyberware, bioware, qualities, skills, powers)
 - Equipping gear, augs, qualities, and powers updates the play sheet (attributes, armor, initiative, pools)
 
+### Rules Reference (⌘R)
+A dedicated window with two modes:
+
+| Mode | What you get |
+|------|----------------|
+| **Reference** | Searchable **mechanical cards** (dice, karma, lifestyle, combat, magic, matrix, …) with short original summaries, formulas, edition notes, and compact calculators (Drain, Overwatch, glitch threshold, lifestyle burn, …) |
+| **Library** | Your **personal PDF shelf** — add rulebooks you own (drag-drop or Add PDF…), gallery/list by section, covers, continuous reader with Fit Page / Fit Width / Actual Size, find-in-document, thumbnails, and per-book **page offset** for front matter |
+
+**Page chips** on cards (e.g. “SR5 CRB p. 44”) open the bound PDF at the correct page when you have assigned a **book key** in Book settings. No rulebook PDFs are bundled or redistributed — only local files you add.
+
+Open from the menu (**Rules Reference…**), the play sheet toolbar, or **⌘R**.
+
 ---
 
 ## Getting started
@@ -144,7 +157,8 @@ That combination is meant to be a **campaign companion** — not only a characte
 1. Download a [Release](https://github.com/RcktMan77/ShadowDeck/releases), **or** open **ShadowDeck.xcodeproj** in Xcode 16+ and Run, **or** build with `Scripts/release_build.sh`.
 2. **Create → New Character** (⌘N), **Import Character…** (⌘O), or **Load Samples** from the Character Library.
 3. Open a character for the play sheet; use **Dice** (⌘D) or the dice control on a skill/attribute to roll.
-4. **Create → New Run** (⌘⇧R) or **Library → Runs** for missions.
+4. **Rules Reference…** (⌘R) for mechanical cards, calculators, and your PDF shelf.
+5. **Create → New Run** (⌘⇧R) or **Library → Runs** for missions.
 
 ### Sidebar
 | Section | Items |
@@ -169,6 +183,7 @@ A short branded splash appears (skip with click or any key). Flavor “loading�
 - **Plan** spends `karmaAvailable` with edition (and house-rule) costs; Skills can still adjust ranks freely for imports/GM fiat.
 - **House Rules…** on the character identity area apply after chargen and feed validation, essence, and the **dice roller**.
 - Run **Apply Awards…** (on a Completed/Failed run) credits equal-split nuyen and karma to linked runners with a confirmation sheet; it is never automatic.
+- In **Rules Reference → Library**, open a book → **Book settings** to set shelf section, **book key** (so page chips resolve), and front-matter **page offset**.
 - Re-import a Chummer file once if you need **byte-faithful** `.chum5` re-export of the original payload.
 
 ---
@@ -179,10 +194,11 @@ Guiding principle: **deepen existing campaign tools** and high-frequency play ai
 
 | Priority | Feature | Why | Effort |
 |----------|---------|-----|--------|
-| **1** | **Rules reference / quick calculators** | Searchable core reference + Drain, Overwatch, and similar calculators for daily play | Medium |
-| **2** | **Run Tracker Phase 2** | Templates, stronger contact links from runs, outcome flow, open threads; custom award shares | Medium |
-| **3** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
-| **4** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
+| **Done** | **Rules Reference** | Mechanical cards, calculators, personal PDF shelf, page-chip deep links (⌘R) | — |
+| **1** | **Run Tracker Phase 2** | Templates, stronger contact links from runs, outcome flow, open threads; custom award shares | Medium |
+| **2** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
+| **3** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
+
 
 ---
 
@@ -214,7 +230,7 @@ python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
 
 ---
 
-## License
+## License & content
 
 ShadowDeck source code is made available for **personal, non-commercial use**.
 
@@ -226,6 +242,13 @@ You may:
 You may **not**:
 - Sell, sublicense, or commercially redistribute the source code or compiled binaries derived from it
 - Offer ShadowDeck (or a substantially similar product based on this codebase) as a paid service or commercial product without explicit written permission
+
+### Rules text and PDFs
+
+- Structured Rules Reference cards use **original concise summaries and formulas** only — not copied rulebook prose.
+- Full rules remain the property of their respective publishers (e.g. Catalyst Game Labs).
+- The **PDF library** holds only files **you** add on this Mac; ShadowDeck does **not** ship, download, or redistribute rulebook PDFs.
+- Bundled SR5 **catalog** data is attributed separately (see `Resources/Catalog/NOTICE.txt`).
 
 Commercial licensing and future paid features (if any) will be handled separately.  
 See the [LICENSE](LICENSE) file for the full terms.

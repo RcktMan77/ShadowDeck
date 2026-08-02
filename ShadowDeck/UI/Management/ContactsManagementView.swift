@@ -47,7 +47,11 @@ struct ContactsManagementView: View {
             title: "Contacts",
             subtitle: "L = Loyalty, C = Connection. Tags, favors, and a dated interaction log stay on this runner. Expand a contact to edit.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Contact"
+            addLabel: "Add Contact",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "contact", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             filterBar
 
