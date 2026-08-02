@@ -444,8 +444,8 @@ enum MarketingScreenshotExporter {
 
         let fileProps: [CFString: Any] = [
             kCGImagePropertyGIFDictionary: [
-                kCGImagePropertyGIFLoopCount: 0,
-            ] as [CFString: Any],
+                kCGImagePropertyGIFLoopCount: 0
+            ] as [CFString: Any]
         ]
         CGImageDestinationSetProperties(dest, fileProps as CFDictionary)
 
@@ -455,8 +455,8 @@ enum MarketingScreenshotExporter {
             let frameProps: [CFString: Any] = [
                 kCGImagePropertyGIFDictionary: [
                     kCGImagePropertyGIFDelayTime: delay,
-                    kCGImagePropertyGIFUnclampedDelayTime: delay,
-                ] as [CFString: Any],
+                    kCGImagePropertyGIFUnclampedDelayTime: delay
+                ] as [CFString: Any]
             ]
             CGImageDestinationAddImage(dest, cg, frameProps as CFDictionary)
         }

@@ -132,7 +132,7 @@ struct CharacterGlanceIdentityHeader: View {
                     character.edition.shortName,
                     character.metatype.displayName,
                     character.awakened == .mundane ? "Mundane" : character.awakened.displayName,
-                    character.generation.system.displayName,
+                    character.generation.system.displayName
                 ])
 
                 Spacer(minLength: 8)
