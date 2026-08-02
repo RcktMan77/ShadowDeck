@@ -333,18 +333,15 @@ struct LibraryShelfBrowseView: View {
         let groups = controller.librarySectionGroups
         if groups.isEmpty {
             if controller.pdfLibrary.items.isEmpty {
+                // Primary path is Add PDF… in the shelf header (and drag-and-drop).
+                // Match Runs/Campaigns: copy only — no duplicate empty-state CTA.
                 ContentUnavailableView {
                     Label("No Books Yet", systemImage: "books.vertical.fill")
                 } description: {
-                    Text("Add PDFs you legally own. They stay on this Mac only.\nDrag a PDF onto this shelf, or use Add PDF…")
-                } actions: {
-                    AppChromeButton.labeled(
-                        "Add PDF…",
-                        systemImage: "doc.badge.plus",
-                        help: "Add a PDF you own to the Library shelf"
-                    ) {
-                        isImportingPDF = true
-                    }
+                    Text(
+                        "Add PDFs you legally own. They stay on this Mac only. "
+                            + "Drag a PDF onto this shelf, or use Add PDF… above."
+                    )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
