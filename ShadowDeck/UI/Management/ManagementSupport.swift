@@ -234,13 +234,20 @@ struct ManagementListChrome<Content: View>: View {
                 }
                 Spacer(minLength: 12)
                 if let onLookUp {
-                    Button(lookUpLabel, systemImage: "book.pages") {
+                    AppChromeButton.labeled(
+                        lookUpLabel,
+                        systemImage: "book.pages",
+                        help: "Open Rules Reference for this topic"
+                    ) {
                         onLookUp()
                     }
-                    .help("Open Rules Reference for this topic (⌘R)")
                 }
                 if let onAdd {
-                    Button(addLabel, systemImage: "plus.circle") {
+                    AppChromeButton.labeled(
+                        addLabel,
+                        systemImage: "plus.circle",
+                        help: addLabel
+                    ) {
                         onAdd()
                     }
                 }

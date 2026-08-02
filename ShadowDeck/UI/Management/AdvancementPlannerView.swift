@@ -224,23 +224,27 @@ struct AdvancementPlannerView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button("Clear Plan") {
+                    AppChromeButton.title(
+                        "Clear Plan",
+                        help: "Remove all items from the plan",
+                        isEnabled: !cart.isEmpty
+                    ) {
                         setCart([])
                         errorMessage = nil
                     }
-                    .disabled(cart.isEmpty)
 
-                    Button("Apply Plan…") {
+                    AppChromeButton.title(
+                        "Apply Plan…",
+                        help: remainingAfterPlan < 0
+                            ? "Plan exceeds available karma — keep it as a goal, or remove items / earn more karma"
+                            : "Apply all planned raises",
+                        style: .prominent,
+                        isEnabled: !cart.isEmpty && remainingAfterPlan >= 0,
+                        keyEquivalent: "\r"
+                    ) {
                         errorMessage = nil
                         confirmApplyPlan = true
                     }
-                    .disabled(cart.isEmpty || remainingAfterPlan < 0)
-                    .keyboardShortcut(.defaultAction)
-                    .help(
-                        remainingAfterPlan < 0
-                            ? "Plan exceeds available karma — keep it as a goal, or remove items / earn more karma"
-                            : "Apply all planned raises"
-                    )
                     .modifier(MarketingHighlightPulse(active: marketingHighlight == "applyPlan"))
                 }
 

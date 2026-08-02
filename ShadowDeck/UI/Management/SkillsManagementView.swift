@@ -132,8 +132,14 @@ struct SkillsManagementView: View {
             .pickerStyle(.segmented)
             HStack {
                 Spacer()
-                Button("Cancel") { isCustom = false }
-                Button("Add") {
+                AppChromeButton.title("Cancel", help: "Close without adding") { isCustom = false }
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add custom skill",
+                    style: .prominent,
+                    isEnabled: !draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    keyEquivalent: "\r"
+                ) {
                     let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else { return }
                     character.skills.append(
@@ -148,8 +154,6 @@ struct SkillsManagementView: View {
                     draftName = ""
                     isCustom = false
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)
