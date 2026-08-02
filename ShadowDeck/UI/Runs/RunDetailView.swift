@@ -318,7 +318,7 @@ struct RunDetailView: View {
 
     func objectiveTextBinding(_ id: UUID) -> Binding<String> {
         Binding(
-            get: { run?.objectives.first(where: { $0.id == id })?.text ?? "" },
+            get: { run?.objectives.first { $0.id == id }?.text ?? "" },
             set: { newValue in
                 updateRun { r in
                     if let i = r.objectives.firstIndex(where: { $0.id == id }) {
@@ -331,7 +331,7 @@ struct RunDetailView: View {
 
     func objectiveStatusBinding(_ id: UUID) -> Binding<RunObjectiveStatus> {
         Binding(
-            get: { run?.objectives.first(where: { $0.id == id })?.status ?? .pending },
+            get: { run?.objectives.first { $0.id == id }?.status ?? .pending },
             set: { newValue in
                 updateRun { r in
                     if let i = r.objectives.firstIndex(where: { $0.id == id }) {
@@ -369,8 +369,7 @@ struct RunDetailView: View {
                 updateRun { r in
                     if on {
                         if let summary = characterSummaries.first(where: { $0.id == id }),
-                           summary.edition != r.edition
-                        {
+                           summary.edition != r.edition {
                             return
                         }
                         if !r.participantCharacterIDs.contains(id) {
@@ -465,7 +464,7 @@ struct RunDetailView: View {
     }
 
     func characterTitle(_ id: UUID) -> String {
-        characterSummaries.first(where: { $0.id == id })?.displayTitle ?? "Missing runner"
+        characterSummaries.first { $0.id == id }?.displayTitle ?? "Missing runner"
     }
 
     // MARK: - Apply awards

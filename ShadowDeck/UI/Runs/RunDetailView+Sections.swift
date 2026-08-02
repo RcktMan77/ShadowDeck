@@ -545,5 +545,4 @@ extension RunDetailView {
         }
         return nil
     }
-
 }

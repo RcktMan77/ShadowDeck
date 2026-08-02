@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class PortableDocumentTests: XCTestCase {
-
     func testRoundTripAllSampleCharacters() throws {
         for character in SampleCharacters.makeAll() {
             let data = try PortableCharacterCoding.encodeCharacter(character)

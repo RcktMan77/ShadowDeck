@@ -92,10 +92,10 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
     }
 
     /// Strict core-book dice defaults (edition still chooses glitch mode via `.editionDefault`).
-    public static let coreBook = DiceHouseRules()
+    public static let coreBook = Self()
 
     /// Popular table: half-or-more glitches, count exploded dice.
-    public static let popularTable = DiceHouseRules(
+    public static let popularTable = Self(
         glitchThreshold: .halfOrMore,
         ruleOfSix: .edgeOnly,
         countExplodedDiceForGlitch: true,

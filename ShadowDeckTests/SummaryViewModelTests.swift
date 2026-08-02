@@ -9,7 +9,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class SummaryViewModelTests: XCTestCase {
-
     func testDerivedStatsPresentForAllSampleEditions() {
         for sample in SampleCharacters.makeAll() {
             let rules = RulesRegistry.rules(for: sample.edition)

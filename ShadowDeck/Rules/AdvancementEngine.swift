@@ -313,7 +313,7 @@ public enum AdvancementEngine {
             (["adept"], ["blades", "unarmed_combat", "gymnastics", "perception"]),
             (["techno", "technomancer"], ["compiling", "registering", "software", "cybercombat"]),
             (["infiltrator", "sneak", "covert"], ["sneaking", "palming", "locksmith", "disguise", "climbing"]),
-            (["gunslinger", "shootist"], ["pistols", "automatics", "longarms", "perception"]),
+            (["gunslinger", "shootist"], ["pistols", "automatics", "longarms", "perception"])
         ]
         var keys: [String] = []
         for row in table {
@@ -355,7 +355,7 @@ public enum AdvancementEngine {
             case .attributeRaise:
                 return favoredAttrs.contains(p.targetKey)
             case .skillRaise, .newSkill:
-                return favoredSkills.contains(where: { p.targetKey.contains($0) || $0.contains(p.targetKey) })
+                return favoredSkills.contains { p.targetKey.contains($0) || $0.contains(p.targetKey) }
             case .other, .runAward:
                 return false
             }
@@ -553,7 +553,7 @@ public enum AdvancementEngine {
     ) throws {
         if character.skills.contains(where: { $0.catalogKey == item.targetKey }) {
             // Already present — treat as skill raise from current if ratings match 0→1 intent
-            throw AdvancementError.staleFromRating(expected: 0, actual: character.skills.first(where: { $0.catalogKey == item.targetKey })?.rating ?? -1)
+            throw AdvancementError.staleFromRating(expected: 0, actual: character.skills.first { $0.catalogKey == item.targetKey }?.rating ?? -1)
         }
         guard item.fromRating == 0, item.toRating == 1 else {
             throw AdvancementError.invalidRaise

@@ -99,7 +99,7 @@ public struct RunPayout: Codable, Sendable, Hashable {
         self.karma = max(0, karma)
     }
 
-    public static let zero = RunPayout(nuyen: 0, karma: 0)
+    public static let zero = Self(nuyen: 0, karma: 0)
 
     public var isZero: Bool { nuyen == 0 && karma == 0 }
 }
@@ -211,7 +211,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
 
     public init(
         id: UUID = UUID(),
-        schemaVersion: Int = Run.currentSchemaVersion,
+        schemaVersion: Int = Self.currentSchemaVersion,
         title: String = "",
         tags: [String] = [],
         status: RunStatus = .planning,
@@ -281,7 +281,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
-        schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Run.currentSchemaVersion
+        schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Self.currentSchemaVersion
         title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         status = try c.decodeIfPresent(RunStatus.self, forKey: .status) ?? .planning

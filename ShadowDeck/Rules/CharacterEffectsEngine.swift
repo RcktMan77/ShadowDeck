@@ -171,7 +171,7 @@ public enum CharacterEffectsEngine {
 
         var effective = character.attributes
         for (id, bonus) in attrBonus {
-            effective[id] = effective[id] + bonus
+            effective[id] += bonus
         }
 
         return CharacterEffects(
@@ -279,30 +279,25 @@ public enum CharacterEffectsEngine {
         if blob.contains("pistol") || blob.contains("automatic") || blob.contains("longarm")
             || blob.contains("heavy_weapon") || blob.contains("sneak") || blob.contains("gym")
             || blob.contains("escape") || blob.contains("lock") || blob.contains("palming")
-            || blob.contains("disguise") || blob.contains("imperson")
-        {
+            || blob.contains("disguise") || blob.contains("imperson") {
             return attributes.agility
         }
         if blob.contains("unarmed") || blob.contains("blade") || blob.contains("club")
-            || blob.contains("throw") || blob.contains("swim") || blob.contains("run")
-        {
+            || blob.contains("throw") || blob.contains("swim") || blob.contains("run") {
             return attributes.strength
         }
         if blob.contains("hack") || blob.contains("computer") || blob.contains("software")
             || blob.contains("cybercombat") || blob.contains("electronic") || blob.contains("hardware")
-            || blob.contains("arcana") || blob.contains("aeronautics") || blob.contains("industrial")
-        {
+            || blob.contains("arcana") || blob.contains("aeronautics") || blob.contains("industrial") {
             return attributes.logic
         }
         if blob.contains("perception") || blob.contains("assense") || blob.contains("track")
-            || blob.contains("navigation") || blob.contains("survival") || blob.contains("artisa")
-        {
+            || blob.contains("navigation") || blob.contains("survival") || blob.contains("artisa") {
             return attributes.intuition
         }
         if blob.contains("con") || blob.contains("etiquette") || blob.contains("negotiation")
             || blob.contains("leadership") || blob.contains("instruction") || blob.contains("intimidation")
-            || blob.contains("performance")
-        {
+            || blob.contains("performance") {
             return attributes.charisma
         }
         if blob.contains("willpower") {
@@ -320,8 +315,7 @@ public enum CharacterEffectsEngine {
         if skill.category == .language
             || type.contains("language")
             || type.contains("street")
-            || type.contains("interest")
-        {
+            || type.contains("interest") {
             return attributes.intuition
         }
         if type.contains("academic") || type.contains("professional") {
@@ -331,13 +325,11 @@ public enum CharacterEffectsEngine {
         let name = skill.displayName.lowercased() + " " + skill.catalogKey.lowercased()
         if name.contains("haven") || name.contains("underworld") || name.contains("street")
             || name.contains("gang") || name.contains("syndicate") || name.contains("shadow")
-            || name.contains("sprawl") || name.contains("nightlife")
-        {
+            || name.contains("sprawl") || name.contains("nightlife") {
             return attributes.intuition
         }
         if name.contains("corp") || name.contains("science") || name.contains("history")
-            || name.contains("matrix") || name.contains("magical") || name.contains("theory")
-        {
+            || name.contains("matrix") || name.contains("magical") || name.contains("theory") {
             return attributes.logic
         }
         // Default knowledge: Intuition (common for street/interest lore).

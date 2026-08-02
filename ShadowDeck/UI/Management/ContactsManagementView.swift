@@ -109,8 +109,7 @@ struct ContactsManagementView: View {
             set: { if !$0 { interactionTargetID = nil } }
         )) {
             if let contactID = interactionTargetID,
-               let contact = character.contacts.first(where: { $0.id == contactID })
-            {
+               let contact = character.contacts.first(where: { $0.id == contactID }) {
                 ContactInteractionSheet(
                     contactName: contact.name.isEmpty ? "Contact" : contact.name,
                     runSummaries: runSummaries,
@@ -350,11 +349,11 @@ struct ContactsManagementView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             if !contact.tags.isEmpty {
-                ContactTagChips(tags: contact.tags, onRemove: { tag in
+                ContactTagChips(tags: contact.tags) { tag in
                     update(id: contact.id) { c in
                         c.tags.removeAll { $0 == tag }
                     }
-                })
+                }
             }
             HStack(spacing: 8) {
                 TextField("Add tag…", text: $newTagDraft)
@@ -595,7 +594,7 @@ struct ContactsManagementView: View {
     private func stringBinding(id: UUID, keyPath: WritableKeyPath<Contact, String>) -> Binding<String> {
         Binding(
             get: {
-                character.contacts.first(where: { $0.id == id })?[keyPath: keyPath] ?? ""
+                character.contacts.first { $0.id == id }?[keyPath: keyPath] ?? ""
             },
             set: { newValue in
                 update(id: id) { $0[keyPath: keyPath] = newValue }
@@ -610,7 +609,7 @@ struct ContactsManagementView: View {
     ) -> Binding<String> {
         Binding(
             get: {
-                get(character.contacts.first(where: { $0.id == id }) ?? Contact(name: "")) ?? ""
+                get(character.contacts.first { $0.id == id } ?? Contact(name: "")) ?? ""
             },
             set: { newValue in
                 let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -621,14 +620,14 @@ struct ContactsManagementView: View {
 
     private func favorStateBinding(_ id: UUID) -> Binding<ContactFavorState> {
         Binding(
-            get: { character.contacts.first(where: { $0.id == id })?.favorState ?? .none },
+            get: { character.contacts.first { $0.id == id }?.favorState ?? .none },
             set: { v in update(id: id) { $0.favorState = v } }
         )
     }
 
     private func favorOneTimeBinding(_ id: UUID) -> Binding<Bool> {
         Binding(
-            get: { character.contacts.first(where: { $0.id == id })?.favorOneTime ?? false },
+            get: { character.contacts.first { $0.id == id }?.favorOneTime ?? false },
             set: { v in update(id: id) { $0.favorOneTime = v } }
         )
     }
@@ -681,7 +680,7 @@ struct ContactFavorBadge: View {
 
 struct ContactTagChips: View {
     let tags: [String]
-    var onRemove: ((String) -> Void)? = nil
+    var onRemove: ((String) -> Void)?
 
     var body: some View {
         if tags.isEmpty {

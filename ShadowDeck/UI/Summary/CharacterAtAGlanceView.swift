@@ -144,47 +144,40 @@ struct CharacterAtAGlanceView: View {
                     case .skills:
                         SkillsManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onRollSkill: { skill in openDiceRoller(skill: skill) }
-                        )
+                            onPersist: persistCharacter
+                        )                            { skill in openDiceRoller(skill: skill) }
                     case .gear:
                         GearManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     case .augmentations:
                         AugmentationsManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     case .qualities:
                         QualitiesManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     case .contacts:
                         ContactsManagementView(character: binding(to: c), onPersist: persistCharacter)
                     case .lifestyle:
                         LifestyleManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     case .advance:
                         AdvancementPlannerView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     case .magic:
                         MagicManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        )                            { statusMessage = $0 }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -228,7 +221,7 @@ struct CharacterAtAGlanceView: View {
         sheetTab = .skills
         let skill = c.skills
             .filter { $0.category == .active && $0.rating > 0 }
-            .max(by: { $0.rating < $1.rating })
+            .max { $0.rating < $1.rating }
             ?? c.skills.first
         if let skill {
             openDiceRoller(skill: skill)
@@ -359,9 +352,8 @@ struct CharacterAtAGlanceView: View {
                         character: c,
                         houseRulesLabel: c.houseRules.enabled.isEmpty
                             ? "Core book rules"
-                            : "\(c.houseRules.enabled.count) house rules",
-                        onOpenHouseRules: { showHouseRulesBrowser = true }
-                    )
+                            : "\(c.houseRules.enabled.count) house rules"
+                    )                        { showHouseRulesBrowser = true }
                     .sheet(isPresented: $showHouseRulesBrowser) {
                         HouseRulesBrowserView(
                             houseRules: Binding(
@@ -547,7 +539,7 @@ struct CharacterAtAGlanceView: View {
         let columns = [
             GridItem(.flexible(minimum: 96), spacing: 6),
             GridItem(.flexible(minimum: 96), spacing: 6),
-            GridItem(.flexible(minimum: 96), spacing: 6),
+            GridItem(.flexible(minimum: 96), spacing: 6)
         ]
         return sectionCard("Attributes") {
             LazyVGrid(columns: columns, spacing: 6) {
@@ -1186,13 +1178,12 @@ struct CharacterAtAGlanceView: View {
                 backgroundDraft = resolvedBackground(for: c)
                 // Lift legacy background out of notes once, if dedicated field is empty.
                 // Defer save so we don't nest Observable/state publishes during onAppear.
-                if (c.background == nil || c.background?.isEmpty == true),
-                   let legacy = Self.extractLegacyBackground(from: c.notes)
-                {
+                if c.background == nil || c.background?.isEmpty == true,
+                   let legacy = Self.extractLegacyBackground(from: c.notes) {
                     Task { @MainActor in
-                        self.updateCharacter({ char in
+                        self.updateCharacter { char in
                             char.background = legacy
-                        })
+                        }
                     }
                 }
                 errorMessage = nil

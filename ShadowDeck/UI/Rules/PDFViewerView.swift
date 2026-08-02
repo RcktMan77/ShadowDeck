@@ -77,7 +77,7 @@ enum PDFZoomPreset: String, CaseIterable, Identifiable, Sendable {
 
     /// Pure scale math. No PDFView side effects.
     static func scale(
-        preset: PDFZoomPreset,
+        preset: Self,
         canvas: CGSize,
         pageSize: CGSize
     ) -> CGFloat {
@@ -98,7 +98,7 @@ enum PDFZoomPreset: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Drawable target for Fit Page / Fit Width after padding.
-    static func fitTargetSize(canvas: CGSize, preset: PDFZoomPreset = .fitPage) -> CGSize {
+    static func fitTargetSize(canvas: CGSize, preset: Self = .fitPage) -> CGSize {
         let pad = fitPadding
         let w = max(canvas.width - 2 * pad, 1)
         switch preset {
@@ -286,7 +286,7 @@ private struct PDFThumbnailPane: NSViewRepresentable {
             thumbs.leadingAnchor.constraint(equalTo: box.leadingAnchor),
             thumbs.trailingAnchor.constraint(equalTo: box.trailingAnchor),
             thumbs.topAnchor.constraint(equalTo: box.topAnchor),
-            thumbs.bottomAnchor.constraint(equalTo: box.bottomAnchor),
+            thumbs.bottomAnchor.constraint(equalTo: box.bottomAnchor)
         ])
 
         context.coordinator.driver = driver
@@ -491,7 +491,7 @@ private final class PDFCanvasHostView: NSView {
             pdfView.leadingAnchor.constraint(equalTo: leadingAnchor),
             pdfView.trailingAnchor.constraint(equalTo: trailingAnchor),
             pdfView.topAnchor.constraint(equalTo: topAnchor),
-            pdfView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            pdfView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
     }
 

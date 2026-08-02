@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class AdvancementEngineTests: XCTestCase {
-
     // MARK: - Fixtures
 
     private func baseCharacter(
@@ -23,7 +22,7 @@ final class AdvancementEngineTests: XCTestCase {
             SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4),
             SkillRating(catalogKey: "sneaking", displayName: "Sneaking", category: .active, rating: 3),
             SkillRating(catalogKey: "shadow_lore", displayName: "Shadow Lore", category: .knowledge, rating: 2),
-            SkillRating(catalogKey: "english", displayName: "English", category: .language, rating: 3),
+            SkillRating(catalogKey: "english", displayName: "English", category: .language, rating: 3)
         ],
         karmaAvailable: Int = 50,
         houseRules: HouseRules = .coreBook
@@ -102,7 +101,7 @@ final class AdvancementEngineTests: XCTestCase {
 
     func testSkillSoftCapBlocksRaise() {
         let skills = [
-            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 12),
+            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 12)
         ]
         let c = baseCharacter(skills: skills)
         let r = rules(for: .sr5)
@@ -288,7 +287,7 @@ final class AdvancementEngineTests: XCTestCase {
         // Body or Strength should appear among favored attribute suggestions
         let keys = Set(tips.map(\.targetKey))
         XCTAssertTrue(
-            keys.contains("body") || keys.contains("strength") || keys.contains(where: { $0.contains("sneak") || $0 == "pistols" }),
+            keys.contains("body") || keys.contains("strength") || keys.contains { $0.contains("sneak") || $0 == "pistols" },
             "Expected metatype-biased or cheap raises, got \(keys)"
         )
     }
@@ -298,8 +297,8 @@ final class AdvancementEngineTests: XCTestCase {
         let r = rules(for: .sr5)
         let tips = AdvancementEngine.suggestions(for: c, rules: r, limit: 4)
         // With 8 karma, sneaking 3→4 costs 8; knowledge cheaper — should not lead with agility 25
-        XCTAssertFalse(tips.contains(where: { $0.targetKey == "agility" && $0.karmaCost > 13 }))
-        XCTAssertTrue(tips.contains(where: { $0.karmaCost <= 8 + 5 }))
+        XCTAssertFalse(tips.contains { $0.targetKey == "agility" && $0.karmaCost > 13 })
+        XCTAssertTrue(tips.contains { $0.karmaCost <= 8 + 5 })
     }
 
     func testRoleConceptMapsSamuraiSkills() {

@@ -120,7 +120,7 @@ enum PDFLibrarySearchEngine {
     static func tokenizeQuery(_ query: String) -> [String] {
         query
             .lowercased()
-            .split(whereSeparator: { $0.isWhitespace || ",.;:·/\\()[]{}".contains($0) })
+            .split { $0.isWhitespace || ",.;:·/\\()[]{}".contains($0) }
             .map(String.init)
             .filter { $0.count >= 3 }
             .filter { !["the", "and", "for", "with", "from", "that", "this", "your"].contains($0) }

@@ -194,8 +194,7 @@ struct AugmentationsManagementView: View {
         let kind: AugmentationKind = entry.kind == .bioware ? .bioware : .cyberware
         let ess: Decimal
         if let text = entry.essenceText,
-           let parsed = Decimal(string: text.replacingOccurrences(of: ",", with: "."))
-        {
+           let parsed = Decimal(string: text.replacingOccurrences(of: ",", with: ".")) {
             ess = parsed
         } else {
             ess = 0
@@ -217,7 +216,7 @@ struct AugmentationsManagementView: View {
                 notes: [
                     entry.category,
                     entry.essenceText.map { "ESS formula: \($0)" },
-                    entry.source.isEmpty ? nil : "\(entry.source) p.\(entry.page)",
+                    entry.source.isEmpty ? nil : "\(entry.source) p.\(entry.page)"
                 ].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
                 modifiers: ManagementSupport.instanceModifiers(from: entry),
                 purchasedInApp: charge.charged > 0

@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class LifestyleTrackerTests: XCTestCase {
-
     private func baseCharacter(
         nuyen: Int = 10_000,
         reserve: Int = 0,
@@ -29,7 +28,7 @@ final class LifestyleTrackerTests: XCTestCase {
         let c = baseCharacter(lifestyles: [
             Lifestyle(name: "A", monthlyCost: 2_000, monthsPrepaid: 1, isActive: true),
             Lifestyle(name: "B", monthlyCost: 5_000, monthsPrepaid: 0, isActive: true),
-            Lifestyle(name: "C", monthlyCost: 100_000, monthsPrepaid: 0, isActive: false),
+            Lifestyle(name: "C", monthlyCost: 100_000, monthsPrepaid: 0, isActive: false)
         ])
         let s = LifestyleTracker.burnSummary(for: c)
         XCTAssertEqual(s.monthlyBurn, 7_000)
@@ -41,7 +40,7 @@ final class LifestyleTrackerTests: XCTestCase {
 
     func testUnderfundedWhenCashDueExceedsLiquidity() {
         let c = baseCharacter(nuyen: 1_000, reserve: 500, lifestyles: [
-            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0),
+            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0)
         ])
         let s = LifestyleTracker.burnSummary(for: c)
         XCTAssertTrue(s.isUnderfundedForOneMonth)
@@ -53,7 +52,7 @@ final class LifestyleTrackerTests: XCTestCase {
     func testProcessMonthUsesPrepaidThenCash() throws {
         var c = baseCharacter(nuyen: 10_000, reserve: 0, lifestyles: [
             Lifestyle(name: "Pad", monthlyCost: 2_000, monthsPrepaid: 1),
-            Lifestyle(name: "Bolt-hole", monthlyCost: 500, monthsPrepaid: 0),
+            Lifestyle(name: "Bolt-hole", monthlyCost: 500, monthsPrepaid: 0)
         ])
         try LifestyleTracker.processMonths(&c, months: 1)
         XCTAssertEqual(c.lifestyles[0].monthsPrepaid, 0)
@@ -65,7 +64,7 @@ final class LifestyleTrackerTests: XCTestCase {
 
     func testProcessMonthReserveBeforeNuyen() throws {
         var c = baseCharacter(nuyen: 1_000, reserve: 4_000, lifestyles: [
-            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0),
+            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0)
         ])
         try LifestyleTracker.processMonths(&c, months: 1)
         XCTAssertEqual(c.lifestyleNuyenReserve, 0)
@@ -74,7 +73,7 @@ final class LifestyleTrackerTests: XCTestCase {
 
     func testProcessMonthShortfallBlocksAllChanges() {
         var c = baseCharacter(nuyen: 100, reserve: 100, lifestyles: [
-            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0),
+            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 0)
         ])
         let before = c
         XCTAssertThrowsError(try LifestyleTracker.processMonths(&c, months: 1)) { error in
@@ -93,7 +92,7 @@ final class LifestyleTrackerTests: XCTestCase {
     func testProcessThreeMonthsCatchUp() throws {
         // Month 1: prepaid covers 2k; Month 2–3: pay 2k each from nuyen
         var c = baseCharacter(nuyen: 10_000, reserve: 0, lifestyles: [
-            Lifestyle(monthlyCost: 2_000, monthsPrepaid: 1),
+            Lifestyle(monthlyCost: 2_000, monthsPrepaid: 1)
         ])
         try LifestyleTracker.processMonths(&c, months: 3)
         XCTAssertEqual(c.lifestyles[0].monthsPrepaid, 0)
@@ -103,7 +102,7 @@ final class LifestyleTrackerTests: XCTestCase {
     func testProcessMultiMonthShortfallUsesProjectedCash() {
         // 1 prepaid + 2 months cash @ 5k = 10k needed; only 3k liquid
         var c = baseCharacter(nuyen: 3_000, reserve: 0, lifestyles: [
-            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 1),
+            Lifestyle(monthlyCost: 5_000, monthsPrepaid: 1)
         ])
         XCTAssertEqual(LifestyleTracker.cashRequiredToProcess(character: c, months: 3), 10_000)
         XCTAssertThrowsError(try LifestyleTracker.processMonths(&c, months: 3))
@@ -120,7 +119,7 @@ final class LifestyleTrackerTests: XCTestCase {
     func testPrepayFromNuyenNotReserve() throws {
         let id = UUID()
         var c = baseCharacter(nuyen: 10_000, reserve: 50_000, lifestyles: [
-            Lifestyle(id: id, monthlyCost: 2_000, monthsPrepaid: 0),
+            Lifestyle(id: id, monthlyCost: 2_000, monthsPrepaid: 0)
         ])
         try LifestyleTracker.prepay(lifestyleID: id, months: 3, character: &c)
         XCTAssertEqual(c.nuyen, 4_000)
@@ -132,7 +131,7 @@ final class LifestyleTrackerTests: XCTestCase {
     func testPrepayInsufficientNuyen() {
         let id = UUID()
         var c = baseCharacter(nuyen: 1_000, lifestyles: [
-            Lifestyle(id: id, monthlyCost: 2_000, monthsPrepaid: 0),
+            Lifestyle(id: id, monthlyCost: 2_000, monthsPrepaid: 0)
         ])
         XCTAssertThrowsError(try LifestyleTracker.prepay(lifestyleID: id, months: 1, character: &c))
     }
