@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class EditionRulesTests: XCTestCase {
-
     func testAllEditionsHavePeerRules() {
         for edition in Edition.allCases {
             let rules = RulesRegistry.rules(for: edition)
@@ -83,7 +82,7 @@ final class EditionRulesTests: XCTestCase {
             .attributes: .b,
             .magicOrResonance: .c,
             .skills: .d,
-            .resources: .e,
+            .resources: .e
         ])
         XCTAssertEqual(assignment.sumToTenTotal, 10)
         XCTAssertTrue(assignment.usesUniqueLetters)

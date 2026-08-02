@@ -11,7 +11,7 @@ struct RunsListView: View {
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
 
     /// Optional run to open immediately (marketing screenshots / deep links).
-    var forcedOpenRunID: UUID? = nil
+    var forcedOpenRunID: UUID?
     /// When true, never open detail — always show the list (marketing return-to-library).
     var forceListOnly: Bool = false
 
@@ -30,8 +30,7 @@ struct RunsListView: View {
             if let statusFilter, summary.status != statusFilter { return false }
             if let editionFilter, summary.edition != editionFilter { return false }
             if let characterFilterID,
-               !summary.participantCharacterIDs.contains(characterFilterID)
-            {
+               !summary.participantCharacterIDs.contains(characterFilterID) {
                 return false
             }
             return true
@@ -286,7 +285,7 @@ struct RunsListView: View {
 
     private func participantNames(for summary: RunSummary) -> String {
         let names = summary.participantCharacterIDs.compactMap { id in
-            characterSummaries.first(where: { $0.id == id })?.displayTitle
+            characterSummaries.first { $0.id == id }?.displayTitle
         }
         if names.isEmpty {
             return summary.participantCount > 0 ? "Missing runners" : "No team yet"

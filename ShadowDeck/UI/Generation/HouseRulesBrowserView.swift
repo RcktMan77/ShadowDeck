@@ -108,8 +108,7 @@ struct HouseRulesBrowserView: View {
                 GroupBox("Rule parameters") {
                     VStack(alignment: .leading, spacing: 10) {
                         if houseRules.isEnabled(.bonusStartingKarma)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Bonus starting karma")
                                 Spacer()
@@ -128,8 +127,7 @@ struct HouseRulesBrowserView: View {
                             }
                         }
                         if houseRules.isEnabled(.expandedContacts)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Extra contact points")
                                 Spacer()
@@ -139,8 +137,7 @@ struct HouseRulesBrowserView: View {
                             }
                         }
                         if houseRules.isEnabled(.qualityBudgetAdjustment)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Positive quality karma cap")
                                 Spacer()

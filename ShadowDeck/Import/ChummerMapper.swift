@@ -125,8 +125,7 @@ public enum ChummerMapper {
         var storyParts: [String] = []
         if !source.background.isEmpty { storyParts.append(source.background) }
         if !source.description.isEmpty,
-           !storyParts.contains(where: { $0.caseInsensitiveCompare(source.description) == .orderedSame })
-        {
+           !storyParts.contains(where: { $0.caseInsensitiveCompare(source.description) == .orderedSame }) {
             // Chummer “description” is often a short GM note; append if distinct.
             storyParts.append(source.description)
         }
@@ -211,7 +210,7 @@ public enum ChummerMapper {
         "priority.sum_to_ten",
         "bp.budget",
         "bp.overspent",
-        "karma.overspent",
+        "karma.overspent"
     ]
 
     // MARK: - Field mappers

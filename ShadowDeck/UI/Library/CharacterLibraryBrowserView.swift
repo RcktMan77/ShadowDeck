@@ -263,8 +263,7 @@ struct CharacterLibraryBrowserView: View {
                     .resizable()
                     .scaledToFill()
             } else if let metatype = summary.metatype,
-                      let image = ChargenArtLoader.metatypeNSImage(for: metatype)
-            {
+                      let image = ChargenArtLoader.metatypeNSImage(for: metatype) {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFill()
