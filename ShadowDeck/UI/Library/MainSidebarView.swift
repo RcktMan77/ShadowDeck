@@ -100,7 +100,7 @@ struct MainSidebarView: View {
         ) {
             Button("New Run") { onNewRun() }
             Button("New Run from Template…") { onNewRunFromTemplate() }
-            Button("Draft Run from PDF…") { onNewRunFromPDF() }
+            Button("Draft Run from PDF… (Experimental)") { onNewRunFromPDF() }
         }
     }
 
