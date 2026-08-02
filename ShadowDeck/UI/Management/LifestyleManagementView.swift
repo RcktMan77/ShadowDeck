@@ -142,24 +142,29 @@ struct LifestyleManagementView: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 220)
 
-                Button("Process Month…") {
+                AppChromeButton.title(
+                    "Process Month…",
+                    help: "Advance 1–3 months: consume prepaid or charge reserve then nuyen",
+                    isEnabled: burn.activeCount > 0
+                ) {
                     errorMessage = nil
                     confirmProcess = true
                 }
-                .disabled(burn.activeCount == 0)
-                .help("Advance 1–3 months: consume prepaid or charge reserve then nuyen")
 
-                Button("Add to Reserve…") {
+                AppChromeButton.title("Add to Reserve…", help: "Deposit nuyen to lifestyle reserve") {
                     reserveIsDeposit = true
                     reserveAmount = min(1_000, max(0, character.nuyen))
                     showReserveSheet = true
                 }
-                Button("Withdraw Reserve…") {
+                AppChromeButton.title(
+                    "Withdraw Reserve…",
+                    help: "Withdraw from lifestyle reserve",
+                    isEnabled: character.lifestyleNuyenReserve > 0
+                ) {
                     reserveIsDeposit = false
                     reserveAmount = min(1_000, max(0, character.lifestyleNuyenReserve))
                     showReserveSheet = true
                 }
-                .disabled(character.lifestyleNuyenReserve <= 0)
             }
         }
         .padding(12)
@@ -268,24 +273,28 @@ struct LifestyleManagementView: View {
                 Toggle("Active", isOn: bindingActive(life.id))
                     .toggleStyle(.checkbox)
                 Spacer()
-                Button("Use SR5 default") {
+                AppChromeButton.title(
+                    "Use SR5 default",
+                    help: "Suggested core-book monthly cost for this level (SR5 guidance)"
+                ) {
                     updateLifestyle(life.id) {
                         $0.monthlyCost = $0.level.suggestedMonthlyCostSR5
                     }
                 }
-                .controlSize(.small)
-                .help("Suggested core-book monthly cost for this level (SR5 guidance)")
             }
             TextField("Notes", text: bindingNotes(life.id), axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...4)
 
             HStack {
-                Button("Prepay…") {
+                AppChromeButton.title(
+                    "Prepay…",
+                    help: "Prepay months of lifestyle",
+                    isEnabled: life.isActive
+                ) {
                     prepayMonths = 1
                     prepayLifestyleID = life.id
                 }
-                .disabled(!life.isActive)
                 Spacer()
             }
         }
@@ -342,9 +351,14 @@ struct LifestyleManagementView: View {
                 .foregroundStyle(.secondary)
             Spacer()
             HStack {
-                Button("Cancel") { showAdd = false }
+                AppChromeButton.title("Cancel", help: "Close without adding") { showAdd = false }
                 Spacer()
-                Button("Add") {
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add lifestyle",
+                    style: .prominent,
+                    keyEquivalent: "\r"
+                ) {
                     let level = LifestyleLevel.middle
                     character.lifestyles.append(
                         Lifestyle(
@@ -358,7 +372,6 @@ struct LifestyleManagementView: View {
                     onStatus?("Added lifestyle.")
                     showAdd = false
                 }
-                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(20)
@@ -379,9 +392,15 @@ struct LifestyleManagementView: View {
                 .font(.callout.monospacedDigit())
             Spacer()
             HStack {
-                Button("Cancel") { prepayLifestyleID = nil }
+                AppChromeButton.title("Cancel", help: "Close") { prepayLifestyleID = nil }
                 Spacer()
-                Button("Prepay") {
+                AppChromeButton.title(
+                    "Prepay",
+                    help: "Apply prepay from nuyen",
+                    style: .prominent,
+                    isEnabled: cost > 0 && cost <= character.nuyen,
+                    keyEquivalent: "\r"
+                ) {
                     do {
                         try LifestyleTracker.prepay(
                             lifestyleID: id,
@@ -396,8 +415,6 @@ struct LifestyleManagementView: View {
                         errorMessage = error.localizedDescription
                     }
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(cost > character.nuyen || cost <= 0)
             }
         }
         .padding(20)
@@ -419,9 +436,14 @@ struct LifestyleManagementView: View {
                 .textFieldStyle(.roundedBorder)
             Spacer()
             HStack {
-                Button("Cancel") { showReserveSheet = false }
+                AppChromeButton.title("Cancel", help: "Close") { showReserveSheet = false }
                 Spacer()
-                Button(reserveIsDeposit ? "Deposit" : "Withdraw") {
+                AppChromeButton.title(
+                    reserveIsDeposit ? "Deposit" : "Withdraw",
+                    help: "Confirm reserve change",
+                    style: .prominent,
+                    keyEquivalent: "\r"
+                ) {
                     do {
                         if reserveIsDeposit {
                             try LifestyleTracker.depositToReserve(amount: reserveAmount, character: &character)
@@ -437,7 +459,6 @@ struct LifestyleManagementView: View {
                         errorMessage = error.localizedDescription
                     }
                 }
-                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(20)
