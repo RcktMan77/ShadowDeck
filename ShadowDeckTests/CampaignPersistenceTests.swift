@@ -116,4 +116,18 @@ final class CampaignPersistenceTests: XCTestCase {
         XCTAssertNil(copy.awardsAppliedAt)
         XCTAssertEqual(try env.runLibrary.count(), 2)
     }
+
+    func testHouseRuleHintsCodecRoundTrip() {
+        let encoded = CampaignHouseRuleHintsCodec.encode(
+            selectedLabels: ["Sum-to-Ten Priorities", "Hits on 4+"],
+            freeText: "No wireless bonuses"
+        )
+        let decoded = CampaignHouseRuleHintsCodec.decode(encoded)
+        XCTAssertEqual(decoded.selectedLabels, ["Sum-to-Ten Priorities", "Hits on 4+"])
+        XCTAssertEqual(decoded.freeText, "No wireless bonuses")
+
+        let freeOnly = CampaignHouseRuleHintsCodec.decode("just a free note")
+        XCTAssertTrue(freeOnly.selectedLabels.isEmpty)
+        XCTAssertEqual(freeOnly.freeText, "just a free note")
+    }
 }
