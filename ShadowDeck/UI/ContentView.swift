@@ -235,10 +235,9 @@ struct ContentView: View {
             ProgressView("Creating campaign…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .newRunFromTemplate:
-            // Handled via sheet from the Create sidebar action.
+            // Sheet-only create path (opened from New Run menu); stay on a neutral placeholder.
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onAppear { showNewRunFromTemplate = true }
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
