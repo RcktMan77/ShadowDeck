@@ -162,6 +162,12 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromPDF)) { _ in
             showDraftRunFromPDF = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openRunDetail)) { note in
+            guard let runID = note.userInfo?["runID"] as? UUID else { return }
+            newRunDetailID = runID
+            selection = .newRun
+            libraryEnvironment.refreshRunCount()
+        }
         .sheet(isPresented: $showNewRunFromTemplate) {
             NewRunFromTemplateSheet(
                 preferredCampaignID: templatePreferredCampaignID,
