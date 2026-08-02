@@ -286,7 +286,7 @@ public enum ChummerXMLExporter {
             xml += elem("role", contact.role, indent: 6)
             xml += elem("loyalty", "\(contact.loyalty)", indent: 6)
             xml += elem("connection", "\(contact.connection)", indent: 6)
-            if let m = contact.metatype { xml += elem("metatype", m, indent: 6) }
+            if let metatype = contact.metatype { xml += elem("metatype", metatype, indent: 6) }
             if let loc = contact.location { xml += elem("location", loc, indent: 6) }
             if let g = contact.gender { xml += elem("gender", g, indent: 6) }
             if let a = contact.age { xml += elem("age", a, indent: 6) }

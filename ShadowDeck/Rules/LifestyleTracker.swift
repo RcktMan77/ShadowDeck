@@ -48,9 +48,9 @@ public enum LifestyleTrackerError: Error, LocalizedError, Equatable {
             return "Inactive lifestyles cannot be prepaid."
         case .invalidPrepayMonths:
             return "Prepay at least one month."
-        case .insufficientNuyen(let needed, let available):
+        case let .insufficientNuyen(needed, available):
             return "Need ¥\(needed.formatted()) but only ¥\(available.formatted()) available in nuyen."
-        case .shortfall(let needed, let available, let months):
+        case let .shortfall(needed, available, months):
             let label = months == 1 ? "1 month" : "\(months) months"
             return "Cannot process \(label): need ¥\(needed.formatted()) but only ¥\(available.formatted()) available (reserve + nuyen)."
         }
