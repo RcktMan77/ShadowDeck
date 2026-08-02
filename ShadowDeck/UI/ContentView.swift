@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case characters
+    case campaigns
     case runs
     case newCharacter
     case newRun
@@ -21,6 +22,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     var title: String {
         switch self {
         case .characters: "Characters"
+        case .campaigns: "Campaigns"
         case .runs: "Runs"
         case .newCharacter: "New Character"
         case .newRun: "New Run"
@@ -31,6 +33,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     var systemImage: String {
         switch self {
         case .characters: "person.3.fill"
+        case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
         case .newCharacter: "plus.circle.fill"
         case .newRun: "plus.rectangle.on.folder.fill"
@@ -48,6 +51,8 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
             return "Start the character generation wizard"
         case .characters:
             return "Browse characters in your library"
+        case .campaigns:
+            return "Group missions under campaigns for a table or ruleset"
         case .runs:
             return "Browse missions and jobs"
         }
@@ -75,6 +80,7 @@ struct ContentView: View {
             MainSidebarView(
                 selection: $selection,
                 characterCount: summaries.count,
+                campaignCount: libraryEnvironment.campaignCount,
                 runCount: libraryEnvironment.runCount
             ) {
                 requestNewRun()
@@ -174,6 +180,8 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         switch selection {
+        case .campaigns:
+            CampaignsListView()
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
