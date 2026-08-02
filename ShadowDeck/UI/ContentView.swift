@@ -40,7 +40,8 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .characters: "person.3.fill"
         case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
-        case .newCharacter: "plus.circle.fill"
+        // Single person + shared + badge (Library Characters uses person.3.fill).
+        case .newCharacter: "person.fill"
         case .newCampaign: "folder.fill"
         case .newRun: "list.clipboard.fill"
         case .newRunFromTemplate: "list.bullet.rectangle"
@@ -51,7 +52,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     /// When true, sidebar draws a consistent top-trailing plus badge (system `.badge.plus` glyphs place + differently).
     var showsCreatePlusBadge: Bool {
         switch self {
-        case .newRun, .newRunFromTemplate, .newCampaign: true
+        case .newCharacter, .newRun, .newRunFromTemplate, .newCampaign: true
         default: false
         }
     }
