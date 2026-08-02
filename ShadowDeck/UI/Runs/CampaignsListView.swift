@@ -336,12 +336,16 @@ struct CampaignDetailView: View {
     @State private var errorMessage: String?
     @State private var statusMessage: String?
     @State private var confirmDelete = false
+    @State private var showAddRunsSheet = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Button("Back", systemImage: "chevron.left") { onBack() }
+                    Button("Back", systemImage: "chevron.left") {
+                        commitIdentity(forceNotes: true)
+                        onBack()
+                    }
                     Spacer()
                     if let campaign {
                         if campaign.isArchived {
@@ -370,7 +374,7 @@ struct CampaignDetailView: View {
                                 TextField("Campaign name", text: $nameDraft)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(maxWidth: 360)
-                                    .onSubmit { commitIdentity() }
+                                    .onSubmit { commitIdentity(forceNotes: true) }
                             }
                             LabeledContent("Ruleset") {
                                 Picker("Ruleset", selection: editionBinding) {
@@ -388,17 +392,7 @@ struct CampaignDetailView: View {
 
                             summaryChips
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Notes")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                TextEditor(text: $notesDraft)
-                                    .font(.body)
-                                    .frame(minHeight: 100)
-                                    .padding(6)
-                                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-                                    .onChange(of: notesDraft) { _, _ in scheduleNotesSave() }
-                            }
+                            notesEditorBlock
 
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("House-rule hints")
@@ -407,11 +401,11 @@ struct CampaignDetailView: View {
                                 TextField("Table defaults (free text)…", text: $hintsDraft, axis: .vertical)
                                     .textFieldStyle(.roundedBorder)
                                     .lineLimit(2...4)
-                                    .onSubmit { commitIdentity() }
+                                    .onSubmit { commitIdentity(forceNotes: true) }
                             }
 
                             HStack {
-                                Button("Save") { commitIdentity() }
+                                Button("Save") { commitIdentity(forceNotes: true) }
                                     .keyboardShortcut("s", modifiers: [.command])
                             }
                         }
@@ -423,27 +417,49 @@ struct CampaignDetailView: View {
                                 Text("\(runs.count) run(s)")
                                     .foregroundStyle(.secondary)
                                 Spacer()
-                                Button("New Run in Campaign", systemImage: "plus.circle") {
-                                    createRunInCampaign()
+                                Menu {
+                                    Button("Create New Run") {
+                                        createRunInCampaign()
+                                    }
+                                    Button("Add from Run Library…") {
+                                        showAddRunsSheet = true
+                                    }
+                                } label: {
+                                    Label("Add Run", systemImage: "plus.circle")
                                 }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
                             }
                             if runs.isEmpty {
-                                Text("No runs assigned yet.")
+                                Text("No runs assigned yet. Add jobs from your Run Library or create a new one.")
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(runs) { summary in
-                                    Button {
-                                        onOpenRun(summary.id)
-                                    } label: {
-                                        HStack {
-                                            Text(summary.title)
-                                                .foregroundStyle(.primary)
-                                            Spacer()
-                                            RunStatusBadge(status: summary.status)
-                                            RunEditionBadge(edition: summary.edition)
+                                    HStack(spacing: 8) {
+                                        Button {
+                                            commitIdentity(forceNotes: true)
+                                            onOpenRun(summary.id)
+                                        } label: {
+                                            HStack {
+                                                Text(summary.title)
+                                                    .foregroundStyle(.primary)
+                                                Spacer()
+                                                RunStatusBadge(status: summary.status)
+                                                RunEditionBadge(edition: summary.edition)
+                                            }
                                         }
+                                        .buttonStyle(.plain)
+
+                                        Button {
+                                            unassignRun(summary.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle")
+                                                .foregroundStyle(.secondary)
+                                                .frame(width: 28, height: 28)
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .help("Remove from campaign (keeps the run as Unassigned)")
                                     }
-                                    .buttonStyle(.plain)
                                     .padding(.vertical, 4)
                                 }
                             }
@@ -457,6 +473,21 @@ struct CampaignDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { load() }
+        .onDisappear { commitIdentity(forceNotes: true) }
+        .sheet(isPresented: $showAddRunsSheet) {
+            AddRunsToCampaignSheet(
+                campaignID: campaignID,
+                campaignEdition: campaign?.edition ?? .sr5,
+                alreadyAssignedIDs: Set(runs.map(\.id)),
+                onCancel: { showAddRunsSheet = false },
+                onAdded: {
+                    showAddRunsSheet = false
+                    load()
+                    statusMessage = "Runs updated."
+                }
+            )
+            .environment(libraryEnvironment)
+        }
         .confirmationDialog(
             "Delete this campaign?",
             isPresented: $confirmDelete,
@@ -468,6 +499,26 @@ struct CampaignDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Runs stay in the library as Unassigned. They are not deleted.")
+        }
+    }
+
+    private var notesEditorBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Notes")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Private prep notes for this campaign.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            NotesEditor(text: $notesDraft) {
+                commitIdentity(forceNotes: true)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 160)
         }
     }
 
@@ -493,6 +544,9 @@ struct CampaignDetailView: View {
             set: { newValue in
                 guard var c = campaign else { return }
                 c.edition = newValue
+                c.notes = notesDraft
+                c.name = nameDraft
+                c.houseRuleHints = hintsDraft
                 save(c)
             }
         )
@@ -512,25 +566,13 @@ struct CampaignDetailView: View {
         }
     }
 
-    private func commitIdentity() {
+    private func commitIdentity(forceNotes: Bool) {
         guard var c = campaign else { return }
         c.name = nameDraft
         c.notes = notesDraft
         c.houseRuleHints = hintsDraft
+        _ = forceNotes
         save(c)
-    }
-
-    private func scheduleNotesSave() {
-        // Lightweight: save notes with identity commit path on next Save; also flush shortly.
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(600))
-            guard var c = campaign else { return }
-            c.notes = notesDraft
-            c.houseRuleHints = hintsDraft
-            c.name = nameDraft
-            try? libraryEnvironment.campaignLibrary.save(c)
-            campaign = try? libraryEnvironment.campaignLibrary.require(campaignID)
-        }
     }
 
     private func save(_ c: Campaign) {
@@ -549,11 +591,15 @@ struct CampaignDetailView: View {
     private func setArchived(_ archived: Bool) {
         guard var c = campaign else { return }
         c.isArchived = archived
+        c.notes = notesDraft
+        c.name = nameDraft
+        c.houseRuleHints = hintsDraft
         save(c)
         libraryEnvironment.refreshCampaignCount()
     }
 
     private func createRunInCampaign() {
+        commitIdentity(forceNotes: true)
         let edition = campaign?.edition ?? .sr5
         var run = Run.makeDraft(title: "New Run", edition: edition, campaignID: campaignID)
         let count = (try? libraryEnvironment.runLibrary.count()) ?? 0
@@ -570,10 +616,152 @@ struct CampaignDetailView: View {
         }
     }
 
+    private func unassignRun(_ id: UUID) {
+        do {
+            var run = try libraryEnvironment.runLibrary.require(id)
+            run.campaignID = nil
+            try libraryEnvironment.runLibrary.save(run)
+            libraryEnvironment.refreshRunCount()
+            load()
+            statusMessage = "Run moved to Unassigned."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func deleteCampaign() {
+        commitIdentity(forceNotes: true)
         do {
             try libraryEnvironment.deleteCampaignUnassigningRuns(id: campaignID)
             onDeleted()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Add existing runs
+
+/// Pick runs from the library and assign them to a campaign.
+struct AddRunsToCampaignSheet: View {
+    @Environment(LibraryEnvironment.self) private var libraryEnvironment
+
+    let campaignID: UUID
+    let campaignEdition: Edition
+    let alreadyAssignedIDs: Set<UUID>
+    var onCancel: () -> Void
+    var onAdded: () -> Void
+
+    @State private var candidates: [RunSummary] = []
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var onlyMatchingEdition = true
+    @State private var errorMessage: String?
+
+    private var visible: [RunSummary] {
+        candidates.filter { summary in
+            if alreadyAssignedIDs.contains(summary.id) { return false }
+            if onlyMatchingEdition, summary.edition != campaignEdition { return false }
+            return true
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Add Runs from Library")
+                    .font(.headline)
+                Spacer()
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("Add \(selectedIDs.isEmpty ? "" : "\(selectedIDs.count) ")Run\(selectedIDs.count == 1 ? "" : "s")") {
+                    assignSelected()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(selectedIDs.isEmpty)
+            }
+            .padding()
+
+            Divider()
+
+            HStack {
+                Toggle("Only \(campaignEdition.shortName) ruleset", isOn: $onlyMatchingEdition)
+                    .toggleStyle(.checkbox)
+                Spacer()
+                Text("\(visible.count) available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+
+            if visible.isEmpty {
+                ContentUnavailableView {
+                    Label("No Runs to Add", systemImage: "list.clipboard")
+                } description: {
+                    Text(
+                        onlyMatchingEdition
+                            ? "No unassigned \(campaignEdition.shortName) runs (or runs in other campaigns) match. Create a new run or clear the ruleset filter."
+                            : "Every run is already in this campaign, or the library is empty."
+                    )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(selection: $selectedIDs) {
+                    ForEach(visible) { summary in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(summary.title)
+                                    .font(.body.weight(.medium))
+                                HStack(spacing: 8) {
+                                    RunStatusBadge(status: summary.status)
+                                    RunEditionBadge(edition: summary.edition)
+                                    if let other = summary.campaignID, other != campaignID {
+                                        Text("Reassign from another campaign")
+                                            .font(.caption2)
+                                            .foregroundStyle(.orange)
+                                    } else if summary.campaignID == nil {
+                                        Text("Unassigned")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            Spacer()
+                        }
+                        .tag(summary.id)
+                    }
+                }
+                .listStyle(.inset(alternatesRowBackgrounds: true))
+            }
+        }
+        .frame(minWidth: 480, minHeight: 420)
+        .onAppear { refreshCandidates() }
+    }
+
+    private func refreshCandidates() {
+        do {
+            candidates = try libraryEnvironment.runLibrary.listSummaries()
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func assignSelected() {
+        do {
+            for id in selectedIDs {
+                var run = try libraryEnvironment.runLibrary.require(id)
+                run.campaignID = campaignID
+                try libraryEnvironment.runLibrary.save(run)
+            }
+            libraryEnvironment.refreshRunCount()
+            onAdded()
         } catch {
             errorMessage = error.localizedDescription
         }
