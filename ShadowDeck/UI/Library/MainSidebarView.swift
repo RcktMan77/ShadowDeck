@@ -42,19 +42,29 @@ struct MainSidebarView: View {
     /// New Run as a menu (blank run + from template) — one Create row, like the Run Library toolbar.
     private var newRunMenuRow: some View {
         let isSelected = selection == .newRun
+        // Use a plain label layout (not system Menu chevron-only styling) so the shared
+        // top-trailing + badge matches New Campaign and is not clipped by Menu defaults.
         return Menu {
             Button("New Run") { onNewRun() }
             Button("New Run from Template…") { onNewRunFromTemplate() }
         } label: {
             HStack(spacing: 0) {
-                sidebarLabel(.newRun, isSelected: isSelected)
+                createSidebarIcon(
+                    systemImage: SidebarItem.newRun.systemImage,
+                    showPlusBadge: true,
+                    isSelected: isSelected
+                )
+                Text(SidebarItem.newRun.title)
+                    .font(.body.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(Color.primary)
+                    .padding(.leading, 8)
                 Spacer(minLength: 8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
             .padding(.vertical, 2)
         }
-        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
         .listRowBackground(sidebarRowBackground(isSelected: isSelected))
         .help("Create a blank mission or start from a template")
     }
@@ -64,12 +74,10 @@ struct MainSidebarView: View {
         return Button {
             switch item {
             case .newRun:
-                // Re-clicking New Run while already selected still mints a fresh job.
                 onNewRun()
             case .newRunFromTemplate:
                 onNewRunFromTemplate()
             case .newCampaign:
-                // Same pattern: always mint a campaign and open its detail.
                 onNewCampaign()
             default:
                 selection = item
@@ -99,25 +107,38 @@ struct MainSidebarView: View {
             Text(item.title)
                 .font(.body.weight(isSelected ? .semibold : .regular))
         } icon: {
-            // Base icon; optional shared + badge so Create Run / Create Campaign align
-            // (system `doc.badge.plus` vs `folder.badge.plus` place the + in different corners).
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: item.systemImage)
-                    .font(.system(size: 17, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                if item.showsCreatePlusBadge {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, isSelected ? Color.accentColor : Color.primary)
-                        .offset(x: 5, y: -4)
-                }
-            }
-            .frame(width: 24, height: 20, alignment: .center)
+            createSidebarIcon(
+                systemImage: item.systemImage,
+                showPlusBadge: item.showsCreatePlusBadge,
+                isSelected: isSelected
+            )
         }
         .labelStyle(.titleAndIcon)
         .foregroundStyle(Color.primary)
+    }
+
+    /// Shared icon metrics so Library and Create create-actions align, including + badge.
+    private func createSidebarIcon(
+        systemImage: String,
+        showPlusBadge: Bool,
+        isSelected: Bool
+    ) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            if showPlusBadge {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, isSelected ? Color.accentColor : Color.primary)
+                    .offset(x: 5, y: -4)
+            }
+        }
+        // Extra room so Menu / List do not clip the top-trailing badge.
+        .frame(width: 26, height: 22, alignment: .center)
+        .padding(.trailing, 2)
     }
 
     private func sidebarRowBackground(isSelected: Bool) -> some View {
