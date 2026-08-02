@@ -50,7 +50,11 @@ struct DiceRollerPanel: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
+            AppChromeButton.labeled(
+                "Look up",
+                systemImage: "book.pages",
+                help: "Open Rules Reference for hits, glitches, Edge, and house rules"
+            ) {
                 var ctx = RulesReferenceSession.shared.controller.calcContext
                 ctx.edition = controller.edition
                 ctx.diceRules = controller.diceRules
@@ -60,21 +64,10 @@ struct DiceRollerPanel: View {
                 }
                 RulesReferenceOpener.request(query: "dice", edition: controller.edition)
                 RulesReferenceSession.shared.controller.calcContext = ctx
-            } label: {
-                Label("Look up", systemImage: "book.pages")
             }
-            .controlSize(.small)
-            .help("Open Rules Reference for hits, glitches, Edge, and house rules")
-            Button {
+            AppChromeButton.icon("xmark", help: "Close (Esc)") {
                 onClose()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .help("Close (Esc)")
-            .keyboardShortcut(.cancelAction)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
