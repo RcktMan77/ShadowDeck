@@ -314,7 +314,7 @@ struct RunDetailView: View {
     // MARK: - Sticky toolbar
 
     private func stickyToolbar(_ current: Run) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             AppChromeButton.labeled("Runs", systemImage: "chevron.left", help: "Back to Run Library") {
                 goBack()
             }
@@ -331,42 +331,45 @@ struct RunDetailView: View {
 
             Spacer(minLength: 8)
 
-            Picker("Status", selection: statusBinding) {
-                ForEach(RunStatus.allCases) { status in
-                    Text(status.displayName).tag(status)
+            // Tight trailing cluster (matches Character sheet toolbar).
+            HStack(spacing: 4) {
+                Picker("Status", selection: statusBinding) {
+                    ForEach(RunStatus.allCases) { status in
+                        Text(status.displayName).tag(status)
+                    }
                 }
-            }
-            .labelsHidden()
-            .frame(width: 120)
-            .help("Run status")
+                .labelsHidden()
+                .frame(width: 120)
+                .help("Run status")
 
-            AppChromeButton.icon(
-                "book.pages",
-                help: "Look up — Rules Reference for awards, heat, and downtime"
-            ) {
-                RulesReferenceOpener.request(query: "run")
-            }
+                AppChromeButton.icon(
+                    "book.pages",
+                    help: "Look up — Rules Reference for awards, heat, and downtime"
+                ) {
+                    RulesReferenceOpener.request(query: "run")
+                }
 
-            AppChromeButton.icon(
-                "person.3.sequence",
-                help: "Player briefing — player-safe handout and Copy Markdown"
-            ) {
-                presentPlayerBriefing()
-            }
+                AppChromeButton.icon(
+                    "person.3.sequence",
+                    help: "Player briefing — player-safe handout and Copy Markdown"
+                ) {
+                    presentPlayerBriefing()
+                }
 
-            AppChromeButton.icon(
-                "list.bullet.rectangle",
-                help: "Save as Template — reusable job pattern"
-            ) {
-                prepareSaveAsTemplate()
-            }
+                AppChromeButton.icon(
+                    "list.bullet.rectangle",
+                    help: "Save as Template — reusable job pattern"
+                ) {
+                    prepareSaveAsTemplate()
+                }
 
-            AppChromeButton.icon(
-                "trash",
-                help: "Delete this run",
-                style: .destructive
-            ) {
-                confirmDelete = true
+                AppChromeButton.icon(
+                    "trash",
+                    help: "Delete this run",
+                    style: .destructive
+                ) {
+                    confirmDelete = true
+                }
             }
         }
     }
