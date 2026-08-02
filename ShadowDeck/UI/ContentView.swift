@@ -261,8 +261,6 @@ struct ContentView: View {
                     libraryError: libraryEnvironment.lastErrorMessage,
                     onRefresh: { refresh() },
                     onLoadSamples: { seedSamplesIfEmpty() },
-                    onNewCharacter: { selection = .newCharacter },
-                    onImport: { selection = .importCharacter },
                     onOpen: { openCharacterSheet($0) },
                     onExportPackage: { exportCharacter($0) },
                     onExportPDF: { exportPDFSheet($0) },
