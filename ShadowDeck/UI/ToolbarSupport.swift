@@ -17,8 +17,7 @@ import SwiftUI
 /// Toolbar / chrome control backed by `NSButton` (native tooltips + matching chrome).
 ///
 /// Always **hugs content** (never expands to fill an `HStack` / `Spacer` region).
-/// Height is fixed at 28pt and the AppKit control is vertically centered so it
-/// lines up with SwiftUI segmented/menu pickers.
+/// Uses **regular** control size so chrome matches standard SwiftUI bordered controls.
 struct AppChromeButton: View {
     enum Kind: Equatable {
         /// Symbol only (export, delete, look up, …).
@@ -35,8 +34,8 @@ struct AppChromeButton: View {
         case destructive
     }
 
-    /// Shared chrome height — keep pickers at this height for alignment.
-    static let chromeHeight: CGFloat = 28
+    /// Host height for regular rounded NSButtons (~system bordered button).
+    static let chromeHeight: CGFloat = 34
 
     var kind: Kind
     /// Hover help; defaults to the visible title / accessibility name.
@@ -175,7 +174,7 @@ struct IconToolbarButton: View {
 // MARK: - AppKit bridge
 
 /// Host that reports a fixed height and centers the real `NSButton` so SwiftUI
-/// HStacks line it up with segmented controls / menu pickers.
+/// HStacks line it up with neighboring controls.
 private struct ChromeNSButton: NSViewRepresentable {
     var kind: AppChromeButton.Kind
     var help: String
@@ -211,7 +210,7 @@ private struct ChromeNSButton: NSViewRepresentable {
         button.keyEquivalentModifierMask = keyModifiers
         button.setAccessibilityLabel(help)
 
-        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
 
         switch kind {
         case .icon(let systemImage):
@@ -264,7 +263,7 @@ private final class ChromeButtonHost: NSView {
         let b = NSButton(frame: .zero)
         b.bezelStyle = .rounded
         b.isBordered = true
-        b.controlSize = .small // closer to 28pt bar height than .regular
+        b.controlSize = .regular
         b.setButtonType(.momentaryPushIn)
         b.imageScaling = .scaleProportionallyDown
         b.setContentHuggingPriority(.required, for: .horizontal)
@@ -289,9 +288,9 @@ private final class ChromeButtonHost: NSView {
             w = button.intrinsicContentSize.width
         }
         if button.imagePosition == .imageOnly {
-            w = max(w, 28)
+            w = max(w, 32)
         } else {
-            w = max(w + 4, 52)
+            w = max(w + 8, 56)
         }
         return NSSize(width: w, height: AppChromeButton.chromeHeight)
     }
@@ -304,20 +303,18 @@ private final class ChromeButtonHost: NSView {
             size = button.intrinsicContentSize
         }
         if button.imagePosition == .imageOnly {
-            size.width = max(size.width, 28)
-            size.height = min(max(size.height, 24), AppChromeButton.chromeHeight)
+            size.width = max(size.width, 32)
+            size.height = min(max(size.height, 28), AppChromeButton.chromeHeight)
         } else {
-            size.width = max(size.width + 4, 52)
-            size.height = min(max(size.height, 24), AppChromeButton.chromeHeight)
+            size.width = max(size.width + 8, 56)
+            size.height = min(max(size.height, 28), AppChromeButton.chromeHeight)
         }
         // Vertically center within the fixed host height.
         let y = (bounds.height - size.height) / 2
-        let x = max(0, (bounds.width - size.width) / 2)
-        // Prefer leading-aligned content when host is exactly fitting width.
         button.frame = NSRect(
-            x: bounds.width > size.width + 1 ? x : 0,
+            x: 0,
             y: max(0, y),
-            width: min(size.width, bounds.width),
+            width: min(size.width, max(bounds.width, size.width)),
             height: size.height
         )
     }
