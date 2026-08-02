@@ -163,14 +163,9 @@ struct LaunchSplashView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture { dismiss() }
-        .focusable()
-        .onKeyPress { _ in
-            dismiss()
-            return .handled
-        }
+        .ignoresSafeArea(.all)
+        // Keyboard skip without becoming first-responder focusable — `.focusable()`
+        // draws a system accent focus ring on click (reads as a green edge/line).
         .onAppear {
             BrandFonts.registerIfNeeded()
             // Intro fade is local only; dismiss never relies on reversing it.
@@ -179,9 +174,39 @@ struct LaunchSplashView: View {
                 titleScale = 1
             }
             startQuipCycle()
+            installKeyMonitor()
         }
         .onDisappear {
             quipTask?.cancel()
+            removeKeyMonitor()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { dismiss() }
+        .onReceive(NotificationCenter.default.publisher(for: .launchSplashSkipKey)) { _ in
+            dismiss()
+        }
+    }
+
+    // MARK: - Key skip (no focus ring)
+
+    @State private var keyMonitor: Any?
+
+    private func installKeyMonitor() {
+        removeKeyMonitor()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if let fr = NSApp.keyWindow?.firstResponder,
+               fr is NSTextView || fr is NSTextField {
+                return event
+            }
+            NotificationCenter.default.post(name: .launchSplashSkipKey, object: nil)
+            return nil
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
         }
     }
 
@@ -191,17 +216,14 @@ struct LaunchSplashView: View {
             try? await Task.sleep(nanoseconds: UInt64(Self.introDelay * 1_000_000_000))
             for i in 0..<Self.quipsToShow {
                 if Task.isCancelled || didDismiss { return }
-                // Swap copy while fully transparent — no mid-fade string replacement.
                 quipIndex = i
                 quipOpacity = 0
-                // Yield one frame so the new string is laid out at opacity 0 before fade-in.
                 await Task.yield()
                 if Task.isCancelled || didDismiss { return }
                 quipOpacity = 1
                 try? await Task.sleep(nanoseconds: UInt64(Self.secondsPerQuip * 1_000_000_000))
                 if Task.isCancelled || didDismiss { return }
                 quipOpacity = 0
-                // Hold dark long enough that fade-out finishes before the next string lands.
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
             if !didDismiss {
@@ -214,6 +236,7 @@ struct LaunchSplashView: View {
         guard !didDismiss else { return }
         didDismiss = true
         quipTask?.cancel()
+        removeKeyMonitor()
         // Hand off to the app-level black veil immediately. Do not animate this view
         // away — the parent keeps an opaque cover while window chrome / size settle.
         var t = Transaction()
@@ -223,6 +246,10 @@ struct LaunchSplashView: View {
             onDismiss()
         }
     }
+}
+
+private extension Notification.Name {
+    static let launchSplashSkipKey = Notification.Name("com.shadowdeck.launchSplash.skipKey")
 }
 
 // MARK: - Brand fonts
