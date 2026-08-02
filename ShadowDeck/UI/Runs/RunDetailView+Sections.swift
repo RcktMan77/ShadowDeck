@@ -582,7 +582,7 @@ extension RunDetailView {
         VStack(alignment: .leading, spacing: 8) {
             Text("Suggested awards")
                 .font(.subheadline.weight(.semibold))
-            Text("Suggestions only — does not change character karma/nuyen until you apply.")
+            Text("Suggestions only — does not change character karma, nuyen, or reputation until you apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -611,8 +611,56 @@ extension RunDetailView {
                     .foregroundStyle(.tertiary)
             }
 
+            teamReputationSnapshot
+
             applyAwardsControls
         }
+    }
+
+    /// Current Street Cred / Notoriety / Public Awareness for linked team members.
+    @ViewBuilder
+    var teamReputationSnapshot: some View {
+        let ids = run?.participantCharacterIDs ?? []
+        if !ids.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Team reputation (current)")
+                    .font(.subheadline.weight(.semibold))
+                Text("Set SC / Not / PA deltas when you Apply Awards. Heat Δ is on Payout & Heat; optional heat note is on the awards sheet.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(ids, id: \.self) { id in
+                    let rep = teamReputation(for: id)
+                    HStack(spacing: 10) {
+                        Text(characterTitle(id))
+                            .font(.callout.weight(.medium))
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        repChip("SC", rep.streetCred)
+                        repChip("Not", rep.notoriety)
+                        repChip("PA", rep.publicAwareness)
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func repChip(_ label: String, _ value: Int) -> some View {
+        Text("\(label) \(value)")
+            .font(.caption.monospacedDigit().weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.1), in: Capsule())
+            .help("\(label == "SC" ? "Street Cred" : label == "Not" ? "Notoriety" : "Public Awareness"): \(value)")
+    }
+
+    private func teamReputation(for characterID: UUID) -> (streetCred: Int, notoriety: Int, publicAwareness: Int) {
+        guard let character = try? libraryEnvironment.library.fetch(id: characterID) else {
+            return (0, 0, 0)
+        }
+        return (character.streetCred, character.notoriety, character.publicAwareness)
     }
 
     var applyAwardsControls: some View {
@@ -623,6 +671,11 @@ extension RunDetailView {
             }
             .disabled(!eligible)
             .help(applyAwardsHelp)
+
+            Text("Apply Awards also sets per-runner reputation deltas (Street Cred, Notoriety, Public Awareness) and an optional heat note.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if !eligible, let hint = applyAwardsDisabledHint {
                 Text(hint)
@@ -644,7 +697,7 @@ extension RunDetailView {
 
     var applyAwardsHelp: String {
         if canOfferApplyAwards {
-            return "Credit equal-split nuyen and karma to linked runners"
+            return "Credit nuyen, karma, and optional reputation deltas to linked runners"
         }
         return applyAwardsDisabledHint ?? "Apply awards when the run is finished"
     }
@@ -653,7 +706,7 @@ extension RunDetailView {
         guard let run else { return nil }
         if run.awardsAppliedAt != nil { return nil }
         if !run.status.isTerminal {
-            return "Mark the run Completed or Failed to apply awards."
+            return "Mark the run Completed or Failed to apply awards (and set reputation)."
         }
         if run.participantCharacterIDs.isEmpty {
             return "Link at least one runner on the team."
