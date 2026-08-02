@@ -46,7 +46,7 @@ struct MainSidebarView: View {
         return createMenuRow(
             title: SidebarItem.newCharacter.title,
             systemImage: SidebarItem.newCharacter.systemImage,
-            showPlusBadge: false,
+            showPlusBadge: true,
             isSelected: isSelected,
             help: "Start the generation wizard or import Chummer / .shadowdeck"
         ) {
