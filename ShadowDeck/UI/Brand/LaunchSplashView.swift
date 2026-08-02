@@ -98,7 +98,7 @@ struct LaunchSplashView: View {
                     Spacer()
 
                     Text("ShadowDeck")
-                        .font(BrandFonts.title(size: 58))
+                        .font(BrandFonts.title(size: 50))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
