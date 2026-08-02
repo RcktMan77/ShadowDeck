@@ -323,7 +323,8 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 
 # Release app → build/Release/ShadowDeck.app (optional --zip, --sign, --notarize)
 Scripts/release_build.sh --zip
-# Developer ID sign + notarize (requires notarytool keychain profile):
+# Sign / notarize need local env (not committed): CODESIGN_IDENTITY and
+# SHADOWDECK_NOTARY_PROFILE (notarytool keychain profile). Then:
 #   Scripts/release_build.sh --zip --sign --notarize
 
 # Refresh README marquees (stills, GIFs, posters → Screenshots/)
