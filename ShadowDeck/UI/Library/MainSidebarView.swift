@@ -26,18 +26,37 @@ struct MainSidebarView: View {
                 sidebarItem(.runs, badge: runCount)
                 sidebarItem(.campaigns, badge: campaignCount)
             }
-            // Create: character (+ import), run (+ from template), campaign.
+            // Create: character (+ import), run menu, campaign.
             Section("Create") {
                 sidebarItem(.newCharacter)
                 sidebarItem(.importCharacter)
-                sidebarItem(.newRun)
-                sidebarItem(.newRunFromTemplate)
+                newRunMenuRow
                 sidebarItem(.newCampaign)
             }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 240)
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, 28)
+    }
+
+    /// New Run as a menu (blank run + from template) — one Create row, like the Run Library toolbar.
+    private var newRunMenuRow: some View {
+        let isSelected = selection == .newRun
+        return Menu {
+            Button("New Run") { onNewRun() }
+            Button("New Run from Template…") { onNewRunFromTemplate() }
+        } label: {
+            HStack(spacing: 0) {
+                sidebarLabel(.newRun, isSelected: isSelected)
+                Spacer(minLength: 8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .menuStyle(.borderlessButton)
+        .listRowBackground(sidebarRowBackground(isSelected: isSelected))
+        .help("Create a blank mission or start from a template")
     }
 
     private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
