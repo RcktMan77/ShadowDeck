@@ -13,6 +13,8 @@ struct MainSidebarView: View {
     var campaignCount: Int
     var runCount: Int
     var onNewCampaign: () -> Void
+    var onNewCharacter: () -> Void
+    var onImportCharacter: () -> Void
     var onNewRun: () -> Void
     var onNewRunFromTemplate: () -> Void
 
@@ -26,10 +28,9 @@ struct MainSidebarView: View {
                 sidebarItem(.runs, badge: runCount)
                 sidebarItem(.campaigns, badge: campaignCount)
             }
-            // Create: character (+ import), run menu, campaign.
+            // Create: character menu, run menu, campaign.
             Section("Create") {
-                sidebarItem(.newCharacter)
-                sidebarItem(.importCharacter)
+                newCharacterMenuRow
                 newRunMenuRow
                 sidebarItem(.newCampaign)
             }
@@ -39,22 +40,54 @@ struct MainSidebarView: View {
         .environment(\.defaultMinListRowHeight, 28)
     }
 
-    /// New Run as a menu (blank run + from template) — one Create row, like the Run Library toolbar.
+    /// New Character as a menu (wizard + import) — one Create row.
+    private var newCharacterMenuRow: some View {
+        let isSelected = selection == .newCharacter || selection == .importCharacter
+        return createMenuRow(
+            title: SidebarItem.newCharacter.title,
+            systemImage: SidebarItem.newCharacter.systemImage,
+            showPlusBadge: false,
+            isSelected: isSelected,
+            help: "Start the generation wizard or import Chummer / .shadowdeck"
+        ) {
+            Button("New Character") { onNewCharacter() }
+            Button("Import Character…") { onImportCharacter() }
+        }
+    }
+
+    /// New Run as a menu (blank run + from template).
     private var newRunMenuRow: some View {
         let isSelected = selection == .newRun
-        // Use a plain label layout (not system Menu chevron-only styling) so the shared
-        // top-trailing + badge matches New Campaign and is not clipped by Menu defaults.
-        return Menu {
+        return createMenuRow(
+            title: SidebarItem.newRun.title,
+            systemImage: SidebarItem.newRun.systemImage,
+            showPlusBadge: true,
+            isSelected: isSelected,
+            help: "Create a blank mission or start from a template"
+        ) {
             Button("New Run") { onNewRun() }
             Button("New Run from Template…") { onNewRunFromTemplate() }
+        }
+    }
+
+    private func createMenuRow<Content: View>(
+        title: String,
+        systemImage: String,
+        showPlusBadge: Bool,
+        isSelected: Bool,
+        help: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Menu {
+            content()
         } label: {
             HStack(spacing: 0) {
                 createSidebarIcon(
-                    systemImage: SidebarItem.newRun.systemImage,
-                    showPlusBadge: true,
+                    systemImage: systemImage,
+                    showPlusBadge: showPlusBadge,
                     isSelected: isSelected
                 )
-                Text(SidebarItem.newRun.title)
+                Text(title)
                     .font(.body.weight(isSelected ? .semibold : .regular))
                     .foregroundStyle(Color.primary)
                     .padding(.leading, 8)
@@ -66,7 +99,7 @@ struct MainSidebarView: View {
         }
         .buttonStyle(.plain)
         .listRowBackground(sidebarRowBackground(isSelected: isSelected))
-        .help("Create a blank mission or start from a template")
+        .help(help)
     }
 
     private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
@@ -79,6 +112,10 @@ struct MainSidebarView: View {
                 onNewRunFromTemplate()
             case .newCampaign:
                 onNewCampaign()
+            case .newCharacter:
+                onNewCharacter()
+            case .importCharacter:
+                onImportCharacter()
             default:
                 selection = item
             }
