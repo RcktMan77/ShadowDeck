@@ -4,7 +4,7 @@ ShadowDeck uses a lightweight Gitflow-style layout.
 
 | Branch | Role |
 |--------|------|
-| **`main`** | Stable line. Tagged releases live here (`v0.9.0`, …). Prefer green CI and review before merge. |
+| **`main`** | Stable line. Tagged releases live here (`v1.0.0`, …). Prefer green CI and review before merge. |
 | **`develop`** | Integration / day-to-day default for ongoing work. |
 | **`feature/*`** | Short-lived work branched from `develop`. |
 | **`release/x.y.z`** | Release prep / freeze for a version (docs, version bumps, hotfixes). Branched when `develop` is ready to ship into `main`. |
