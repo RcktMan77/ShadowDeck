@@ -149,6 +149,29 @@ enum LaunchWindowCoordinator {
         guard let target else { return }
         for type: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
             target.standardWindowButton(type)?.isHidden = hidden
+            // Also zero alpha so the buttons cannot flash during a one-frame unhide.
+            target.standardWindowButton(type)?.alphaValue = hidden ? 0 : 1
+        }
+    }
+
+    /// Soften / black-out title-bar chrome while splash is up (hiddenTitleBar still
+    /// reserves a top strip that can pick up accent tint).
+    private static func applySplashTitlebarChrome(on main: NSWindow) {
+        main.titlebarAppearsTransparent = true
+        main.backgroundColor = .black
+        main.titlebarSeparatorStyle = .none
+        // Titlebar button container (traffic lights row) — keep fully invisible.
+        if let container = main.standardWindowButton(.closeButton)?.superview {
+            container.alphaValue = 0
+        }
+    }
+
+    private static func applyMainTitlebarChrome(on main: NSWindow) {
+        main.titlebarAppearsTransparent = true
+        main.backgroundColor = NSColor.windowBackgroundColor
+        main.titlebarSeparatorStyle = .none
+        if let container = main.standardWindowButton(.closeButton)?.superview {
+            container.alphaValue = 1
         }
     }
 
@@ -175,11 +198,13 @@ enum LaunchWindowCoordinator {
             main.setContentSize(splashContentSize)
             center(main)
         }
+        applySplashTitlebarChrome(on: main)
         setTrafficLightsHidden(true, on: main)
     }
 
     private static func applyMainWindowPresentation(force: Bool) {
         guard let main = primaryMainWindow() else { return }
+        applyMainTitlebarChrome(on: main)
         setTrafficLightsHidden(false, on: main)
         main.isRestorable = true
         main.setFrameAutosaveName(mainFrameAutosaveName)
