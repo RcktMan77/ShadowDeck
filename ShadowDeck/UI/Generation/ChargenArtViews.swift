@@ -147,8 +147,8 @@ struct PaintedPortraitView: View {
         switch kind {
         case .archetype(let a):
             return ChargenArtLoader.nsImage(named: ChargenArtLoader.archetypeImageName(a))
-        case .metatype(let m):
-            return ChargenArtLoader.nsImage(named: ChargenArtLoader.metatypeImageName(m))
+        case .metatype(let metatype):
+            return ChargenArtLoader.nsImage(named: ChargenArtLoader.metatypeImageName(metatype))
         case .custom:
             return customImage
         }
@@ -157,7 +157,7 @@ struct PaintedPortraitView: View {
     private var label: String {
         switch kind {
         case .archetype(let a): a.displayName
-        case .metatype(let m): m.displayName
+        case .metatype(let metatype): metatype.displayName
         case .custom: "Portrait"
         }
     }
@@ -174,8 +174,8 @@ struct PaintedPortraitView: View {
         switch kind {
         case .archetype(let a):
             PortraitFX.drawArchetype(a, context: context, viewSize: viewSize, time: time)
-        case .metatype(let m):
-            PortraitFX.drawMetatype(m, context: context, viewSize: viewSize, time: time)
+        case .metatype(let metatype):
+            PortraitFX.drawMetatype(metatype, context: context, viewSize: viewSize, time: time)
         case .custom:
             break
         }
@@ -206,31 +206,46 @@ struct EmphasizedHelpText: View {
     }
 
     private var helpSummary: String {
-        segments.filter(\.emphasized).compactMap { term -> String? in
+        segments
+            .filter(\.emphasized)
+            .compactMap { term -> String? in
             let key = term.value.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let id = AttributeID.allCases.first(where: { $0.displayName.caseInsensitiveCompare(key) == .orderedSame || $0.rawValue.caseInsensitiveCompare(key) == .orderedSame }) {
+            if let id = AttributeID.allCases.first(where: {
+                $0.displayName.caseInsensitiveCompare(key) == .orderedSame
+                    || $0.rawValue.caseInsensitiveCompare(key) == .orderedSame
+            }) {
                 return "\(id.displayName): \(ChargenHelpCatalog.attributeDescription(id))"
             }
             // Skill-ish keys
             let skillKeys = ChargenSkillCatalog.active
-            if let skill = skillKeys.first(where: { $0.name.localizedCaseInsensitiveContains(key) || key.localizedCaseInsensitiveContains($0.key) }) {
+            if let skill = skillKeys.first(where: {
+                $0.name.localizedCaseInsensitiveContains(key)
+                    || key.localizedCaseInsensitiveContains($0.key)
+            }) {
                 return "\(skill.name): \(ChargenHelpCatalog.skillDescription(catalogKey: skill.key))"
             }
             switch key.lowercased() {
             case "resources": return ChargenHelpCatalog.resourcesHelp
-            case "magic", "resonance", "magic/resonance": return ChargenHelpCatalog.magicResonancePriorityHelp
+            case "magic", "resonance", "magic/resonance":
+                return ChargenHelpCatalog.magicResonancePriorityHelp
             case "edge": return ChargenHelpCatalog.attributeDescription(.edge)
             case "essence": return ChargenHelpCatalog.attributeDescription(.essence)
-            case "stealth", "sneaking": return ChargenHelpCatalog.skillDescription(catalogKey: "sneaking")
-            case "perception": return ChargenHelpCatalog.skillDescription(catalogKey: "perception")
-            case "piloting": return ChargenHelpCatalog.skillDescription(catalogKey: "piloting")
-            case "influence", "negotiation": return ChargenHelpCatalog.skillDescription(catalogKey: "negotiation")
-            case "sorcery", "spellcasting": return ChargenHelpCatalog.skillDescription(catalogKey: "spellcasting")
-            case "tasking", "hacking", "cracking": return ChargenHelpCatalog.skillDescription(catalogKey: "hacking")
+            case "stealth", "sneaking":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "sneaking")
+            case "perception":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "perception")
+            case "piloting":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "piloting")
+            case "influence", "negotiation":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "negotiation")
+            case "sorcery", "spellcasting":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "spellcasting")
+            case "tasking", "hacking", "cracking":
+                return ChargenHelpCatalog.skillDescription(catalogKey: "hacking")
             default: return nil
             }
-        }
-        .joined(separator: "\n\n")
+            }
+            .joined(separator: "\n\n")
     }
 
     private struct Segment {
@@ -296,7 +311,9 @@ struct ProfileArtChrome: View {
                     summaryLine("Path", path)
                 }
                 if draft.step >= .skills, !draft.skills.isEmpty {
-                    let top = draft.skills.sorted { $0.rating > $1.rating }.prefix(3)
+                    let top = draft.skills
+                        .sorted { $0.rating > $1.rating }
+                        .prefix(3)
                         .map { "\($0.displayName) \($0.rating)" }
                         .joined(separator: " · ")
                     summaryLine("Skills", top.isEmpty ? "—" : top)
@@ -330,10 +347,12 @@ struct ProfileArtChrome: View {
         if draft.generationSystem == .buildPoints {
             return "Build Points"
         }
-        return PriorityColumn.allCases.compactMap { col in
-            guard let letter = draft.priority[col] else { return nil }
-            return "\(shortCol(col)) \(letter.rawValue)"
-        }.joined(separator: " · ")
+        return PriorityColumn.allCases
+            .compactMap { col -> String? in
+                guard let letter = draft.priority[col] else { return nil }
+                return "\(shortCol(col)) \(letter.rawValue)"
+            }
+            .joined(separator: " · ")
     }
 
     private func shortCol(_ col: PriorityColumn) -> String {
