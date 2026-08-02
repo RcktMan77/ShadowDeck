@@ -16,10 +16,14 @@ struct ShadowDeckApp: App {
     /// Bump when splash art/copy changes so users see the new splash once after update.
     private static let splashRevision = 3
     @State private var showSplash: Bool
+    /// Opaque cover under the splash art; stays for a beat after dismiss so sidebar
+    /// accent / title-bar chrome cannot flash through during the hand-off.
+    @State private var showLaunchVeil: Bool
 
     init() {
         // Show splash on every cold launch (skip with click/key).
         _showSplash = State(initialValue: true)
+        _showLaunchVeil = State(initialValue: true)
         // Clear legacy key so Settings / docs stay accurate.
         AppPreferences.remove(.hasSeenLaunchSplash)
         AppPreferences.set(Self.splashRevision, for: .launchSplashRevision)
@@ -49,17 +53,22 @@ struct ShadowDeckApp: App {
                     .environment(libraryEnvironment)
                     .modelContainer(libraryEnvironment.container)
 
+                // Always-opaque black under the splash (and briefly after dismiss).
+                // Without this, NavigationSplitView’s accent selection and title-bar
+                // safe area flash green through the click-to-skip hand-off.
+                if showLaunchVeil {
+                    Color.black
+                        .ignoresSafeArea()
+                        .zIndex(1)
+                        .allowsHitTesting(false)
+                        .transaction { $0.animation = nil }
+                }
+
                 if showSplash {
                     LaunchSplashView {
-                        var t = Transaction()
-                        t.disablesAnimations = true
-                        withTransaction(t) {
-                            showSplash = false
-                        }
-                        // Restore main library size (splash uses a fixed independent canvas).
-                        AppLaunchWindowPolicy.endColdLaunchGuard()
+                        dismissSplashWithVeil()
                     }
-                    .zIndex(1)
+                    .zIndex(2)
                     .onAppear {
                         // Fixed splash size + keep the deck key over restored utilities.
                         AppLaunchWindowPolicy.promoteMainWindowForSplash()
@@ -97,12 +106,12 @@ struct ShadowDeckApp: App {
                 withTransaction(t) {
                     switch phase {
                     case .splash:
+                        showLaunchVeil = true
                         showSplash = true
                         AppLaunchWindowPolicy.beginColdLaunchGuard()
                     case .library, .generationRole, .characterSheet, .diceRoller, .runLibrary,
                          .runGif, .advanceGif, .finished:
-                        showSplash = false
-                        AppLaunchWindowPolicy.endColdLaunchGuard()
+                        dismissSplashWithVeil()
                     }
                 }
             }
@@ -184,6 +193,31 @@ struct ShadowDeckApp: App {
         Settings {
             SettingsView()
                 .environment(libraryEnvironment)
+        }
+    }
+
+    /// Drop splash art first under an opaque black veil, restore window chrome, then
+    /// reveal the library after a short settle so accent title/sidebar cannot flash.
+    @MainActor
+    private func dismissSplashWithVeil() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            showLaunchVeil = true
+            showSplash = false
+        }
+        // Restore library frame / traffic lights under the veil.
+        AppLaunchWindowPolicy.endColdLaunchGuard()
+        Task { @MainActor in
+            // Two frames + a short settle: resize + NavigationSplitView first layout.
+            await Task.yield()
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(180))
+            var clear = Transaction()
+            clear.disablesAnimations = true
+            withTransaction(clear) {
+                showLaunchVeil = false
+            }
         }
     }
 }
