@@ -355,7 +355,29 @@ struct CharacterAtAGlanceView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Identity header: name + chips, then concept/background above the sheet body
                 VStack(alignment: .leading, spacing: 12) {
-                    identityColumn(c)
+                    CharacterGlanceIdentityHeader(
+                        character: c,
+                        houseRulesLabel: c.houseRules.enabled.isEmpty
+                            ? "Core book rules"
+                            : "\(c.houseRules.enabled.count) house rules",
+                        onOpenHouseRules: { showHouseRulesBrowser = true }
+                    )
+                    .sheet(isPresented: $showHouseRulesBrowser) {
+                        HouseRulesBrowserView(
+                            houseRules: Binding(
+                                get: { character?.houseRules ?? .coreBook },
+                                set: { newRules in
+                                    updateCharacter({ $0.houseRules = newRules }, status: "House rules updated.")
+                                }
+                            ),
+                            editionBaselineKarma: rules.standardPriorityKarma,
+                            onApply: {
+                                showHouseRulesBrowser = false
+                                statusMessage = "House rules updated — validation & essence use the new set."
+                            },
+                            onCancel: { showHouseRulesBrowser = false }
+                        )
+                    }
                     storySection(c)
                 }
 
@@ -363,15 +385,25 @@ struct CharacterAtAGlanceView: View {
                 // Portrait is intentionally large; attributes stay compact so they share a baseline.
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .bottom, spacing: 18) {
-                        portraitColumn(c)
+                        CharacterGlancePortraitColumn(character: c) {
+                            isPortraitImporterPresented = true
+                        }
                         attributesColumn(c)
-                            .frame(maxWidth: PortraitMetrics.attributesMaxWidth, alignment: .leading)
+                            .frame(
+                                maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                                alignment: .leading
+                            )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .leading, spacing: 16) {
-                        portraitColumn(c)
+                        CharacterGlancePortraitColumn(character: c) {
+                            isPortraitImporterPresented = true
+                        }
                         attributesColumn(c)
-                            .frame(maxWidth: PortraitMetrics.attributesMaxWidth, alignment: .leading)
+                            .frame(
+                                maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                                alignment: .leading
+                            )
                     }
                 }
 
@@ -383,12 +415,33 @@ struct CharacterAtAGlanceView: View {
                 // Combat readiness
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) {
-                        conditionCard(c).frame(maxWidth: .infinity)
+                        CharacterGlanceConditionCard(
+                            physicalDamage: derived.condition.physicalFilled,
+                            physicalBoxes: derived.condition.physicalBoxes,
+                            stunDamage: derived.condition.stunFilled,
+                            stunBoxes: derived.condition.stunBoxes,
+                            overflowBoxes: derived.condition.overflowBoxes,
+                            onPhysicalSelect: { setPhysicalDamage($0 + 1) },
+                            onPhysicalClear: { setPhysicalDamage(0) },
+                            onStunSelect: { setStunDamage($0 + 1) },
+                            onStunClear: { setStunDamage(0) }
+                        )
+                        .frame(maxWidth: .infinity)
                         initiativeCard(c).frame(maxWidth: .infinity)
                         limitsCard(c).frame(maxWidth: .infinity)
                     }
                     VStack(spacing: 12) {
-                        conditionCard(c)
+                        CharacterGlanceConditionCard(
+                            physicalDamage: derived.condition.physicalFilled,
+                            physicalBoxes: derived.condition.physicalBoxes,
+                            stunDamage: derived.condition.stunFilled,
+                            stunBoxes: derived.condition.stunBoxes,
+                            overflowBoxes: derived.condition.overflowBoxes,
+                            onPhysicalSelect: { setPhysicalDamage($0 + 1) },
+                            onPhysicalClear: { setPhysicalDamage(0) },
+                            onStunSelect: { setStunDamage($0 + 1) },
+                            onStunClear: { setStunDamage(0) }
+                        )
                         initiativeCard(c)
                         limitsCard(c)
                     }
@@ -440,6 +493,7 @@ struct CharacterAtAGlanceView: View {
             }
             .help("Open dice roller (⌘D)")
             .keyboardShortcut("d", modifiers: [.command])
+            .accessibilityLabel(diceRoller.isPresented ? "Hide dice roller" : "Open dice roller")
 
             Button {
                 openRulesReference()
@@ -447,6 +501,7 @@ struct CharacterAtAGlanceView: View {
                 Label("Rules", systemImage: "book.pages.fill")
             }
             .help("Open Rules Reference window (⌘R)")
+            .accessibilityLabel("Open Rules Reference")
             .keyboardShortcut("r", modifiers: [.command])
 
             Button("Export…", systemImage: "square.and.arrow.up") {
@@ -481,91 +536,6 @@ struct CharacterAtAGlanceView: View {
             } message: {
                 Text("“\(c.displayTitle)” will be removed from your library. This cannot be undone.")
             }
-        }
-    }
-
-    // MARK: - Portrait
-
-    /// Hero portrait sizing. Attributes max width keeps the grid compact so the portrait can grow.
-    private enum PortraitMetrics {
-        static let width: CGFloat = 280
-        static let height: CGFloat = 350
-        static let cornerRadius: CGFloat = 16
-        /// Cap so attribute tiles stay dense; leftover width goes to the portrait, not empty tile padding.
-        static let attributesMaxWidth: CGFloat = 440
-    }
-
-    private func portraitColumn(_ c: Character) -> some View {
-        VStack(spacing: 8) {
-            portraitView(c)
-                .frame(width: PortraitMetrics.width, height: PortraitMetrics.height)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.14), radius: 12, y: 4)
-                .contentShape(RoundedRectangle(cornerRadius: PortraitMetrics.cornerRadius, style: .continuous))
-                .onTapGesture { isPortraitImporterPresented = true }
-                .help("Click to change portrait")
-
-            Button {
-                isPortraitImporterPresented = true
-            } label: {
-                Label(
-                    c.avatar.hasImage ? "Change Portrait…" : "Add Portrait…",
-                    systemImage: "photo"
-                )
-            }
-            .controlSize(.small)
-
-            Text(c.avatar.hasImage
-                 ? (c.avatar.isAnimated ? "Animated portrait" : "Custom portrait")
-                 : "No custom portrait — showing placeholder")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: PortraitMetrics.width)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(width: PortraitMetrics.width, alignment: .bottom)
-        .fixedSize(horizontal: true, vertical: true)
-    }
-
-    @ViewBuilder
-    private func portraitView(_ c: Character) -> some View {
-        if let data = c.avatar.inlineData, !data.isEmpty {
-            // Animated GIFs (and multi-frame APNG) need ImageIO playback;
-            // SwiftUI Image(nsImage:) only shows the first frame.
-            if c.avatar.isAnimated || GIFDecoder.isAnimatedImageData(data) {
-                AnimatedImageView(data: data, contentMode: .fill)
-            } else if let nsImage = NSImage(data: data) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                portraitPlaceholder
-            }
-        } else if let meta = ChargenArtLoader.nsImage(named: ChargenArtLoader.metatypeImageName(c.metatype)) {
-            Image(nsImage: meta)
-                .resizable()
-                .scaledToFill()
-        } else {
-            portraitPlaceholder
-        }
-    }
-
-    private var portraitPlaceholder: some View {
-        ZStack {
-            LinearGradient(
-                colors: [.secondary.opacity(0.2), .secondary.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            Image(systemName: "person.crop.rectangle")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -688,60 +658,6 @@ struct CharacterAtAGlanceView: View {
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
         .help(bonus != 0 ? "Base \(base), modifiers \(bonus >= 0 ? "+" : "")\(bonus)" : "Base \(base)")
-    }
-
-    // MARK: - Identity
-
-    private func identityColumn(_ c: Character) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(c.displayTitle)
-                .font(.largeTitle.weight(.bold))
-                .textSelection(.enabled)
-
-            HStack(alignment: .center, spacing: 12) {
-                FlowChips(items: [
-                    c.edition.shortName,
-                    c.metatype.displayName,
-                    c.awakened == .mundane ? "Mundane" : c.awakened.displayName,
-                    c.generation.system.displayName,
-                ])
-
-                Spacer(minLength: 8)
-
-                HStack(spacing: 8) {
-                    if c.houseRules.enabled.isEmpty {
-                        Text("Core book rules")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("\(c.houseRules.enabled.count) house rules")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.tint)
-                    }
-                    Button("House Rules…") {
-                        showHouseRulesBrowser = true
-                    }
-                    .controlSize(.small)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $showHouseRulesBrowser) {
-            HouseRulesBrowserView(
-                houseRules: Binding(
-                    get: { character?.houseRules ?? .coreBook },
-                    set: { newRules in
-                        updateCharacter({ $0.houseRules = newRules }, status: "House rules updated.")
-                    }
-                ),
-                editionBaselineKarma: rules.standardPriorityKarma,
-                onApply: {
-                    showHouseRulesBrowser = false
-                    statusMessage = "House rules updated — validation & essence use the new set."
-                },
-                onCancel: { showHouseRulesBrowser = false }
-            )
-        }
     }
 
     @ViewBuilder
@@ -1070,99 +986,6 @@ struct CharacterAtAGlanceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 180)
-            }
-        }
-    }
-
-    // MARK: - Condition monitors (clickable)
-
-    private func conditionCard(_ c: Character) -> some View {
-        sectionCard("Condition Monitors") {
-            VStack(alignment: .leading, spacing: 12) {
-                monitorRow(
-                    title: "Physical",
-                    damage: derived.condition.physicalFilled,
-                    boxes: derived.condition.physicalBoxes,
-                    color: .green
-                ) { boxIndex in
-                    setPhysicalDamage(boxIndex + 1)
-                } onClear: {
-                    setPhysicalDamage(0)
-                }
-
-                monitorRow(
-                    title: "Stun",
-                    damage: derived.condition.stunFilled,
-                    boxes: derived.condition.stunBoxes,
-                    color: .green
-                ) { boxIndex in
-                    setStunDamage(boxIndex + 1)
-                } onClear: {
-                    setStunDamage(0)
-                }
-
-                Text("Click a box to fill through that mark (damage). Click Clear for healthy. Overflow capacity: \(derived.condition.overflowBoxes).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func monitorRow(
-        title: String,
-        damage: Int,
-        boxes: Int,
-        color: Color,
-        onSelect: @escaping (Int) -> Void,
-        onClear: @escaping () -> Void
-    ) -> some View {
-        let remaining = max(0, boxes - damage)
-        let status: String = {
-            if boxes <= 0 { return "—" }
-            if damage <= 0 { return "Healthy" }
-            if remaining <= 0 { return "Filled" }
-            return "\(remaining) open"
-        }()
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("\(damage) damage / \(boxes) boxes · \(status)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(damage > 0 ? color : .secondary)
-                Button("Clear") { onClear() }
-                    .controlSize(.mini)
-                    .buttonStyle(.borderless)
-            }
-            let columns = Array(repeating: GridItem(.fixed(16), spacing: 3), count: min(max(boxes, 1), 18))
-            LazyVGrid(columns: columns, spacing: 3) {
-                ForEach(0..<max(boxes, 0), id: \.self) { i in
-                    let filled = i < damage
-                    Button {
-                        // Click box i → fill through that box (damage = i + 1).
-                        // Re-click the last filled box to step damage down by one.
-                        if damage == i + 1 {
-                            if i == 0 {
-                                onClear()
-                            } else {
-                                onSelect(i - 1)
-                            }
-                        } else {
-                            onSelect(i)
-                        }
-                    } label: {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(filled ? color.opacity(0.9) : Color.secondary.opacity(0.15))
-                            .frame(width: 16, height: 20)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Set damage through box \(i + 1)")
-                }
             }
         }
     }
@@ -1617,7 +1440,7 @@ struct CharacterAtAGlanceView: View {
 
 // MARK: - Chips
 
-private struct FlowChips: View {
+struct FlowChips: View {
     let items: [String]
 
     var body: some View {

@@ -164,13 +164,15 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 | Character effects (equip → attrs/nuyen/armor) | Phase 7 ✅ |
 | House rules catalog + multi-select enforcement | Phase 7 ✅ |
 | Packaging / menus / library polish | Phase 8 ✅ |
+| Apply Run Awards | v1 ✅ |
+| Rules Reference (cards + PDF library) | v1 ✅ |
 | Derived values / UI logic as pure functions | Ongoing |
 
 ## Phase 8 — Packaging & polish
 
 | Deliverable | Detail |
 |-------------|--------|
-| **Version** | Marketing version `0.8.0` |
+| **Version** | Marketing version `0.9.0` |
 | **UTType** | `com.shadowdeck.character` exported for `.shadowdeck` directory packages (`Info.plist` + `UTType.shadowdeckCharacter`) |
 | **Open package** | Finder double-click / `application(_:open:)` → import into library; File → Open Package…; library **Open Package…** |
 | **Menus** | File → New Character (⌘N), Import (⇧⌘O), Open Package (⌘O) |
@@ -334,7 +336,7 @@ H-scroller only when **current** page is wider than canvas (documents may contai
 |-------|-------------|
 | Structured cards | In-memory filter on title, tags, summary, formula (`RulesReferenceStore.search`) |
 | Open PDF | Preview-style find in the continuous reader (`PDFSearchBridge` + `PDFDocument.findString`) |
-| Whole shelf | Not indexed yet — open a book and use in-document find; optional background shelf index later |
+| Whole shelf | Full-text search across owned PDFs (`PDFLibrarySearchEngine` + ranked multi-token hits); concurrency capped |
 
 ### Legal / non-goals
 
@@ -353,7 +355,7 @@ H-scroller only when **current** page is wider than canvas (documents may contai
 ## Phase 9A — Brand kit
 
 - Custom macOS app icon (cyberpunk deck / card motif) in `AppIcon.appiconset`.
-- Launch splash (`Resources/Brand/launch_splash.jpg`) with role cast; shown once until dismissed (`hasSeenLaunchSplash`).
+- Launch splash (`Resources/Brand/launch_splash.jpg`) with role cast; **shown on every cold launch** at a fixed splash size, then the main deck restores its last saved frame (`LaunchWindowCoordinator` / `AppLaunchWindowPolicy`). Legacy `hasSeenLaunchSplash` is cleared on init so older installs no longer skip the splash.
 - Unofficial fan art; not Catalyst IP.
 
 ## Phase 9B — Campaign sheet export
