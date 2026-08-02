@@ -341,4 +341,3 @@ struct RunsListView: View {
         }
     }
 }
-

@@ -150,6 +150,13 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 - Export `.shadowdeck` early so users can recover across breaking changes.
 - Chummer import maps into native models; `.chum5` is never the source of truth after import.
 
+## Style / concurrency
+
+| Tool | Detail |
+|------|--------|
+| **SwiftLint** | Optional. Config: `.swiftlint.yml` (baseline `only_rules`). Run: `Scripts/lint.sh` (`brew install swiftlint`). |
+| **Concurrency notes** | `Docs/CONCURRENCY.md` — MainActor patterns, intentional caches, PDFKit task rules. |
+
 ## Testing Strategy
 
 | Area | When |
