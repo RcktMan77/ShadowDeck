@@ -73,7 +73,7 @@ enum RunDraftHeuristic {
         }
         let playerFacing = playerFacingParts.joined(separator: "\n\n")
 
-        var objectives = extractObjectives(
+        let objectives = extractObjectives(
             scanBlocks: scanBlocks,
             synopsis: synopsis ?? "",
             cleaned: cleaned
@@ -555,7 +555,7 @@ enum RunDraftHeuristic {
         ]
         for p in hirePatterns {
             if let r = pool.range(of: p, options: .regularExpression) {
-                var s = String(pool[r])
+                let s = String(pool[r])
                 if s.localizedCaseInsensitiveContains("johnson") {
                     // Prefer a proper name nearby if "Ms. Johnson is already there. She is ..."
                     return s.trimmingCharacters(in: .whitespaces)
