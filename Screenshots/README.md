@@ -29,4 +29,4 @@ Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; st
 
 **Click-to-play:** GitHub has no pause/play control for GIFs and autoplays any embedded GIF. The README uses a `<details>` / `<summary>` poster; expanding reveals the looping GIF on the same page (better than linking to the raw file browser).
 
-**Privacy:** Capture always uses an **in-memory** character library seeded with sample characters only (`LibraryEnvironment.marketingCapture()`). The mission GIF creates its own run. Rules / PDF shots use **synthetic sample PDFs** in a temp shelf (labeled “sample”) — never your on-disk personal PDF library or character data.
+**Privacy:** Capture always uses an **in-memory** character library seeded with sample characters only (`LibraryEnvironment.marketingCapture()`). The mission GIF creates its own run. Rules / PDF shots use **synthetic sample PDFs** in a temp shelf (labeled “sample”) with bundled original cover art under `Resources/Brand/MarketingPDFCovers/` — never your on-disk personal PDF library or character data, and never publisher rulebook assets.
