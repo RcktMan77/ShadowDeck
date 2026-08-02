@@ -57,7 +57,7 @@ struct GenerationWizardView: View {
                 .onChange(of: draft.step) { _, _ in
                     statusMessage = nil
                     scrollAnchor = UUID()
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         withAnimation(.easeOut(duration: 0.15)) {
                             proxy.scrollTo(scrollAnchor, anchor: .top)
                         }
@@ -174,7 +174,10 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Choose Edition")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "ShadowDeck treats 4th, 5th, and 6th edition as equal peers. Generation rules (priority tables, limits, Edge) adapt to your choice.")
+            HelpCallout(text: """
+                ShadowDeck treats 4th, 5th, and 6th edition as equal peers. \
+                Generation rules (priority tables, limits, Edge) adapt to your choice.
+                """)
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
                 ForEach(Edition.allCases) { edition in
@@ -287,7 +290,10 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Concept & Role")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Pick a runner role (playstyle archetype). This is not a mechanical character class—it guides recommendations and your default Magic/Resonance path.")
+            HelpCallout(text: """
+                Pick a runner role (playstyle archetype). This is not a mechanical character class—\
+                it guides recommendations and your default Magic/Resonance path.
+                """)
 
             HStack(alignment: .top, spacing: 20) {
                 VStack(spacing: 12) {
@@ -465,9 +471,18 @@ struct GenerationWizardView: View {
             if draft.generationSystem == .buildPoints {
                 HelpCallout(text: "SR4 uses Build Points. This wizard uses simplified attribute/skill pools for guidance; full BP accounting expands later.")
             } else {
-                HelpCallout(text: draft.generationSystem == .sumToTen || draft.houseRules.isEnabled(.sumToTen)
-                    ? "Assign priority letters so their values sum to 10 (A=4, B=3, C=2, D=1, E=0). Duplicates are allowed. Watch the balance banner above as you click."
-                    : "Assign each of A–E exactly once across the five columns. The balance banner above updates as you choose.")
+                HelpCallout(text: {
+                    if draft.generationSystem == .sumToTen || draft.houseRules.isEnabled(.sumToTen) {
+                        return """
+                            Assign priority letters so their values sum to 10 (A=4, B=3, C=2, D=1, E=0). \
+                            Duplicates are allowed. Watch the balance banner above as you click.
+                            """
+                    }
+                    return """
+                        Assign each of A–E exactly once across the five columns. \
+                        The balance banner above updates as you choose.
+                        """
+                }())
 
                 RecommendButton(
                     title: "Apply Recommended Priorities",
@@ -499,7 +514,8 @@ struct GenerationWizardView: View {
                         for: draft.edition,
                         metatype: draft.metatype,
                         rules: draft.rules
-                    ).first { $0.column == column && $0.letter == letter }
+                    )
+                    .first { $0.column == column && $0.letter == letter }
 
                     Button {
                         draft.assignPriority(letter, to: column)
@@ -624,7 +640,11 @@ struct GenerationWizardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Magic / Resonance")
                 .font(.title3.weight(.semibold))
-            HelpCallout(text: "Your path decides whether you use Magic, Resonance, or neither. Mundane is the normal state for most runners—no spells, no complex forms—just skills, Edge, and gear.")
+            HelpCallout(text: """
+                Your path decides whether you use Magic, Resonance, or neither. \
+                Mundane is the normal state for most runners—no spells, no complex forms—\
+                just skills, Edge, and gear.
+                """)
 
             ForEach(AwakenedPath.allCases, id: \.self) { path in
                 let selected = draft.awakened == path
@@ -749,7 +769,7 @@ struct GenerationWizardView: View {
                 ("first_impression", "First Impression", .positive, 11),
                 ("sinner", "SINner (National)", .negative, 5),
                 ("allergy", "Allergy (Common, Mild)", .negative, 10),
-                ("distinctive", "Distinctive Style", .negative, 5),
+                ("distinctive", "Distinctive Style", .negative, 5)
             ]
 
             ForEach(starters, id: \.0) { item in

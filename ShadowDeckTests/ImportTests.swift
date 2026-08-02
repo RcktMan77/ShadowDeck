@@ -8,7 +8,6 @@ import SwiftData
 @testable import ShadowDeck
 
 final class ImportTests: XCTestCase {
-
     // MARK: - Fixture helpers
 
     private var fixturesDirectory: URL {
@@ -118,9 +117,7 @@ final class ImportTests: XCTestCase {
         }
 
         let url = fixturesDirectory.appendingPathComponent("minimal_sr5.json")
-        let result = try await MainActor.run {
-            try library.importAndSave(from: url)
-        }
+        let result = try await library.importAndSave(from: url)
         let count = try await MainActor.run { try library.count() }
         XCTAssertEqual(count, 1)
         let loaded = try await MainActor.run { try library.require(result.character.id) }
@@ -236,9 +233,8 @@ final class ImportTests: XCTestCase {
             try PersistenceController.makeLibrary(container: container, avatarRoot: avatarRoot)
         }
 
-        let imported = try await MainActor.run {
-            try library.importAndSave(from: self.ghostwireJSON)
-        }
+        let ghostwireURL = ghostwireJSON
+        let imported = try await library.importAndSave(from: ghostwireURL)
         XCTAssertEqual(imported.character.streetName, "Ghostwire")
 
         let packageURL = FileManager.default.temporaryDirectory

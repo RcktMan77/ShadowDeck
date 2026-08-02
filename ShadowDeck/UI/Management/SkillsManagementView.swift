@@ -8,6 +8,8 @@ import SwiftUI
 struct SkillsManagementView: View {
     @Binding var character: Character
     var onPersist: () -> Void
+    /// One-click dice roller launch (pool from derived stats).
+    var onRollSkill: ((SkillRating) -> Void)?
 
     @State private var showCatalog = false
     @State private var isCustom = false
@@ -28,13 +30,17 @@ struct SkillsManagementView: View {
             title: "Skills",
             subtitle: "Browse the skill catalog or add a custom skill. Pools use linked attributes on Summary.",
             onAdd: { showCatalog = true },
-            addLabel: "Add Skill"
+            addLabel: "Add Skill",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "skill", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             if character.skills.isEmpty {
                 ManagementEmptyState(
                     title: "No Skills",
                     systemImage: "list.bullet.rectangle",
-                    message: "Add from the catalog or import a Chummer sheet."
+                    message: "Add from the catalog or import a Chummer sheet. Use Look up for skill raise and specialization rules."
                 )
             } else {
                 List {
@@ -73,7 +79,8 @@ struct SkillsManagementView: View {
     }
 
     private func skillRow(_ skill: SkillRating) -> some View {
-        HStack(spacing: 12) {
+        let pool = DicePoolResolver.skillPool(character: character, skill: skill).pool
+        return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(skill.displayName)
                     .font(.body.weight(.medium))
@@ -84,6 +91,19 @@ struct SkillsManagementView: View {
                 }
             }
             Spacer()
+            Text("pool \(pool)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 48, alignment: .trailing)
+            if let onRollSkill {
+                Button {
+                    onRollSkill(skill)
+                } label: {
+                    Image(systemName: "dice.fill")
+                }
+                .buttonStyle(.borderless)
+                .help("Roll \(skill.displayName) (pool \(pool))")
+            }
             StepperControl(value: skill.rating, range: 0...13) { newRating in
                 updateSkill(id: skill.id) { $0.rating = newRating }
             }
@@ -149,8 +169,7 @@ struct SkillsManagementView: View {
         if cat.contains("language") {
             category = .language
         } else if notes == "knowledge" || cat.contains("knowledge")
-            || ["academic", "interest", "professional", "street"].contains(cat)
-        {
+            || ["academic", "interest", "professional", "street"].contains(cat) {
             category = .knowledge
         } else {
             category = .active

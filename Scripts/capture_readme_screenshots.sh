@@ -2,6 +2,8 @@
 # Capture README marquee screenshots by launching ShadowDeck with an in-app
 # exporter (no Screen Recording permission required).
 #
+# Uses an ephemeral in-memory sample library only — never your on-disk personal data.
+#
 # Usage:
 #   Scripts/capture_readme_screenshots.sh
 #   SHADOWDECK_APP=/path/to/ShadowDeck.app Scripts/capture_readme_screenshots.sh
@@ -49,8 +51,8 @@ set +e
 PID=$!
 set -e
 
-# Wait up to 45s for completion.
-for i in $(seq 1 90); do
+# Wait up to ~3 min for stills + denser GIF storyboards / crossfades.
+for i in $(seq 1 360); do
   if ! kill -0 "$PID" 2>/dev/null; then
     break
   fi
@@ -65,7 +67,11 @@ if kill -0 "$PID" 2>/dev/null; then
 fi
 
 SRC=""
-if compgen -G "$CONTAINER_OUT"/0*.png > /dev/null 2>&1; then
+if compgen -G "$CONTAINER_OUT"/0*.jpg > /dev/null 2>&1 || compgen -G "$CONTAINER_OUT"/0*.gif > /dev/null 2>&1; then
+  SRC="$CONTAINER_OUT"
+elif compgen -G "$HOST_AS"/0*.jpg > /dev/null 2>&1 || compgen -G "$HOST_AS"/0*.gif > /dev/null 2>&1; then
+  SRC="$HOST_AS"
+elif compgen -G "$CONTAINER_OUT"/0*.png > /dev/null 2>&1; then
   SRC="$CONTAINER_OUT"
 elif compgen -G "$HOST_AS"/0*.png > /dev/null 2>&1; then
   SRC="$HOST_AS"
@@ -77,30 +83,152 @@ else
 fi
 
 echo "Copying from: $SRC"
-rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/_*.png 2>/dev/null || true
-# README uses JPEG (smaller); full PNG stays in the app container if needed.
+rm -f "$OUT"/0*.png "$OUT"/0*.jpg "$OUT"/0*.gif "$OUT"/_*.png 2>/dev/null || true
+# README uses JPEG stills + silent GIFs.
 cp -f "$SRC"/0*.jpg "$OUT"/ 2>/dev/null || true
+cp -f "$SRC"/0*.gif "$OUT"/ 2>/dev/null || true
+# Drop retired marquees from older captures.
+rm -f "$OUT"/05-run-library.jpg "$OUT"/06-run-detail.jpg \
+  "$OUT"/thumbs/05-run-library.jpg "$OUT"/thumbs/06-run-detail.jpg 2>/dev/null || true
 
 echo ""
 echo "Captured files:"
-ls -la "$OUT"/0*.jpg 2>/dev/null || {
+ls -la "$OUT"/0*.jpg "$OUT"/0*.gif 2>/dev/null || {
   echo "Copy failed." >&2
   exit 1
 }
 
-# Normalize sizes: full UI/splash to 1800px long edge; equal thumbs for the three UI shots.
+# Normalize still sizes: full UI/splash to 1800px long edge; equal thumbs for UI shots.
 for f in "$OUT"/0*.jpg; do
+  [[ -f "$f" ]] || continue
   sips -Z 1800 "$f" >/dev/null
   sips -s format jpeg -s formatOptions 85 "$f" --out "$f" >/dev/null
 done
 
 mkdir -p "$OUT/thumbs"
-for base in 02-library 03-generation-role 04-character-sheet; do
+# Character-loop thumbs (top marquee) + Rules stills (feature section).
+for base in 02-library 03-generation-role 04-character-sheet 05-dice-roller \
+            06-rules-reference 09-pdf-library; do
   if [[ -f "$OUT/${base}.jpg" ]]; then
     sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
   fi
 done
 
+# Quantize/resize GIFs + build click-to-play posters (mid-GIF frame + play overlay).
+if compgen -G "$OUT"/0*.gif > /dev/null 2>&1; then
+  VENV="${TMPDIR:-/tmp}/shadowdeck-gif-venv"
+  if [[ ! -x "$VENV/bin/python" ]]; then
+    python3 -m venv "$VENV"
+    "$VENV/bin/pip" install -q Pillow
+  fi
+  "$VENV/bin/python" - "$OUT" <<'PY'
+from PIL import Image, ImageDraw
+import glob, os, sys
+
+root = sys.argv[1]
+thumbs = os.path.join(root, "thumbs")
+os.makedirs(thumbs, exist_ok=True)
+
+# Cap long edge; keep aspect. Preserve per-frame delays (do not clamp holds).
+MAX_LONG = 720
+
+
+def optimize_gif(path: str) -> None:
+    im = Image.open(path)
+    frames, durations = [], []
+    try:
+        while True:
+            fr = im.convert("RGBA")
+            w, h = fr.size
+            long_edge = max(w, h)
+            if long_edge > MAX_LONG:
+                scale = MAX_LONG / long_edge
+                fr = fr.resize(
+                    (max(1, int(round(w * scale))), max(1, int(round(h * scale)))),
+                    Image.Resampling.LANCZOS,
+                )
+            frames.append(fr.convert("P", palette=Image.ADAPTIVE, colors=128))
+            d = int(im.info.get("duration", 1350))
+            durations.append(max(d, 50))
+            im.seek(im.tell() + 1)
+    except EOFError:
+        pass
+    if not frames:
+        return
+    frames[0].save(
+        path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=durations,
+        loop=0,
+        optimize=True,
+        disposal=2,
+    )
+    print(
+        f"  optimized {os.path.basename(path)} → {os.path.getsize(path)//1024} KB "
+        f"({len(frames)} frames, {frames[0].size[0]}x{frames[0].size[1]})"
+    )
+
+
+def make_poster(gif_path: str, frame_frac: float = 0.35) -> None:
+    """Still + semi-transparent play overlay for README click-to-play."""
+    im = Image.open(gif_path)
+    n = getattr(im, "n_frames", 1)
+    idx = max(0, min(n - 1, int(n * frame_frac)))
+    im.seek(idx)
+    frame = im.convert("RGBA")
+    w, h = frame.size
+    if max(w, h) > MAX_LONG:
+        scale = MAX_LONG / max(w, h)
+        frame = frame.resize(
+            (max(1, int(round(w * scale))), max(1, int(round(h * scale)))),
+            Image.Resampling.LANCZOS,
+        )
+        w, h = frame.size
+
+    veil = Image.new("RGBA", frame.size, (0, 0, 0, 72))
+    overlay = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    r = int(min(w, h) * 0.14)
+    cx, cy = w // 2, h // 2
+    draw.ellipse(
+        (cx - r, cy - r, cx + r, cy + r),
+        fill=(0, 0, 0, 145),
+        outline=(255, 255, 255, 210),
+        width=max(2, r // 18),
+    )
+    tri_w = int(r * 0.7)
+    tri_h = int(r * 0.85)
+    ox = int(r * 0.12)
+    triangle = [
+        (cx - tri_w // 2 + ox, cy - tri_h // 2),
+        (cx - tri_w // 2 + ox, cy + tri_h // 2),
+        (cx + tri_w // 2 + ox, cy),
+    ]
+    draw.polygon(triangle, fill=(255, 255, 255, 235))
+    composed = Image.alpha_composite(Image.alpha_composite(frame, veil), overlay)
+
+    base = os.path.splitext(os.path.basename(gif_path))[0]
+    out = os.path.join(thumbs, f"{base}-poster.jpg")
+    composed.convert("RGB").save(out, "JPEG", quality=90, optimize=True)
+    print(f"  poster {os.path.basename(out)} ← frame {idx}/{n}")
+
+
+for path in sorted(glob.glob(os.path.join(root, "0*.gif"))):
+    optimize_gif(path)
+    make_poster(path)
+
+print("  GIF optimize + posters complete.")
+PY
+fi
+
+# Remove originals from the app capture directory so the next run starts clean
+# (repo Docs/Screenshots/ is the source of truth).
+if [[ -n "${SRC:-}" && -d "$SRC" ]]; then
+  echo "Cleaning capture source: $SRC"
+  rm -f "$SRC"/0*.jpg "$SRC"/0*.png "$SRC"/0*.gif 2>/dev/null || true
+fi
+
 echo "Done."
-ls -la "$OUT"/*.jpg "$OUT/thumbs"/*.jpg 2>/dev/null || true
+ls -la "$OUT"/*.jpg "$OUT"/*.gif "$OUT/thumbs"/*.jpg 2>/dev/null || true
