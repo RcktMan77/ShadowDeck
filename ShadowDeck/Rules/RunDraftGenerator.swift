@@ -40,7 +40,7 @@ public enum RunDraftGenerator {
         if isOnDeviceAIAvailable {
             return "On-device Apple Intelligence is available for structured drafting."
         }
-        return "On-device AI is unavailable on this Mac. ShadowDeck will draft from PDF text heuristics — review carefully."
+        return "On-device AI is unavailable on this Mac. Experimental text heuristics will draft the run — review carefully."
     }
 
     /// Build a draft. Uses Foundation Models when available; otherwise heuristics.
@@ -78,7 +78,7 @@ public enum RunDraftGenerator {
             warnings.append(availabilityMessage)
         }
 
-        var draft = heuristicDraft(from: text, fallbackTitle: source.pdfTitle)
+        var draft = heuristicDraft(from: text, fallbackTitle: source.pdfTitle, pageRange: source.pageRange)
         draft.sourcePDFID = source.pdfID
         draft.sourcePDFTitle = source.pdfTitle
         draft.sourcePageRange = source.pageRange
@@ -89,108 +89,17 @@ public enum RunDraftGenerator {
 
     // MARK: - Heuristic fallback
 
-    public static func heuristicDraft(from text: String, fallbackTitle: String) -> RunDraft {
-        var warnings: [String] = []
-        let lines = text
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && !$0.hasPrefix("--- Page") }
-
-        var title = fallbackTitle
-        if let missionLine = lines.first(where: {
-            $0.range(of: #"^SRM\s*\d"#, options: .regularExpression) != nil
-                || $0.localizedCaseInsensitiveContains("mission")
-        }) {
-            title = missionLine
-        } else if let first = lines.first, first.count < 80 {
-            title = first
-        }
-
-        var missionCode: String?
-        if let match = text.range(of: #"SRM\s*[\dA-Za-z\-–]+"#, options: .regularExpression) {
-            missionCode = String(text[match])
-                .replacingOccurrences(of: "  ", with: " ")
-                .trimmingCharacters(in: .whitespaces)
-        }
-
-        var client = ""
-        for line in lines {
-            let lower = line.lowercased()
-            if lower.contains("mr. johnson") || lower.contains("ms. johnson") || lower.hasPrefix("johnson") {
-                client = line
-                break
-            }
-            if lower.hasPrefix("client:") {
-                client = line.replacingOccurrences(of: "Client:", with: "", options: .caseInsensitive)
-                    .trimmingCharacters(in: .whitespaces)
-                break
-            }
-        }
-
-        var location = ""
-        for line in lines {
-            let lower = line.lowercased()
-            if lower.hasPrefix("location:") || lower.hasPrefix("setting:") {
-                location = line
-                    .replacingOccurrences(of: "Location:", with: "", options: .caseInsensitive)
-                    .replacingOccurrences(of: "Setting:", with: "", options: .caseInsensitive)
-                    .trimmingCharacters(in: .whitespaces)
-                break
-            }
-            if lower.contains("seattle") || lower.contains("metroplex") || lower.contains("district") {
-                location = line
-                break
-            }
-        }
-
-        var objectives: [String] = []
-        for line in lines {
-            if line.hasPrefix("•") || line.hasPrefix("-") || line.hasPrefix("*") {
-                let cleaned = line.trimmingCharacters(in: CharacterSet(charactersIn: "•-* "))
-                if cleaned.count > 8, cleaned.count < 160 {
-                    objectives.append(cleaned)
-                }
-            }
-            if objectives.count >= 6 { break }
-        }
-        if objectives.isEmpty {
-            warnings.append("No bullet objectives found — add them manually.")
-        }
-
-        // Player-facing: first non-header paragraphs, lightly.
-        let summaryCandidates = lines.filter {
-            $0.count > 40 && $0.count < 400
-                && !$0.lowercased().hasPrefix("page")
-                && !$0.contains("copyright")
-        }
-        let playerFacing = summaryCandidates.prefix(2).joined(separator: " ")
-
-        var nuyen: Int?
-        if let m = text.range(of: #"¥\s*[\d,]+|[\d,]+\s*nuyen"#, options: [.regularExpression, .caseInsensitive]) {
-            let raw = String(text[m]).filter(\.isNumber)
-            if let v = Int(raw), v > 0 { nuyen = v }
-        }
-        var karma: Int?
-        if let m = text.range(of: #"\b(\d+)\s*karma\b"#, options: [.regularExpression, .caseInsensitive]) {
-            let digits = String(text[m]).filter(\.isNumber)
-            if let v = Int(digits), v > 0, v < 50 { karma = v }
-        }
-
-        return RunDraft(
-            title: title,
-            missionCode: missionCode,
-            client: client,
-            location: location,
-            objectives: Array(objectives.prefix(6)),
-            oppositionSummary: "",
-            expectedPayoutNuyen: nuyen,
-            expectedKarma: karma,
-            playerFacingSummary: String(playerFacing.prefix(800)),
-            knownRisks: "",
-            gmNotes: "",
-            warnings: warnings,
-            usedOnDeviceAI: false
-        )
+    /// Offline draft from extracted PDF text (no on-device model).
+    /// Uses SRM-aware section parsing — see `RunDraftHeuristic`.
+    public static func heuristicDraft(
+        from text: String,
+        fallbackTitle: String,
+        pageRange: ClosedRange<Int>? = nil
+    ) -> RunDraft {
+        // `pageRange` is recorded by callers on `RunDraft.sourcePageRange`; the heuristic
+        // only needs the extracted text (kept for call-site compatibility).
+        _ = pageRange
+        return RunDraftHeuristic.draft(from: text, fallbackTitle: fallbackTitle)
     }
 }
 
@@ -229,12 +138,24 @@ private enum FoundationModelsRunDraftBridgeImpl {
     static func generate(text: String, source: RunDraftGenerator.Source) async throws -> RunDraft {
         let model = SystemLanguageModel.default
         let session = LanguageModelSession(model: model)
+        // Keep model prompt within a tight context window; extraction already
+        // used the AI budget when AI is available.
         let clipped = String(text.prefix(12_000))
         let prompt = """
         You are helping a Shadowrun gamemaster draft a run tracker entry from mission PDF text.
-        Extract only what the text supports. Prefer player-safe summaries for playerFacingSummary and knownRisks.
-        Put spoiler-heavy opposition in oppositionSummary (GM-facing).
-        Return concise fields. If unknown, use empty string or omit numbers.
+
+        Rules:
+        - Extract only what the text supports.
+        - playerFacingSummary and knownRisks must be player-safe (no deep spoilers).
+        - oppositionSummary is GM-facing (brief).
+        - gmNotes: a concise 1–3 paragraph GM background / mission synopsis only. \
+        Do NOT paste full scene text, NPC stat blocks, attribute rows (B A R S W…), \
+        gear lists, or markdown headers. No field labels inside values.
+        - objectives: short action lines, not full paragraphs.
+        - expectedStreetCred / expectedNotoriety / expectedPublicAwareness: typical awards \
+        from “Picking Up the Pieces” when stated (often +1); use reputationNotes for conditions.
+        - expectedPayoutNuyen / expectedKarma from rewards when stated.
+        - Be concise. Empty string if unknown.
 
         PDF title: \(source.pdfTitle)
 
@@ -260,6 +181,10 @@ private enum FoundationModelsRunDraftBridgeImpl {
             oppositionSummary: g.oppositionSummary,
             expectedPayoutNuyen: g.expectedPayoutNuyen,
             expectedKarma: g.expectedKarma,
+            expectedStreetCred: g.expectedStreetCred,
+            expectedNotoriety: g.expectedNotoriety,
+            expectedPublicAwareness: g.expectedPublicAwareness,
+            reputationNotes: g.reputationNotes,
             playerFacingSummary: g.playerFacingSummary,
             knownRisks: g.knownRisks,
             gmNotes: g.gmNotes,
@@ -280,6 +205,10 @@ private struct GeneratedMissionDraft {
     var oppositionSummary: String
     var expectedPayoutNuyen: Int?
     var expectedKarma: Int?
+    var expectedStreetCred: Int?
+    var expectedNotoriety: Int?
+    var expectedPublicAwareness: Int?
+    var reputationNotes: String
     var playerFacingSummary: String
     var knownRisks: String
     var gmNotes: String
