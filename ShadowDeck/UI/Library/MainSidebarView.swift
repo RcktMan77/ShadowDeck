@@ -76,11 +76,22 @@ struct MainSidebarView: View {
             Text(item.title)
                 .font(.body.weight(isSelected ? .semibold : .regular))
         } icon: {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                .frame(width: 24, height: 20, alignment: .center)
+            // Base icon; optional shared + badge so Create Run / Create Campaign align
+            // (system `doc.badge.plus` vs `folder.badge.plus` place the + in different corners).
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                if item.showsCreatePlusBadge {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, isSelected ? Color.accentColor : Color.primary)
+                        .offset(x: 5, y: -4)
+                }
+            }
+            .frame(width: 24, height: 20, alignment: .center)
         }
         .labelStyle(.titleAndIcon)
         .foregroundStyle(Color.primary)
