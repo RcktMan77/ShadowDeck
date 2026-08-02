@@ -16,6 +16,7 @@ public final class LibraryEnvironment {
     public let library: CharacterLibrary
     public let runLibrary: RunLibrary
     public let campaignLibrary: CampaignLibrary
+    public let runTemplateStore: RunTemplateStore
     public var lastErrorMessage: String?
     /// Sidebar badge — kept in sync via `refreshRunCount()`.
     public private(set) var runCount: Int = 0
@@ -26,12 +27,14 @@ public final class LibraryEnvironment {
         container: ModelContainer,
         library: CharacterLibrary,
         runLibrary: RunLibrary,
-        campaignLibrary: CampaignLibrary
+        campaignLibrary: CampaignLibrary,
+        runTemplateStore: RunTemplateStore = RunTemplateStore()
     ) {
         self.container = container
         self.library = library
         self.runLibrary = runLibrary
         self.campaignLibrary = campaignLibrary
+        self.runTemplateStore = runTemplateStore
         refreshRunCount()
         refreshCampaignCount()
     }
@@ -57,11 +60,14 @@ public final class LibraryEnvironment {
         let library = try PersistenceController.makeLibrary(container: container, avatarRoot: temp)
         let runLibrary = PersistenceController.makeRunLibrary(container: container)
         let campaignLibrary = PersistenceController.makeCampaignLibrary(container: container)
+        let templatesURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ShadowDeck-Ephemeral-Templates-\(UUID().uuidString).json")
         return LibraryEnvironment(
             container: container,
             library: library,
             runLibrary: runLibrary,
-            campaignLibrary: campaignLibrary
+            campaignLibrary: campaignLibrary,
+            runTemplateStore: RunTemplateStore(fileURL: templatesURL)
         )
     }
 

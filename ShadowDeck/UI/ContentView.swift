@@ -16,6 +16,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case newCharacter
     case newCampaign
     case newRun
+    case newRunFromTemplate
     case importCharacter
 
     var id: String { rawValue }
@@ -28,6 +29,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .newCharacter: "New Character"
         case .newCampaign: "New Campaign"
         case .newRun: "New Run"
+        case .newRunFromTemplate: "New Run from Template"
         case .importCharacter: "Import New Character"
         }
     }
@@ -41,6 +43,7 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .newCharacter: "plus.circle.fill"
         case .newCampaign: "folder.fill"
         case .newRun: "list.clipboard.fill"
+        case .newRunFromTemplate: "list.bullet.rectangle"
         case .importCharacter: "square.and.arrow.down.fill"
         }
     }
@@ -61,6 +64,8 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
             return "Create a campaign to group missions for a table or ruleset"
         case .newRun:
             return "Create a new mission / job in the Runs library"
+        case .newRunFromTemplate:
+            return "Start a job from a built-in or saved run template"
         case .newCharacter:
             return "Start the character generation wizard"
         case .characters:
@@ -87,6 +92,7 @@ struct ContentView: View {
     @State private var newRunDetailID: UUID?
     /// Open this campaign detail after Create → New Campaign (or toolbar create).
     @State private var openCampaignID: UUID?
+    @State private var showNewRunFromTemplate = false
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) var openWindow
@@ -99,7 +105,8 @@ struct ContentView: View {
                 campaignCount: libraryEnvironment.campaignCount,
                 runCount: libraryEnvironment.runCount,
                 onNewCampaign: { requestNewCampaign() },
-                onNewRun: { requestNewRun() }
+                onNewRun: { requestNewRun() },
+                onNewRunFromTemplate: { showNewRunFromTemplate = true }
             )
         } detail: {
             NavigationStack {
@@ -132,6 +139,18 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
             requestNewRun()
+        }
+        .sheet(isPresented: $showNewRunFromTemplate) {
+            NewRunFromTemplateSheet(
+                onCancel: { showNewRunFromTemplate = false },
+                onCreated: { runID in
+                    showNewRunFromTemplate = false
+                    newRunDetailID = runID
+                    selection = .newRun
+                    libraryEnvironment.refreshRunCount()
+                }
+            )
+            .environment(libraryEnvironment)
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.importCharacter)) { _ in
             selection = .importCharacter
@@ -205,6 +224,11 @@ struct ContentView: View {
             // Create action routes through requestNewCampaign → .campaigns + detail.
             ProgressView("Creating campaign…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .newRunFromTemplate:
+            // Handled via sheet from the Create sidebar action.
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear { showNewRunFromTemplate = true }
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
