@@ -112,7 +112,6 @@ public enum RunAwardApplicatorError: Error, Equatable, LocalizedError {
 // MARK: - Engine
 
 public enum RunAwardApplicator {
-
     /// Equal floor split of preferred payout among **available** characters.
     /// Remainder nuyen/karma goes to the first available participant (run list order).
     public static func preview(run: Run, charactersByID: [UUID: Character]) -> AwardPreview {

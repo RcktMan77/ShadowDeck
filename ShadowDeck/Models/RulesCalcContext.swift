@@ -66,9 +66,9 @@ public struct RulesCalcContext: Sendable, Equatable, Hashable {
         self.lifestyleMonthlyTotal = max(0, lifestyleMonthlyTotal)
     }
 
-    public static let neutral = RulesCalcContext()
+    public static let neutral = Self()
 
-    public static func from(character: Character) -> RulesCalcContext {
+    public static func from(character: Character) -> Self {
         let effects = CharacterEffectsEngine.resolve(character)
         let a = effects.effectiveAttributes
         let topSkill = character.skills.map(\.rating).max() ?? 3
@@ -76,7 +76,7 @@ public struct RulesCalcContext: Sendable, Equatable, Hashable {
             .filter(\.isActive)
             .reduce(0) { $0 + max(0, $1.monthlyCost) }
         let ess = NSDecimalNumber(decimal: a.essence).doubleValue
-        return RulesCalcContext(
+        return Self(
             edition: character.edition,
             houseRules: character.houseRules,
             diceRules: character.houseRules.dice ?? .coreBook,
