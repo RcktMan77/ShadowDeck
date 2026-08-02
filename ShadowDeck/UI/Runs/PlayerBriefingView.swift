@@ -127,17 +127,23 @@ struct PlayerBriefingView: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Copy Markdown") {
+            AppChromeButton.title(
+                "Copy Markdown",
+                help: "Copy the player-safe briefing as Markdown",
+                keyEquivalent: "c",
+                keyModifiers: [.command, .shift]
+            ) {
                 copyMarkdown()
             }
-            .keyboardShortcut("c", modifiers: [.command, .shift])
-            .help("Copy the player-safe briefing as Markdown")
-            Button("Export PDF…") {
+            AppChromeButton.title(
+                "Export PDF…",
+                help: "Save a printable player-safe PDF handout (same content as Markdown)"
+            ) {
                 exportPDF()
             }
-            .help("Save a printable player-safe PDF handout (same content as Markdown)")
-            Button("Done", action: onDismiss)
-                .keyboardShortcut(.cancelAction)
+            AppChromeButton.title("Done", help: "Close player briefing") {
+                onDismiss()
+            }
         }
     }
 
