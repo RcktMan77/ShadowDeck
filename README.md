@@ -159,12 +159,12 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 ### Build a runner
 
-Create a new character for SR4, SR5, or SR6 with a guided flow that covers concept, metatype, attributes, skills, qualities, and resources.
+Create a new character for SR4, SR5, or SR6 with a guided flow from concept through attributes, skills, and resources.
 
 - Chargen for all three supported editions
-- Optional house rules (priorities, contacts, dice math, and more)
+- Optional house rules for priorities, contacts, dice math, and more
 - Role suggestions with archetype and metatype art
-- Bring in existing runners from Chummer or a portable package
+- Import existing runners from Chummer or a portable package
 
 ### Character library & play sheet
 
@@ -179,11 +179,11 @@ Create a new character for SR4, SR5, or SR6 with a guided flow that covers conce
 
 Keep a stable of runners ready for the next session — open a sheet, see the numbers that matter, and roll when it counts.
 
-- Library of your characters with search and gallery or list views
-- Play sheet: attributes (with gear and aug bonuses), condition, karma, nuyen, pools, and more
-- Manage skills, gear, augs, qualities, contacts, lifestyle, magic, and advancement from one place
-- Portraits (still or animated GIF)
-- Dice from the sheet — skills, attributes, Edge options, house-rule dice when enabled
+- Searchable library of your characters
+- Play sheet for attributes, condition, karma, nuyen, pools, and gear-backed bonuses
+- Skills, gear, contacts, lifestyle, magic, and advancement in one place
+- Still or animated portraits
+- Dice from the sheet with Edge options and optional house-rule dice math
 
     </td>
   </tr>
@@ -195,15 +195,13 @@ Keep a stable of runners ready for the next session — open a sheet, see the nu
   <tr>
     <td width="58%" valign="top">
 
-Track the campaign loop: group jobs under a campaign, plan the run, put people on it, play the session, then close out awards and hand the table a clean briefing.
+Track the full campaign loop: group jobs under a campaign, plan the run, put people on it, play the session, then close out and brief the table.
 
-- **Campaigns** group related jobs and notes
-- **Plan a run** from a blank job or a reusable template (client, location, objectives, opposition)
-- **People on the job** — team members and Johnson / fixer / target contacts
-- **Session tools** — log, payouts, heat, and status through completion
-- **Close out** with nuyen, karma, and reputation when you choose (nothing auto-applies mid-run)
-- **Player briefing** — share what runners know as Markdown or PDF; GM notes stay off that handout
-- **Experimental:** draft a planning run from a Missions &amp; Adventures PDF on your shelf
+- **Campaigns and planning** — related jobs, notes, blank runs, or reusable templates
+- **On the job** — team roster plus Johnson, fixer, and target contacts
+- **In session** — objectives, log, payouts, heat, and status through the finish
+- **Close out and brief** — nuyen, karma, and reputation when you choose; player handouts stay free of GM spoilers
+- **Experimental:** turn a mission PDF on your shelf into a planning-run draft you can review before saving
 
     </td>
     <td width="42%" valign="top" align="center">
@@ -237,7 +235,7 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 </table>
 
 - **Reference** — short original summaries and formulas (dice, combat, magic, matrix, lifestyle, …) plus handy calculators
-- **Library** — add your own PDFs, browse by type, read and search on this Mac; optional page links from cards when you bind a book
+- **Library** — add your own PDFs, browse by type, read and search files locally; optional page links from cards when you bind a book
 - No rulebook PDFs are bundled or redistributed — only files you add
 
 ### Lifestyle, advancement & more
@@ -247,14 +245,14 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 | **Lifestyle** | Monthly costs, reserves, and downtime upkeep when you decide to process a month |
 | **Advancement** | Plan and spend karma on raises with edition-aware costs |
 | **Contacts** | Standing, tags, and a log of favors and meetings |
-| **Import / export** | Move characters in from Chummer; export sheets and portable packages |
+| **Import / export** | Bring characters in from Chummer; export sheets and portable packages |
 | **Catalog** | SR5 gear and qualities that update the sheet when you equip them |
 
 ---
 
 ## Getting started
 
-1. Download a [**Release**](https://github.com/RcktMan77/ShadowDeck/releases), or build from source with Xcode 16+ / `Scripts/release_build.sh`.
+1. Download a [**Release**](https://github.com/RcktMan77/ShadowDeck/releases), or build from source with Xcode 16+.
 2. Create a character, import one, or load samples from the library.
 3. Open a runner’s play sheet; use **Dice** (⌘D) when you need a roll.
 4. Open **Rules Reference** (⌘R) for quick rules or your PDF shelf.
@@ -266,11 +264,11 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 ## Tips for the table
 
-- Character and gear changes **save as you go** — no separate “commit sheet” step.
-- Process lifestyle months and apply run awards **only when you mean to**; nothing charges or pays out automatically.
-- House rules on a character feed validation, essence, and the dice roller for that runner.
-- Keep GM spoilers out of the player briefing — use it for what the team is allowed to know.
-- Bind your own rulebooks on the PDF shelf if you want card page links to open the right page.
+- Changes save as you go — no separate “commit sheet” step.
+- Process lifestyle and apply run awards only when you mean to; nothing pays out on its own.
+- House rules on a character shape validation, essence, and dice for that runner.
+- Use the player briefing for what the team may know; keep GM spoilers off that handout.
+- Bind your own rulebooks if you want reference cards to open the right page in your PDFs.
 
 ---
 
