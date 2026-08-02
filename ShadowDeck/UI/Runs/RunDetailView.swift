@@ -338,38 +338,35 @@ struct RunDetailView: View {
             .frame(width: 120)
             .help("Run status")
 
-            // Icon-only actions — full titles live in help tooltips (toolbar was truncating labels).
-            Button {
+            // Icon-only actions (tooltips via IconToolbarButton — more reliable than Label+iconOnly).
+            IconToolbarButton(
+                title: "Look up — Rules Reference for awards, heat, and downtime",
+                systemImage: "book.pages"
+            ) {
                 RulesReferenceOpener.request(query: "run")
-            } label: {
-                Label("Look up", systemImage: "book.pages")
             }
-            .labelStyle(.iconOnly)
-            .help("Look up — Rules Reference for awards, heat, and downtime")
 
-            Button {
+            IconToolbarButton(
+                title: "Player briefing — player-safe handout and Copy Markdown",
+                systemImage: "person.3.sequence"
+            ) {
                 presentPlayerBriefing()
-            } label: {
-                Label("Player briefing", systemImage: "person.3.sequence")
             }
-            .labelStyle(.iconOnly)
-            .help("Player briefing — player-safe handout and Copy Markdown")
 
-            Button {
+            IconToolbarButton(
+                title: "Save as Template — reusable job pattern",
+                systemImage: "list.bullet.rectangle"
+            ) {
                 prepareSaveAsTemplate()
-            } label: {
-                Label("Save as Template", systemImage: "list.bullet.rectangle")
             }
-            .labelStyle(.iconOnly)
-            .help("Save as Template — reusable job pattern")
 
-            Button(role: .destructive) {
+            IconToolbarButton(
+                title: "Delete this run",
+                systemImage: "trash",
+                role: .destructive
+            ) {
                 confirmDelete = true
-            } label: {
-                Label("Delete", systemImage: "trash")
             }
-            .labelStyle(.iconOnly)
-            .help("Delete this run")
         }
     }
 
