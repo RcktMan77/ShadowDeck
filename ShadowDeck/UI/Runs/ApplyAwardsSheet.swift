@@ -75,13 +75,13 @@ struct ApplyAwardsSheet: View {
                 Text("Apply Awards")
                     .font(.title2.weight(.semibold))
                 Spacer(minLength: 8)
-                Button {
+                AppChromeButton.labeled(
+                    "Mission reputation",
+                    systemImage: "book.pages",
+                    help: "Open Rules Reference — Street Cred, Notoriety, and Public Awareness"
+                ) {
                     RulesReferenceOpener.request(query: "mission reputation")
-                } label: {
-                    Label("Mission reputation", systemImage: "book.pages")
                 }
-                .controlSize(.small)
-                .help("Open Rules Reference — Street Cred, Notoriety, and Public Awareness")
             }
             Text(runTitle.isEmpty ? "Untitled run" : runTitle)
                 .font(.subheadline)
@@ -262,28 +262,32 @@ struct ApplyAwardsSheet: View {
 
     private var footer: some View {
         HStack {
-            Button("Cancel") {
+            AppChromeButton.title(
+                "Cancel",
+                help: "Close without applying",
+                isEnabled: !isApplying
+            ) {
                 onCancel()
             }
-            .keyboardShortcut(.cancelAction)
-            .disabled(isApplying)
 
             Spacer()
 
-            Button {
+            if isApplying {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            AppChromeButton.title(
+                "Apply",
+                help: "Credit nuyen, karma, and reputation to linked runners",
+                style: .prominent,
+                isEnabled: preview.canApply && !isApplying,
+                keyEquivalent: "\r"
+            ) {
                 guard !isApplying else { return }
                 isApplying = true
                 onConfirm(editableShares, note, heatNote)
-            } label: {
-                if isApplying {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Text("Apply")
-                }
             }
-            .keyboardShortcut(.defaultAction)
-            .disabled(!preview.canApply || isApplying)
         }
     }
 }

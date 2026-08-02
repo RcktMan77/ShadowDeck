@@ -491,44 +491,40 @@ struct CharacterAtAGlanceView: View {
     // MARK: - Toolbar
 
     private func toolbar(_ c: Character) -> some View {
-        HStack(spacing: 12) {
-            Button {
+        HStack(spacing: 8) {
+            AppChromeButton.labeled("Library", systemImage: "chevron.left", help: "Back to Character Library") {
                 onBack()
-            } label: {
-                Label("Library", systemImage: "chevron.left")
             }
 
             Spacer()
 
-            Button {
+            AppChromeButton.labeled(
+                diceRoller.isPresented ? "Hide Dice" : "Dice",
+                systemImage: "dice.fill",
+                help: "Open dice roller (⌘D)",
+                keyEquivalent: "d",
+                keyModifiers: .command
+            ) {
                 if diceRoller.isPresented {
                     diceRoller.dismiss()
                 } else {
                     openDiceRollerManual()
                 }
-            } label: {
-                Label(
-                    diceRoller.isPresented ? "Hide Dice" : "Dice",
-                    systemImage: "dice.fill"
-                )
             }
-            .help("Open dice roller (⌘D)")
-            .keyboardShortcut("d", modifiers: [.command])
-            .accessibilityLabel(diceRoller.isPresented ? "Hide dice roller" : "Open dice roller")
 
-            Button {
+            AppChromeButton.labeled(
+                "Rules",
+                systemImage: "book.pages.fill",
+                help: "Open Rules Reference window (⌘R)",
+                keyEquivalent: "r",
+                keyModifiers: .command
+            ) {
                 openRulesReference()
-            } label: {
-                Label("Rules", systemImage: "book.pages.fill")
             }
-            .help("Open Rules Reference window (⌘R)")
-            .accessibilityLabel("Open Rules Reference")
-            .keyboardShortcut("r", modifiers: [.command])
 
-            // Icon-only Export / Delete (Dice + Rules keep text labels).
-            IconToolbarButton(
-                title: "Export — package, PDF character sheet, or Chummer .chum5",
-                systemImage: "square.and.arrow.up"
+            AppChromeButton.icon(
+                "square.and.arrow.up",
+                help: "Export — package, PDF character sheet, or Chummer .chum5"
             ) {
                 showExportOptions = true
             }
@@ -545,10 +541,10 @@ struct CharacterAtAGlanceView: View {
                 Text("Choose a format for GMs, backups, or online hubs.")
             }
 
-            IconToolbarButton(
-                title: "Delete this character",
-                systemImage: "trash",
-                role: .destructive
+            AppChromeButton.icon(
+                "trash",
+                help: "Delete this character",
+                style: .destructive
             ) {
                 confirmDeletePresented = true
             }

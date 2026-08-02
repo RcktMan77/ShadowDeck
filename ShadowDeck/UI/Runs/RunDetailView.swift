@@ -289,11 +289,15 @@ struct RunDetailView: View {
             // Edits still auto-save while working; this is explicit confirmation + leave.
             HStack {
                 Spacer()
-                Button("Save") {
+                AppChromeButton.title(
+                    "Save",
+                    help: "Save and return to Run Library",
+                    style: .prominent,
+                    keyEquivalent: "s",
+                    keyModifiers: .command
+                ) {
                     saveAndReturn()
                 }
-                .keyboardShortcut("s", modifiers: [.command])
-                .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -311,10 +315,8 @@ struct RunDetailView: View {
 
     private func stickyToolbar(_ current: Run) -> some View {
         HStack(spacing: 8) {
-            Button {
+            AppChromeButton.labeled("Runs", systemImage: "chevron.left", help: "Back to Run Library") {
                 goBack()
-            } label: {
-                Label("Runs", systemImage: "chevron.left")
             }
 
             Text(PlayerBriefingMarkdown.displayTitle(
@@ -338,32 +340,31 @@ struct RunDetailView: View {
             .frame(width: 120)
             .help("Run status")
 
-            // Icon-only actions (tooltips via IconToolbarButton — more reliable than Label+iconOnly).
-            IconToolbarButton(
-                title: "Look up — Rules Reference for awards, heat, and downtime",
-                systemImage: "book.pages"
+            AppChromeButton.icon(
+                "book.pages",
+                help: "Look up — Rules Reference for awards, heat, and downtime"
             ) {
                 RulesReferenceOpener.request(query: "run")
             }
 
-            IconToolbarButton(
-                title: "Player briefing — player-safe handout and Copy Markdown",
-                systemImage: "person.3.sequence"
+            AppChromeButton.icon(
+                "person.3.sequence",
+                help: "Player briefing — player-safe handout and Copy Markdown"
             ) {
                 presentPlayerBriefing()
             }
 
-            IconToolbarButton(
-                title: "Save as Template — reusable job pattern",
-                systemImage: "list.bullet.rectangle"
+            AppChromeButton.icon(
+                "list.bullet.rectangle",
+                help: "Save as Template — reusable job pattern"
             ) {
                 prepareSaveAsTemplate()
             }
 
-            IconToolbarButton(
-                title: "Delete this run",
-                systemImage: "trash",
-                role: .destructive
+            AppChromeButton.icon(
+                "trash",
+                help: "Delete this run",
+                style: .destructive
             ) {
                 confirmDelete = true
             }
