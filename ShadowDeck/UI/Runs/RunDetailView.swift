@@ -167,9 +167,29 @@ struct RunDetailView: View {
                     }
                 }
             }
+
+            Divider()
+
+            // Bottom-right save: flush rich-text drafts and return to Run Library.
+            // Edits still auto-save while working; this is explicit confirmation + leave.
+            HStack {
+                Spacer()
+                Button("Save") {
+                    saveAndReturn()
+                }
+                .keyboardShortcut("s", modifiers: [.command])
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func saveAndReturn() {
+        commitRichTextDrafts(force: true)
+        goBack()
     }
 
     // MARK: - Sticky toolbar
