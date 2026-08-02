@@ -57,7 +57,7 @@ struct GenerationWizardView: View {
                 .onChange(of: draft.step) { _, _ in
                     statusMessage = nil
                     scrollAnchor = UUID()
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         withAnimation(.easeOut(duration: 0.15)) {
                             proxy.scrollTo(scrollAnchor, anchor: .top)
                         }
