@@ -42,6 +42,11 @@ struct RunDetailView: View {
     @State var applyAwardsPreview: AwardPreview?
     @State var showSaveAsTemplate = false
     @State var saveTemplateName = ""
+    @State var showAddContactSheet = false
+    @State var showAddUnlinkedContact = false
+    @State var unlinkedName = ""
+    @State var unlinkedRole: RunContactRole = .other
+    @State var unlinkedRoleLabel = ""
 
     var body: some View {
         Group {
@@ -124,6 +129,63 @@ struct RunDetailView: View {
             .padding(24)
             .frame(minWidth: 360)
         }
+        .sheet(isPresented: $showAddContactSheet) {
+            AddRunContactSheet(
+                characterSummaries: characterSummaries,
+                onCancel: { showAddContactSheet = false },
+                onAdd: { link in
+                    updateRun { $0.addContactLink(link) }
+                    showAddContactSheet = false
+                }
+            )
+            .environment(libraryEnvironment)
+        }
+        .sheet(isPresented: $showAddUnlinkedContact) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Add unlinked person")
+                    .font(.headline)
+                TextField("Name", text: $unlinkedName)
+                    .textFieldStyle(.roundedBorder)
+                Picker("Role", selection: $unlinkedRole) {
+                    ForEach(RunContactRole.allCases) { role in
+                        Text(role.displayName).tag(role)
+                    }
+                }
+                .pickerStyle(.segmented)
+                if unlinkedRole == .other {
+                    TextField("Role label (optional)", text: $unlinkedRoleLabel)
+                        .textFieldStyle(.roundedBorder)
+                }
+                HStack {
+                    Spacer()
+                    Button("Cancel") {
+                        showAddUnlinkedContact = false
+                        unlinkedName = ""
+                        unlinkedRoleLabel = ""
+                    }
+                    Button("Add") {
+                        let name = unlinkedName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !name.isEmpty else { return }
+                        let link = RunContactLink(
+                            role: unlinkedRole,
+                            displayName: name,
+                            displayRoleLabel: unlinkedRole == .other
+                                ? (unlinkedRoleLabel.isEmpty ? nil : unlinkedRoleLabel)
+                                : nil
+                        )
+                        updateRun { $0.addContactLink(link) }
+                        showAddUnlinkedContact = false
+                        unlinkedName = ""
+                        unlinkedRoleLabel = ""
+                        unlinkedRole = .other
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(unlinkedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(24)
+            .frame(minWidth: 360)
+        }
     }
 
     private func prepareSaveAsTemplate() {
@@ -182,6 +244,8 @@ struct RunDetailView: View {
 
                         overviewSection
                             .id("overviewBody")
+                        contactsSection
+                            .id("contacts")
                         objectivesSection
                             .id("objectives")
                             .modifier(MarketingHighlightPulse(active: marketingHighlight == "objectives"))
