@@ -430,10 +430,9 @@ struct ContactsManagementView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Save Notes") {
+                AppChromeButton.title("Save Notes", help: "Save contact notes") {
                     commitNotes(for: contact.id)
                 }
-                .controlSize(.mini)
             }
             NotesEditor(
                 text: Binding(
@@ -454,10 +453,9 @@ struct ContactsManagementView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Add Interaction…") {
+                AppChromeButton.title("Add Interaction…", help: "Log a contact interaction") {
                     interactionTargetID = contact.id
                 }
-                .controlSize(.small)
             }
 
             let entries = contact.interactionLogNewestFirst
@@ -518,8 +516,14 @@ struct ContactsManagementView: View {
                 .foregroundStyle(.secondary)
             HStack {
                 Spacer()
-                Button("Cancel") { isAdding = false }
-                Button("Add") {
+                AppChromeButton.title("Cancel", help: "Close without adding") { isAdding = false }
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add contact",
+                    style: .prominent,
+                    isEnabled: !draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    keyEquivalent: "\r"
+                ) {
                     let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else { return }
                     let contact = Contact(
@@ -534,8 +538,6 @@ struct ContactsManagementView: View {
                     isAdding = false
                     expandedID = contact.id
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)
