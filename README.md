@@ -79,7 +79,7 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
 
 ## Tour
 
-<p align="center"><sub>Character loop — click a still for the full image</sub></p>
+<p align="center"><sub>Click a still for the full image</sub></p>
 
 <table align="center">
   <tr>
@@ -107,6 +107,22 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
       </a><br />
       <sub><strong>Dice roller</strong></sub>
     </td>
+  </tr>
+  <tr>
+    <td width="25%" align="center" valign="top">
+      <a href="Docs/Screenshots/06-rules-reference.jpg">
+        <img src="Docs/Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="210" />
+      </a><br />
+      <sub><strong>Rules Reference</strong></sub>
+    </td>
+    <td width="25%" align="center" valign="top">
+      <a href="Docs/Screenshots/09-pdf-library.jpg">
+        <img src="Docs/Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="210" />
+      </a><br />
+      <sub><strong>PDF Library</strong></sub>
+    </td>
+    <td width="25%"></td>
+    <td width="25%"></td>
   </tr>
 </table>
 
