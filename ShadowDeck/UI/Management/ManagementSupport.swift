@@ -217,6 +217,9 @@ struct ManagementListChrome<Content: View>: View {
     let subtitle: String
     var onAdd: (() -> Void)?
     var addLabel: String = "Add"
+    /// Opens Rules Reference (optional look-up aid for this tab).
+    var onLookUp: (() -> Void)?
+    var lookUpLabel: String = "Look up"
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -229,7 +232,13 @@ struct ManagementListChrome<Content: View>: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
+                Spacer(minLength: 12)
+                if let onLookUp {
+                    Button(lookUpLabel, systemImage: "book.pages") {
+                        onLookUp()
+                    }
+                    .help("Open Rules Reference for this topic (⌘R)")
+                }
                 if let onAdd {
                     Button(addLabel, systemImage: "plus.circle") {
                         onAdd()

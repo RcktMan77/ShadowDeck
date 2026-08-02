@@ -32,6 +32,8 @@ public enum AppCommand {
     public static let openDiceRoller = Notification.Name("com.shadowdeck.command.openDiceRoller")
     /// Marketing: open Skills + dice inspector with a completed skill roll (Edge options visible).
     public static let marketingShowDiceRoller = Notification.Name("com.shadowdeck.marketing.showDiceRoller")
+    /// Open Rules Reference (⌘R). `userInfo["query"]` optional String for search seed.
+    public static let openRulesReference = Notification.Name("com.shadowdeck.command.openRulesReference")
 }
 
 import UniformTypeIdentifiers

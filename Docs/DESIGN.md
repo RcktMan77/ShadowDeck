@@ -283,7 +283,72 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-31 | Dice roller v1: inspector panel on character sheet; SR4/5/6 hits & glitches; Push the Limit + Second Chance with session Edge; one-click from skills/attributes; ⌘D |
 | 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
 | 2026-08-01 | Apply Run Awards v1: explicit Apply Awards… on terminal runs; equal floor split among available participants; remainder to first; `awardsAppliedAt` double-apply guard; advancement `runAward` ledger; no auto-apply |
+| 2026-08-01 | Rules Reference v1: structured cards + calculators + local PDF library + page-chip bridge; dedicated `Window` scene (⌘R); no bundled rulebook PDFs |
 
+
+## Rules Reference (v1)
+
+Searchable mechanical aids and a **personal** PDF shelf. Three layers; copyright posture is intentional.
+
+### Layers
+
+| Layer | Role |
+|-------|------|
+| **A — Structured reference** | Bundled `RulesSeed.json` → `RuleEntry` cards (original short summaries, formulas, tags, edition filters). `RulesReferenceStore` loads/search. Detail pane + optional calculator. |
+| **B — PDF library** | User-owned PDFs only (`PDFLibraryStore` under Application Support). Shelf (gallery/list, sections, covers), continuous PDFKit reader, zoom (Fit Page / Fit Width / Actual Size / %), find-in-document, thumbnails, last page, front-matter `pageOffset`. |
+| **C — Page bridge** | `PageRef(bookKey, page, label)` on cards. Book settings bind `bookKey` + offset. Chip → printed page → PDF index → open reader at page. |
+
+### Presentation
+
+- Dedicated SwiftUI `Window("Rules Reference", id: "rules-reference")` — not a trailing inspector (Dice remains inspector-style).
+- Mode chrome: **Reference** | **Library**. Library is full-width shelf or single-book reader (not a split strip).
+- Cold launch: restored Rules window is suppressed so splash stays front (`AppLaunchWindowPolicy`).
+- Entry: menu **Rules Reference…**, ⌘R, play-sheet toolbar; **Look up** on Skills, Plan, Lifestyle, Magic, Contacts, Gear, Augs, Qualities, Dice, House Rules, and Run detail (`RulesReferenceOpener.request` + optional `RulesCalcContext`).
+- Page chips prefer open-character edition first, then SR4 → SR5 → SR6.
+- Related card IDs are tappable; calculators prefill from character when available.
+- Library shelf supports full-text search across owned PDFs (capped results).
+- Reference/library UI state (mode, query, selection, layout, zoom map) persists in `UserDefaults`.
+
+### Key types & files
+
+| Piece | Location |
+|-------|----------|
+| `RuleEntry`, `PageRef`, categories, calculator IDs | `Models/RulesReference.swift` |
+| Seed load + search | `Rules/RulesReferenceStore.swift`, `Resources/Rules/RulesSeed.json` |
+| Calculators | `Rules/Calculators/*` + `UI/Rules/RulesCalculatorViews.swift` |
+| PDF library model/store | `Models/PDFLibrary.swift`, `Persistence/PDFLibraryStore.swift` |
+| Session / window open | `UI/Rules/RulesReferenceSession.swift`, `RulesReferenceOpener` |
+| UI | `RulesReferenceView`, `RuleDetailCard`, `PDFViewerView`, `PDFLibraryShelfViews` |
+
+### Zoom (reader)
+
+Canvas = host view bounds (window points), **not** magnified clip bounds.  
+`scaleFactor` only — do not reset `NSScrollView.magnification` (PDFKit couples them).  
+Fit Page: one full page, aspect preserved, single-edge vertical pad (continuous top-align).  
+Fit Width: page width = canvas − side pad. Actual Size ≡ 100% ≡ scale `1.0`.  
+H-scroller only when **current** page is wider than canvas (documents may contain landscape spreads).
+
+### Search
+
+| Scope | v1 behavior |
+|-------|-------------|
+| Structured cards | In-memory filter on title, tags, summary, formula (`RulesReferenceStore.search`) |
+| Open PDF | Preview-style find in the continuous reader (`PDFSearchBridge` + `PDFDocument.findString`) |
+| Whole shelf | Not indexed yet — open a book and use in-document find; optional background shelf index later |
+
+### Legal / non-goals
+
+- **No** Catalyst (or other) rulebook prose in seed data; **no** shipping or downloading PDFs.
+- **No** cloud sync of the PDF shelf (Shared Hub later if ever).
+- **No** OCR requirement; in-document search uses PDFKit on text-based PDFs.
+- Seed depth targets ~80–120 high-frequency mechanical cards (`RulesSeed.json`); expand JSON over time without UI rewrites.
+- Page chips always display **SR4 → SR5 → SR6 → other** (`PageRef.sortedForDisplay`), not library-add order or character edition.
+
+### Tests
+
+- `RulesReferenceTests` — seed load, search tokens, edition/category filters, zoom math.
+- `RulesCalculatorTests` — Drain / Overwatch / related pure math.
+- `PDFLibraryStoreTests` — add/remove, keys, covers, page offset, last page.
 
 ## Phase 9A — Brand kit
 
