@@ -256,28 +256,17 @@ A dedicated window (⌘R) with two modes — mechanical cards for the table, and
 4. **Rules Reference…** (⌘R) for mechanical cards, calculators, and your PDF shelf.
 5. **Create → New Run** (⌘⇧R) or **Library → Runs** for missions.
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-
-#### Sidebar
+### Sidebar
 
 | Section | Items |
 |---------|--------|
 | **Library** | Characters · Runs |
 | **Create** | New Character · New Run · Import Character… |
 
-    </td>
-    <td width="50%" valign="top">
-
-#### Requirements
+### Requirements
 
 - **macOS 14.0** or later
 - Development: **Xcode 16+**
-
-    </td>
-  </tr>
-</table>
 
 ---
 
