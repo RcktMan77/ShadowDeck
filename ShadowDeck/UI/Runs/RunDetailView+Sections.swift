@@ -354,7 +354,7 @@ extension RunDetailView {
                     Text("")
                 }
             }
-            Text("Leave actual blank until the run resolves. Heat is a simple integer for now (campaign heat ledger later).")
+            Text("Leave actual blank until the run resolves. Heat Δ is run-level only — add a heat narrative when applying awards.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

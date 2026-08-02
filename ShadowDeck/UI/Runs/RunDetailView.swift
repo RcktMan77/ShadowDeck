@@ -99,12 +99,13 @@ struct RunDetailView: View {
                 ApplyAwardsSheet(
                     runTitle: run.title,
                     preview: preview,
+                    runHeatDelta: run.heatDelta,
                     onCancel: {
                         showApplyAwardsSheet = false
                         applyAwardsPreview = nil
                     },
-                    onConfirm: { note in
-                        applyAwards(note: note)
+                    onConfirm: { shares, note, heatNote in
+                        applyAwards(shares: shares, note: note, heatNote: heatNote)
                     }
                 )
             }
@@ -626,7 +627,7 @@ struct RunDetailView: View {
         showApplyAwardsSheet = true
     }
 
-    func applyAwards(note: String) {
+    func applyAwards(shares: [AwardShare], note: String, heatNote: String) {
         guard var current = run else {
             showApplyAwardsSheet = false
             applyAwardsPreview = nil
@@ -649,7 +650,9 @@ struct RunDetailView: View {
             let result = try RunAwardApplicator.apply(
                 run: &current,
                 characters: &characters,
-                note: note
+                shares: shares,
+                note: note,
+                heatNote: heatNote
             )
 
             // Persist characters first, then the run (applied marker last).
@@ -694,6 +697,12 @@ struct RunDetailView: View {
         var message =
             "Applied awards to \(result.applied.count) runner(s): "
             + "\(RunSupport.formatNuyen(nuyen)) + \(karma) karma."
+        if result.applied.contains(where: \.hasReputationDelta) {
+            message += " Reputation updated."
+        }
+        if result.heatNote != nil {
+            message += " Heat note logged."
+        }
         if !result.skipped.isEmpty || missingCount > 0 {
             message += " Skipped \(result.skipped.count) missing."
         }
