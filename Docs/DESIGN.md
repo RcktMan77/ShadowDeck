@@ -17,7 +17,7 @@ Updated as phases land. **Human input required** before locking ambiguous items.
 | Portability | Single-file **`.shadowdeck`** package (ZIP + JSON) for import/export |
 | Edition priority | **Equal peers** — SR4, SR5, SR6 first-class from day one |
 | House rules | Core-book default + top ~10 popular toggles early |
-| Domain model | Pure `Codable` value types; SwiftData `CharacterRecord` + JSON payload |
+| Domain model | Pure `Codable` value types; SwiftData records + JSON payloads (`Character`, `Run`) |
 | Avatar storage | **Hybrid**: ≤256KB static inline; large/animated as files |
 | Character dashboard | **Interactive play sheet** (Phase 5) + **management tabs** (Phase 6): skills, gear, augs, qualities, contacts, magic |
 
@@ -45,6 +45,11 @@ UI  →  View models / observation  →  Domain models (Character, …)
 |------|------|
 | `Edition` | `.sr4` / `.sr5` / `.sr6` peers |
 | `Character` | Full character aggregate (Codable, schemaVersion) |
+| `Run` | GM mission/job aggregate (status, objectives, payout, session log, soft-linked character IDs; optional `awardsAppliedAt` / note) |
+| `RunLibrary` / `RunRecord` | Parallel to character library (JSON payload + denormalized list fields) |
+| `RunAwardApplicator` | Pure preview + apply for equal-split nuyen/karma from a finished run onto available linked characters |
+| `Lifestyle` + `LifestyleTracker` | Per-character monthly burn, prepaid months, reserve, process 1–3 months, ledger |
+| `Advancement` + `AdvancementEngine` | Character Plan tab: session cart, skill/attribute karma raises, ledger; free Skills-tab edits remain for import/GM fiat; ledger also records `runAward` gains |
 | `AttributeRatings` / `AttributeID` | Physical, mental, special (incl. essence) |
 | `MetatypeID` + `MetatypeCatalog` | Core five metatypes + bounds |
 | `SkillRating` / `SkillGroupRating` | Active, knowledge, language |
@@ -55,7 +60,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | `GenerationProfile` | BP / priority / sum-to-ten / karmagen state |
 | `HouseRules` | Toggle set + parameters |
 | `DerivedStats` | Limits, monitors, initiative, pools |
-| `PortableCharacterDocument` | Export payload schema |
+| `PortableCharacterDocument` | Export payload schema — full `Character` embed; `.shadowdeck` is the fidelity-preserving transfer format |
 
 ### Edition strategy differences (high level)
 
@@ -145,6 +150,14 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 - Export `.shadowdeck` early so users can recover across breaking changes.
 - Chummer import maps into native models; `.chum5` is never the source of truth after import.
 
+## Style / concurrency
+
+| Tool | Detail |
+|------|--------|
+| **Swift language** | **Swift 6** (`SWIFT_VERSION = 6.0`) with complete strict concurrency on the app target. |
+| **SwiftLint** | Optional comprehensive config: `.swiftlint.yml` (defaults + recommended opt-ins). Run: `Scripts/lint.sh` (`brew install swiftlint`). |
+| **Concurrency notes** | `Docs/CONCURRENCY.md` — MainActor patterns, off-main import, intentional caches, PDFKit task rules. |
+
 ## Testing Strategy
 
 | Area | When |
@@ -159,13 +172,15 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 | Character effects (equip → attrs/nuyen/armor) | Phase 7 ✅ |
 | House rules catalog + multi-select enforcement | Phase 7 ✅ |
 | Packaging / menus / library polish | Phase 8 ✅ |
+| Apply Run Awards | v1 ✅ |
+| Rules Reference (cards + PDF library) | v1 ✅ |
 | Derived values / UI logic as pure functions | Ongoing |
 
 ## Phase 8 — Packaging & polish
 
 | Deliverable | Detail |
 |-------------|--------|
-| **Version** | Marketing version `0.8.0` |
+| **Version** | Marketing version `1.0.0` |
 | **UTType** | `com.shadowdeck.character` exported for `.shadowdeck` directory packages (`Info.plist` + `UTType.shadowdeckCharacter`) |
 | **Open package** | Finder double-click / `application(_:open:)` → import into library; File → Open Package…; library **Open Package…** |
 | **Menus** | File → New Character (⌘N), Import (⇧⌘O), Open Package (⌘O) |
@@ -191,10 +206,26 @@ Segmented tabs on the open character:
 | **Gear** | Inventory; equip toggles; quantity; add/remove |
 | **Augs** | Cyberware/bioware + essence costs |
 | **Qualities** | Positive/negative qualities + karma values |
-| **Contacts** | Loyalty / Connection |
+| **Contacts** | Loyalty / Connection; tags, favor standing, interaction log (enriched v1) |
 | **Magic** | Adept powers, spells, complex forms |
 
 Mutations persist immediately through `CharacterLibrary.save`.
+
+## Apply Run Awards (v1)
+
+Explicit GM action on a **Completed** or **Failed** run. Never automatic on status change.
+
+| Piece | Behavior |
+|-------|----------|
+| Source payout | `actualPayout ?? expectedPayout` (sheet labels which) |
+| Split | Equal floor among **available** library characters; remainder ¥/karma → first listed available |
+| Missing participants | Skipped with report; all-missing blocks apply |
+| Character credit | `nuyen +=`, `karmaAvailable +=`, `karmaTotal +=` (matches Summary manual karma award) |
+| Ledger | `AdvancementKind.runAward`; `karmaSpent` negative = gain; `nuyenDelta` + `relatedRunID` |
+| Double-apply | `Run.awardsAppliedAt` set after successful apply; second apply blocked |
+| UI | Outcome section **Apply Awards…** → confirmation sheet; post-apply collapses prior suggestions |
+
+Pure engine: `RunAwardApplicator.preview` / `.apply`. UI owns multi-entity save (characters, then run).
 
 ## Character effects engine (Phase 7)
 
@@ -258,12 +289,81 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-25 | Phase 4: multi-page generation wizard, live allocation, archetype showcase |
 | 2026-07-25 | Phase 5: at-a-glance character summary dashboard |
 | 2026-07-25 | Phase 6: detailed management tabs (skills, gear, augs, qualities, contacts, magic) |
+| 2026-07-31 | Enriched contacts v1: tags, manual favor standing, interaction log (historical favor snapshots), optional soft Run link; relationship status from loyalty + recency; still character-scoped |
+| 2026-07-31 | Dice roller v1: inspector panel on character sheet; SR4/5/6 hits & glitches; Push the Limit + Second Chance with session Edge; one-click from skills/attributes; ⌘D |
+| 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
+| 2026-08-01 | Apply Run Awards v1: explicit Apply Awards… on terminal runs; equal floor split among available participants; remainder to first; `awardsAppliedAt` double-apply guard; advancement `runAward` ledger; no auto-apply |
+| 2026-08-01 | Rules Reference v1: structured cards + calculators + local PDF library + page-chip bridge; dedicated `Window` scene (⌘R); no bundled rulebook PDFs |
 
+
+## Rules Reference (v1)
+
+Searchable mechanical aids and a **personal** PDF shelf. Three layers; copyright posture is intentional.
+
+### Layers
+
+| Layer | Role |
+|-------|------|
+| **A — Structured reference** | Bundled `RulesSeed.json` → `RuleEntry` cards (original short summaries, formulas, tags, edition filters). `RulesReferenceStore` loads/search. Detail pane + optional calculator. |
+| **B — PDF library** | User-owned PDFs only (`PDFLibraryStore` under Application Support). Shelf (gallery/list, sections, covers), continuous PDFKit reader, zoom (Fit Page / Fit Width / Actual Size / %), find-in-document, thumbnails, last page, front-matter `pageOffset`. |
+| **C — Page bridge** | `PageRef(bookKey, page, label)` on cards. Book settings bind `bookKey` + offset. Chip → printed page → PDF index → open reader at page. |
+
+### Presentation
+
+- Dedicated SwiftUI `Window("Rules Reference", id: "rules-reference")` — not a trailing inspector (Dice remains inspector-style).
+- Mode chrome: **Reference** | **Library**. Library is full-width shelf or single-book reader (not a split strip).
+- Cold launch: restored Rules window is suppressed so splash stays front (`AppLaunchWindowPolicy`).
+- Entry: menu **Rules Reference…**, ⌘R, play-sheet toolbar; **Look up** on Skills, Plan, Lifestyle, Magic, Contacts, Gear, Augs, Qualities, Dice, House Rules, and Run detail (`RulesReferenceOpener.request` + optional `RulesCalcContext`).
+- Page chips prefer open-character edition first, then SR4 → SR5 → SR6.
+- Related card IDs are tappable; calculators prefill from character when available.
+- Library shelf supports full-text search across owned PDFs (capped results).
+- Reference/library UI state (mode, query, selection, layout, zoom map) persists in `UserDefaults`.
+
+### Key types & files
+
+| Piece | Location |
+|-------|----------|
+| `RuleEntry`, `PageRef`, categories, calculator IDs | `Models/RulesReference.swift` |
+| Seed load + search | `Rules/RulesReferenceStore.swift`, `Resources/Rules/RulesSeed.json` |
+| Calculators | `Rules/Calculators/*` + `UI/Rules/RulesCalculatorViews.swift` |
+| PDF library model/store | `Models/PDFLibrary.swift`, `Persistence/PDFLibraryStore.swift` |
+| Session / window open | `UI/Rules/RulesReferenceSession.swift`, `RulesReferenceOpener` |
+| UI | `RulesReferenceView`, `RuleDetailCard`, `PDFViewerView`, `PDFLibraryShelfViews` |
+
+### Zoom (reader)
+
+Canvas = host view bounds (window points), **not** magnified clip bounds.  
+`scaleFactor` only — do not reset `NSScrollView.magnification` (PDFKit couples them).  
+Fit Page: one full page, aspect preserved, single-edge vertical pad (continuous top-align).  
+Fit Width: page width = canvas − side pad. Actual Size ≡ 100% ≡ scale `1.0`.  
+H-scroller only when **current** page is wider than canvas (documents may contain landscape spreads).
+
+### Search
+
+| Scope | v1 behavior |
+|-------|-------------|
+| Structured cards | In-memory filter on title, tags, summary, formula (`RulesReferenceStore.search`) |
+| Open PDF | Preview-style find in the continuous reader (`PDFSearchBridge` + `PDFDocument.findString`) |
+| Whole shelf | Full-text search across owned PDFs (`PDFLibrarySearchEngine` + ranked multi-token hits); concurrency capped |
+
+### Legal / non-goals
+
+- **No** Catalyst (or other) rulebook prose in seed data; **no** shipping or downloading PDFs.
+- **No** cloud sync of the PDF shelf (Shared Hub later if ever).
+- **No** OCR requirement; in-document search uses PDFKit on text-based PDFs.
+- Seed depth targets ~80–120 high-frequency mechanical cards (`RulesSeed.json`); expand JSON over time without UI rewrites.
+- Page chips always display **SR4 → SR5 → SR6 → other** (`PageRef.sortedForDisplay`), not library-add order or character edition.
+
+### Tests
+
+- `RulesReferenceTests` — seed load, search tokens, edition/category filters, zoom math.
+- `RulesCalculatorTests` — Drain / Overwatch / related pure math.
+- `PDFLibraryStoreTests` — add/remove, keys, covers, page offset, last page.
 
 ## Phase 9A — Brand kit
 
 - Custom macOS app icon (cyberpunk deck / card motif) in `AppIcon.appiconset`.
-- Launch splash (`Resources/Brand/launch_splash.jpg`) with role cast; shown once until dismissed (`hasSeenLaunchSplash`).
+- Launch splash (`Resources/Brand/launch_splash.jpg`) with role cast; **shown on every cold launch** at a fixed splash size, then the main deck restores its last saved frame (`LaunchWindowCoordinator` / `AppLaunchWindowPolicy`). Legacy `hasSeenLaunchSplash` is cleared on init so older installs no longer skip the splash.
 - Unofficial fan art; not Catalyst IP.
 
 ## Phase 9B — Campaign sheet export
