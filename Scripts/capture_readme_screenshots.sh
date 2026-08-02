@@ -106,7 +106,9 @@ for f in "$OUT"/0*.jpg; do
 done
 
 mkdir -p "$OUT/thumbs"
-for base in 02-library 03-generation-role 04-character-sheet 05-dice-roller; do
+# Character-loop thumbs (top marquee) + Rules stills (feature section).
+for base in 02-library 03-generation-role 04-character-sheet 05-dice-roller \
+            06-rules-reference 09-pdf-library; do
   if [[ -f "$OUT/${base}.jpg" ]]; then
     sips -Z 960 "$OUT/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
     sips -s format jpeg -s formatOptions 82 "$OUT/thumbs/${base}.jpg" --out "$OUT/thumbs/${base}.jpg" >/dev/null
