@@ -288,9 +288,7 @@ extension RunDetailView {
     var objectivesSection: some View {
         RunSectionCard(title: "Objectives") {
             VStack(alignment: .leading, spacing: 12) {
-                objectiveList(title: "Primary", primary: true)
-                objectiveList(title: "Secondary", primary: false)
-                Divider()
+                // Entry first (top-down flow), then existing lists.
                 HStack {
                     Picker("Kind", selection: $newObjectiveIsPrimary) {
                         Text("Primary").tag(true)
@@ -300,9 +298,17 @@ extension RunDetailView {
                     TextField("New objective…", text: $newObjectiveText)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { addObjective() }
-                    Button("Add") { addObjective() }
-                        .disabled(newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    AppChromeButton.title(
+                        "Add",
+                        help: "Add objective",
+                        isEnabled: !newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
+                        addObjective()
+                    }
                 }
+                Divider()
+                objectiveList(title: "Primary", primary: true)
+                objectiveList(title: "Secondary", primary: false)
             }
         }
     }
@@ -646,8 +652,12 @@ extension RunDetailView {
 
     var pendingAwardsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Suggested awards")
-                .font(.subheadline.weight(.semibold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Suggested awards")
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: 8)
+                applyAwardsButton
+            }
             Text("Suggestions only — does not change character karma, nuyen, or reputation until you apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -679,7 +689,7 @@ extension RunDetailView {
 
             teamReputationSnapshot
 
-            applyAwardsControls
+            applyAwardsHints
         }
     }
 
@@ -729,21 +739,25 @@ extension RunDetailView {
         return (character.streetCred, character.notoriety, character.publicAwareness)
     }
 
-    var applyAwardsControls: some View {
-        let eligible = canOfferApplyAwards
-        return VStack(alignment: .leading, spacing: 6) {
-            Button("Apply Awards…") {
-                presentApplyAwardsSheet()
-            }
-            .disabled(!eligible)
-            .help(applyAwardsHelp)
+    private var applyAwardsButton: some View {
+        AppChromeButton.title(
+            "Apply Awards…",
+            help: applyAwardsHelp,
+            style: .prominent,
+            isEnabled: canOfferApplyAwards
+        ) {
+            presentApplyAwardsSheet()
+        }
+    }
 
+    private var applyAwardsHints: some View {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Apply Awards also sets per-runner reputation deltas (Street Cred, Notoriety, Public Awareness) and an optional heat note.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if !eligible, let hint = applyAwardsDisabledHint {
+            if !canOfferApplyAwards, let hint = applyAwardsDisabledHint {
                 Text(hint)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
