@@ -145,11 +145,16 @@ public enum CharacterSheetPDF {
         if report.derived.physicalLimit != nil {
             drawSectionBar(ctx, page: page, y: &y, title: "LIMITS", theme: theme)
             y -= 4
-            drawKeyRow(ctx, y: &y, items: [
-                ("Physical", "\(report.derived.physicalLimit ?? 0)"),
-                ("Mental", "\(report.derived.mentalLimit ?? 0)"),
-                ("Social", "\(report.derived.socialLimit ?? 0)")
-            ], theme: theme)
+            drawKeyRow(
+                ctx,
+                y: &y,
+                items: [
+                    ("Physical", "\(report.derived.physicalLimit ?? 0)"),
+                    ("Mental", "\(report.derived.mentalLimit ?? 0)"),
+                    ("Social", "\(report.derived.socialLimit ?? 0)")
+                ],
+                theme: theme
+            )
             y -= 8
         }
 

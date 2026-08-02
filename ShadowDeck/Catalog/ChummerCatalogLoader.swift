@@ -102,62 +102,62 @@ public enum ChummerCatalogLoader {
 
         loadFile("weapons.xml") { root in
             parseNamedItems(root, element: "weapon", kind: .weapon) { el, base in
-                var e = base
-                e.damage = child(el, "damage")
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.damage = child(el, "damage")
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("armor.xml") { root in
             parseNamedItems(root, element: "armor", kind: .armor) { el, base in
-                var e = base
-                if let a = Int(child(el, "armor")) { e.armorRating = a }
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                if let a = Int(child(el, "armor")) { entry.armorRating = a }
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("gear.xml") { root in
             parseNamedItems(root, element: "gear", kind: .gear) { el, base in
-                var e = base
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("cyberware.xml") { root in
             parseNamedItems(root, element: "cyberware", kind: .cyberware) { el, base in
-                var e = base
+                var entry = base
                 let ess = child(el, "ess")
-                e.essenceText = ess.isEmpty ? nil : ess
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.essenceText = ess.isEmpty ? nil : ess
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("bioware.xml") { root in
             parseNamedItems(root, element: "bioware", kind: .bioware) { el, base in
-                var e = base
+                var entry = base
                 let ess = child(el, "ess")
-                e.essenceText = ess.isEmpty ? nil : ess
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.essenceText = ess.isEmpty ? nil : ess
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("qualities.xml") { root in
             parseNamedItems(root, element: "quality", kind: .quality) { el, base in
-                var e = base
-                e.karma = Int(child(el, "karma"))
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.karma = Int(child(el, "karma"))
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("powers.xml") { root in
             parseNamedItems(root, element: "power", kind: .adeptPower) { el, base in
-                var e = base
+                var entry = base
                 let pts = child(el, "points")
-                if !pts.isEmpty { e.notes = "PP \(pts)" }
+                if !pts.isEmpty { entry.notes = "PP \(pts)" }
                 let action = child(el, "action")
-                e.category = action.isEmpty ? "Adept Power" : action
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.category = action.isEmpty ? "Adept Power" : action
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("contacts.xml") { root in
@@ -447,11 +447,11 @@ enum BonusParser {
         }
 
         // Rating*N / Rating * N
-        if let m = t.range(
+        if let match = t.range(
             of: #"^Rating\s*\*\s*(-?\d+)$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let digits = String(t[m])
+            let digits = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .replacingOccurrences(of: "*", with: "")
                 .trimmingCharacters(in: .whitespaces)
@@ -459,11 +459,11 @@ enum BonusParser {
         }
 
         // Rating+N / Rating-N
-        if let m = t.range(
+        if let match = t.range(
             of: #"^Rating\s*([+-]\d+)$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let digits = String(t[m])
+            let digits = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .trimmingCharacters(in: .whitespaces)
             if let n = Int(digits) { return .rating(coefficient: 1, offset: n) }
