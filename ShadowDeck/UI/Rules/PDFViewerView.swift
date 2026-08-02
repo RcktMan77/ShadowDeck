@@ -331,8 +331,15 @@ private struct PDFThumbnailPane: NSViewRepresentable {
 
         func attach(session: SharedPDFDocumentSession) {
             guard attachedURL != session.url else { return }
+            // Suppress: assigning document always jumps to PDF page 1 and would
+            // publish back through the shared page binding.
+            suppress += 1
             driver?.document = session.document
             attachedURL = session.url
+            syncFromBinding()
+            afterViewUpdate { [weak self] in
+                self?.suppress = max(0, (self?.suppress ?? 1) - 1)
+            }
         }
 
         func syncFromBinding() {
@@ -354,8 +361,9 @@ private struct PDFThumbnailPane: NSViewRepresentable {
             else { return }
             let one = doc.index(for: cur) + 1
             guard page.wrappedValue != one else { return }
-            // Never write the SwiftUI binding from inside a PDFKit notification
-            // that may still be nested under updateNSView.
+            // Thumbnail strip is secondary: never push page 1 (document-load default)
+            // over an explicit chip/search jump still in the binding.
+            // Only propagate when the user actually picks a different thumb.
             afterViewUpdate { [weak self] in
                 guard let self, self.suppress == 0 else { return }
                 if self.page.wrappedValue != one {
@@ -592,11 +600,7 @@ private struct PDFCanvasView: NSViewRepresentable {
         let zoomChanged = c.lastZoom != zoomPreset
 
         if epochChanged {
-            c.lastEpoch = navigationEpoch
-            c.goTo(page: page, force: true)
-            c.applyZoom(reason: "epoch")
-            c.lastZoom = zoomPreset
-            c.lastPage = page
+            c.applyForcedNavigation(to: page, reason: "epoch")
             return
         }
 
@@ -630,6 +634,9 @@ private struct PDFCanvasView: NSViewRepresentable {
         var lastZoom: PDFZoomPreset?
         private var suppress = 0
         private var applyingZoom = false
+        /// While set, ignore PDFKit page notifications that would clobber an explicit jump
+        /// (document attach always reports page 1 first).
+        private var pendingForcedPage: Int?
 
         init(_ parent: PDFCanvasView) { self.parent = parent }
 
@@ -669,18 +676,39 @@ private struct PDFCanvasView: NSViewRepresentable {
         func attach(session: SharedPDFDocumentSession) {
             guard let pdfView else { return }
             pdfView.autoScales = false
-            pdfView.document = session.document
+            let target = max(1, parent.page)
+            pendingForcedPage = target
+            // Assigning `document` always lands PDFKit on page 1 and fires
+            // PDFViewPageChanged. Suppress that so we don't overwrite an explicit
+            // page-chip / search target (first open from Reference was stuck on p.1).
+            withSuppress {
+                pdfView.document = session.document
+            }
             loadedURL = session.url
             lastPage = -1
             lastZoom = nil
-            // Do not clear search here — open runs under makeNSView/updateNSView.
-            // Reader onAppear clears find results after the view update settles.
+            // Sync epoch now so a same-turn updateNSView doesn't treat this as a
+            // second navigation with a stale binding.
+            lastEpoch = parent.navigationEpoch
+            goTo(page: target, force: true)
+            // After layout/zoom settle, re-assert the target (zoom can nudge scroll).
             afterViewUpdate { [weak self] in
                 guard let self else { return }
-                self.goTo(page: self.parent.page, force: true)
+                let page = max(1, self.parent.page)
+                self.pendingForcedPage = page
+                self.goTo(page: page, force: true)
                 self.applyZoom(reason: "open")
+                self.goTo(page: page, force: true)
                 self.lastZoom = self.parent.zoomPreset
-                self.lastPage = self.parent.page
+                self.lastPage = page
+                self.lastEpoch = self.parent.navigationEpoch
+                // Clear after a second turn so late page-1 notifications can't stick.
+                afterViewUpdate { [weak self] in
+                    guard let self else { return }
+                    if self.pendingForcedPage == page {
+                        self.pendingForcedPage = nil
+                    }
+                }
             }
         }
 
@@ -699,15 +727,46 @@ private struct PDFCanvasView: NSViewRepresentable {
                   let cur = pdfView.currentPage
             else { return }
             let one = doc.index(for: cur) + 1
+            // Explicit chip/search jump in flight: re-assert target, never write p.1 back.
+            if let pending = pendingForcedPage {
+                if one == pending {
+                    lastPage = one
+                    pendingForcedPage = nil
+                    updateScrollerForCurrentPage()
+                    centerCurrentPageHorizontally()
+                } else {
+                    goTo(page: pending, force: true)
+                }
+                return
+            }
             lastPage = one
             updateScrollerForCurrentPage()
             centerCurrentPageHorizontally()
             guard parent.page != one else { return }
             let cb = parent.onPageChange
             afterViewUpdate { [weak self] in
-                guard let self, self.suppress == 0 else { return }
+                guard let self, self.suppress == 0, self.pendingForcedPage == nil else { return }
                 if self.parent.page != one { self.parent.page = one }
                 cb?(one)
+            }
+        }
+
+        /// Page chip / search / epoch jump: hold the target until PDFKit settles.
+        func applyForcedNavigation(to page: Int, reason: String) {
+            let target = max(1, page)
+            pendingForcedPage = target
+            lastEpoch = parent.navigationEpoch
+            goTo(page: target, force: true)
+            applyZoom(reason: reason)
+            goTo(page: target, force: true)
+            lastZoom = parent.zoomPreset
+            lastPage = target
+            afterViewUpdate { [weak self] in
+                guard let self else { return }
+                self.goTo(page: max(1, self.parent.page), force: true)
+                if self.pendingForcedPage == target {
+                    self.pendingForcedPage = nil
+                }
             }
         }
 

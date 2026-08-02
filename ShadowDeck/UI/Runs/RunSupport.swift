@@ -83,6 +83,8 @@ struct RunSectionCard<Content: View>: View {
 
 struct RunTagChips: View {
     let tags: [String]
+    /// When set, each chip shows a remove control (Run Detail editor).
+    var onRemove: ((String) -> Void)? = nil
 
     var body: some View {
         if tags.isEmpty {
@@ -90,12 +92,26 @@ struct RunTagChips: View {
         } else {
             FlowLayout(spacing: 6) {
                 ForEach(tags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.caption2.weight(.medium))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color.accentColor.opacity(0.12), in: Capsule())
-                        .foregroundStyle(.tint)
+                    HStack(spacing: 4) {
+                        Text(tag)
+                            .font(.caption2.weight(.medium))
+                        if let onRemove {
+                            Button {
+                                onRemove(tag)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.caption2)
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Remove “\(tag)”")
+                            .accessibilityLabel("Remove \(tag)")
+                        }
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                    .foregroundStyle(.tint)
                 }
             }
         }
