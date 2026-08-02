@@ -31,6 +31,7 @@ struct CharacterAtAGlanceView: View {
     /// Session-only stack of Summary-sheet manual karma awards (amounts). Pop to undo last `+`.
     @State private var manualKarmaAwardStack: [Int] = []
     @StateObject private var diceRoller = DiceRollerController()
+    @Environment(\.openWindow) private var openWindow
 
     private var rules: any EditionRules {
         RulesRegistry.rules(for: character?.edition ?? .sr5)
@@ -209,6 +210,16 @@ struct CharacterAtAGlanceView: View {
     private func openDiceRollerManual() {
         guard let c = character else { return }
         diceRoller.presentManual(character: c)
+    }
+
+    /// Opens the dedicated Rules Reference window (not a trailing inspector).
+    private func openRulesReference(query: String? = nil) {
+        RulesReferenceOpener.open(
+            query: query,
+            edition: character?.edition,
+            character: character,
+            openWindow: openWindow
+        )
     }
 
     /// Marquee still: Skills tab, roller open after a skill roll, Edge options visible.
@@ -429,6 +440,14 @@ struct CharacterAtAGlanceView: View {
             }
             .help("Open dice roller (⌘D)")
             .keyboardShortcut("d", modifiers: [.command])
+
+            Button {
+                openRulesReference()
+            } label: {
+                Label("Rules", systemImage: "book.pages.fill")
+            }
+            .help("Open Rules Reference window (⌘R)")
+            .keyboardShortcut("r", modifiers: [.command])
 
             Button("Export…", systemImage: "square.and.arrow.up") {
                 showExportOptions = true
@@ -1343,12 +1362,15 @@ struct CharacterAtAGlanceView: View {
                 conceptDraft = c.concept
                 backgroundDraft = resolvedBackground(for: c)
                 // Lift legacy background out of notes once, if dedicated field is empty.
+                // Defer save so we don't nest Observable/state publishes during onAppear.
                 if (c.background == nil || c.background?.isEmpty == true),
                    let legacy = Self.extractLegacyBackground(from: c.notes)
                 {
-                    updateCharacter({ char in
-                        char.background = legacy
-                    })
+                    Task { @MainActor in
+                        self.updateCharacter({ char in
+                            char.background = legacy
+                        })
+                    }
                 }
                 errorMessage = nil
             } else {
