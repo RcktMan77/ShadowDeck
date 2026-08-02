@@ -31,7 +31,7 @@ struct CatalogBrowserView: View {
                 Button("Cancel", action: onCancel)
             }
 
-            if catalog.result.isEmpty {
+            if catalog.isLoaded && catalog.result.isEmpty {
                 Text("Catalog not loaded. Check Settings → Catalog, or add a custom item.")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -92,9 +92,7 @@ struct CatalogBrowserView: View {
         .padding(20)
         .frame(minWidth: 520, minHeight: 480)
         .onAppear {
-            if catalog.result.isEmpty {
-                catalog.reload()
-            }
+            catalog.ensureLoaded()
         }
     }
 }

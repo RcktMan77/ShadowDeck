@@ -28,6 +28,10 @@ struct CharacterAtAGlanceView: View {
     @State private var confirmDeletePresented = false
     @State private var showHouseRulesBrowser = false
     @State private var showExportOptions = false
+    /// Session-only stack of Summary-sheet manual karma awards (amounts). Pop to undo last `+`.
+    @State private var manualKarmaAwardStack: [Int] = []
+    @StateObject private var diceRoller = DiceRollerController()
+    @Environment(\.openWindow) private var openWindow
 
     private var rules: any EditionRules {
         RulesRegistry.rules(for: character?.edition ?? .sr5)
@@ -52,7 +56,22 @@ struct CharacterAtAGlanceView: View {
         .onAppear { reload() }
         .onChange(of: characterID) { _, _ in
             sheetTab = .summary
+            diceRoller.dismiss()
+            manualKarmaAwardStack = []
             reload()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.characterSheetShowAdvanceTab)) { _ in
+            sheetTab = .advance
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingReloadCharacter)) { _ in
+            reload()
+            sheetTab = .advance
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openDiceRoller)) { _ in
+            openDiceRollerManual()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingShowDiceRoller)) { _ in
+            prepareMarketingDiceRoller()
         }
         .fileImporter(
             isPresented: $isPortraitImporterPresented,
@@ -72,7 +91,8 @@ struct CharacterAtAGlanceView: View {
     // MARK: - Workspace (tabs)
 
     private var workspace: some View {
-        VStack(spacing: 0) {
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
             if let c = character {
                 toolbar(c)
                     .padding(.horizontal, 24)
@@ -122,40 +142,131 @@ struct CharacterAtAGlanceView: View {
                     case .summary:
                         dashboard(c)
                     case .skills:
-                        SkillsManagementView(character: binding(to: c), onPersist: persistCharacter)
+                        SkillsManagementView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter
+                        ) { skill in openDiceRoller(skill: skill) }
                     case .gear:
                         GearManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
                     case .augmentations:
                         AugmentationsManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
                     case .qualities:
                         QualitiesManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
                     case .contacts:
                         ContactsManagementView(character: binding(to: c), onPersist: persistCharacter)
+                    case .lifestyle:
+                        LifestyleManagementView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
+                    case .advance:
+                        AdvancementPlannerView(
+                            character: binding(to: c),
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
                     case .magic:
                         MagicManagementView(
                             character: binding(to: c),
-                            onPersist: persistCharacter,
-                            onStatus: { statusMessage = $0 }
-                        )
+                            onPersist: persistCharacter
+                        ) { statusMessage = $0 }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .id(sheetTab) // tear down management views cleanly when switching tabs
             }
+            } // end main column VStack
+
+            if diceRoller.isPresented {
+                Divider()
+                DiceRollerPanel(controller: diceRoller) {
+                    diceRoller.dismiss()
+                }
+                .frame(width: 320)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: diceRoller.isPresented)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    // MARK: - Dice roller
+
+    private func openDiceRollerManual() {
+        guard let c = character else { return }
+        diceRoller.presentManual(character: c)
+    }
+
+    /// Opens the dedicated Rules Reference window (not a trailing inspector).
+    private func openRulesReference(query: String? = nil) {
+        RulesReferenceOpener.open(
+            query: query,
+            edition: character?.edition,
+            character: character,
+            openWindow: openWindow
+        )
+    }
+
+    /// Marquee still: Skills tab, roller open after a skill roll, Edge options visible.
+    private func prepareMarketingDiceRoller() {
+        guard let c = character else { return }
+        sheetTab = .skills
+        let skill = c.skills
+            .filter { $0.category == .active && $0.rating > 0 }
+            .max { $0.rating < $1.rating }
+            ?? c.skills.first
+        if let skill {
+            openDiceRoller(skill: skill)
+        } else {
+            openDiceRollerManual()
+        }
+        // Let the inspector open, then roll so result + Second Chance chrome appear.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            diceRoller.roll()
+            // Leave Edge remaining so Push / Second Chance options read as available.
+            if diceRoller.edgeRemaining == 0, diceRoller.edgeRating > 0 {
+                diceRoller.refreshEdge()
+            }
+        }
+    }
+
+    private func openDiceRoller(skill: SkillRating) {
+        guard let c = character else { return }
+        let resolved = DicePoolResolver.skillPool(character: c, skill: skill)
+        diceRoller.present(
+            request: DiceRollRequest(
+                pool: resolved.pool,
+                edition: c.edition,
+                sourceLabel: resolved.label,
+                edgeRating: DicePoolResolver.edgeRating(character: c)
+            ),
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
+        )
+    }
+
+    private func openDiceRoller(attribute: AttributeID) {
+        guard let c = character else { return }
+        let resolved = DicePoolResolver.attributePool(character: c, attribute: attribute)
+        diceRoller.present(
+            request: DiceRollRequest(
+                pool: resolved.pool,
+                edition: c.edition,
+                sourceLabel: resolved.label,
+                edgeRating: DicePoolResolver.edgeRating(character: c)
+            ),
+            characterID: c.id,
+            diceRules: c.houseRules.resolvedDice
+        )
     }
 
     /// Safe binding — never force-unwraps optional `character`.
@@ -237,37 +348,121 @@ struct CharacterAtAGlanceView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Identity header: name + chips, then concept/background above the sheet body
                 VStack(alignment: .leading, spacing: 12) {
-                    identityColumn(c)
-                    storySection(c)
+                    CharacterGlanceIdentityHeader(
+                        character: c,
+                        houseRulesLabel: c.houseRules.enabled.isEmpty
+                            ? "Core book rules"
+                            : "\(c.houseRules.enabled.count) house rules"
+                    ) { showHouseRulesBrowser = true }
+                    .sheet(isPresented: $showHouseRulesBrowser) {
+                        HouseRulesBrowserView(
+                            houseRules: Binding(
+                                get: { character?.houseRules ?? .coreBook },
+                                set: { newRules in
+                                    updateCharacter({ $0.houseRules = newRules }, status: "House rules updated.")
+                                }
+                            ),
+                            editionBaselineKarma: rules.standardPriorityKarma,
+                            onApply: {
+                                showHouseRulesBrowser = false
+                                statusMessage = "House rules updated — validation & essence use the new set."
+                            },
+                            onCancel: { showHouseRulesBrowser = false }
+                        )
+                    }
+                    CharacterGlanceStorySection(
+                        character: c,
+                        isEditing: $isEditingStory,
+                        conceptDraft: $conceptDraft,
+                        backgroundDraft: $backgroundDraft,
+                        onBeginEdit: {
+                            conceptDraft = c.concept
+                            backgroundDraft = resolvedBackground(for: c)
+                            isEditingStory = true
+                        },
+                        onCancel: { isEditingStory = false },
+                        onSave: { commitStory() }
+                    )
                 }
 
-                // Hero: portrait | attributes
+                // Hero: portrait | attributes — bottoms aligned (caption baseline ≈ card edge).
+                // Portrait is intentionally large; attributes stay compact so they share a baseline.
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 20) {
-                        portraitColumn(c)
-                            .frame(width: 240)
-                        attributesColumn(c)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(alignment: .bottom, spacing: 18) {
+                        CharacterGlancePortraitColumn(character: c) {
+                            isPortraitImporterPresented = true
+                        }
+                        CharacterGlanceAttributesColumn(
+                            character: c,
+                            essenceDisplay: essenceString(c),
+                            onAdjust: { adjustAttribute($0, by: $1) },
+                            onRoll: { openDiceRoller(attribute: $0) }
+                        )
+                        .frame(
+                            maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                            alignment: .leading
+                        )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .leading, spacing: 16) {
-                        portraitColumn(c)
-                            .frame(maxWidth: 280)
-                        attributesColumn(c)
+                        CharacterGlancePortraitColumn(character: c) {
+                            isPortraitImporterPresented = true
+                        }
+                        CharacterGlanceAttributesColumn(
+                            character: c,
+                            essenceDisplay: essenceString(c),
+                            onAdjust: { adjustAttribute($0, by: $1) },
+                            onRoll: { openDiceRoller(attribute: $0) }
+                        )
+                        .frame(
+                            maxWidth: CharacterGlancePortraitMetrics.attributesMaxWidth,
+                            alignment: .leading
+                        )
                     }
                 }
 
                 // Resource vitals (Karma, Nuyen, …)
-                vitalsGrid(c)
+                CharacterGlanceVitalsGrid(
+                    character: c,
+                    derived: derived,
+                    canUndoKarma: !manualKarmaAwardStack.isEmpty,
+                    onAwardKarma: { advanceKarma(by: 1) },
+                    onAwardKarmaFive: { advanceKarma(by: 5) },
+                    onUndoKarma: { undoLastManualKarmaAward() }
+                )
+
+                CharacterGlanceLifestyleBanner(character: c)
 
                 // Combat readiness
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) {
-                        conditionCard(c).frame(maxWidth: .infinity)
+                        CharacterGlanceConditionCard(
+                            physicalDamage: derived.condition.physicalFilled,
+                            physicalBoxes: derived.condition.physicalBoxes,
+                            stunDamage: derived.condition.stunFilled,
+                            stunBoxes: derived.condition.stunBoxes,
+                            overflowBoxes: derived.condition.overflowBoxes,
+                            onPhysicalSelect: { setPhysicalDamage($0 + 1) },
+                            onPhysicalClear: { setPhysicalDamage(0) },
+                            onStunSelect: { setStunDamage($0 + 1) },
+                            onStunClear: { setStunDamage(0) }
+                        )
+                        .frame(maxWidth: .infinity)
                         initiativeCard(c).frame(maxWidth: .infinity)
                         limitsCard(c).frame(maxWidth: .infinity)
                     }
                     VStack(spacing: 12) {
-                        conditionCard(c)
+                        CharacterGlanceConditionCard(
+                            physicalDamage: derived.condition.physicalFilled,
+                            physicalBoxes: derived.condition.physicalBoxes,
+                            stunDamage: derived.condition.stunFilled,
+                            stunBoxes: derived.condition.stunBoxes,
+                            overflowBoxes: derived.condition.overflowBoxes,
+                            onPhysicalSelect: { setPhysicalDamage($0 + 1) },
+                            onPhysicalClear: { setPhysicalDamage(0) },
+                            onStunSelect: { setStunDamage($0 + 1) },
+                            onStunClear: { setStunDamage(0) }
+                        )
                         initiativeCard(c)
                         limitsCard(c)
                     }
@@ -305,6 +500,31 @@ struct CharacterAtAGlanceView: View {
 
             Spacer()
 
+            Button {
+                if diceRoller.isPresented {
+                    diceRoller.dismiss()
+                } else {
+                    openDiceRollerManual()
+                }
+            } label: {
+                Label(
+                    diceRoller.isPresented ? "Hide Dice" : "Dice",
+                    systemImage: "dice.fill"
+                )
+            }
+            .help("Open dice roller (⌘D)")
+            .keyboardShortcut("d", modifiers: [.command])
+            .accessibilityLabel(diceRoller.isPresented ? "Hide dice roller" : "Open dice roller")
+
+            Button {
+                openRulesReference()
+            } label: {
+                Label("Rules", systemImage: "book.pages.fill")
+            }
+            .help("Open Rules Reference window (⌘R)")
+            .accessibilityLabel("Open Rules Reference")
+            .keyboardShortcut("r", modifiers: [.command])
+
             Button("Export…", systemImage: "square.and.arrow.up") {
                 showExportOptions = true
             }
@@ -340,443 +560,12 @@ struct CharacterAtAGlanceView: View {
         }
     }
 
-    // MARK: - Portrait
-
-    private func portraitColumn(_ c: Character) -> some View {
-        VStack(spacing: 10) {
-            portraitView(c)
-                .frame(maxWidth: .infinity)
-                .frame(height: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .onTapGesture { isPortraitImporterPresented = true }
-                .help("Click to change portrait")
-
-            Button {
-                isPortraitImporterPresented = true
-            } label: {
-                Label(
-                    c.avatar.hasImage ? "Change Portrait…" : "Add Portrait…",
-                    systemImage: "photo"
-                )
-            }
-            .controlSize(.small)
-
-            Text(c.avatar.hasImage
-                 ? (c.avatar.isAnimated ? "Animated portrait" : "Custom portrait")
-                 : "No custom portrait — showing placeholder")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    @ViewBuilder
-    private func portraitView(_ c: Character) -> some View {
-        if let data = c.avatar.inlineData, let nsImage = NSImage(data: data) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-        } else if let meta = ChargenArtLoader.nsImage(named: ChargenArtLoader.metatypeImageName(c.metatype)) {
-            Image(nsImage: meta)
-                .resizable()
-                .scaledToFill()
-        } else {
-            ZStack {
-                LinearGradient(
-                    colors: [.secondary.opacity(0.2), .secondary.opacity(0.05)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Image(systemName: "person.crop.rectangle")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // MARK: - Attributes (editable base; display effective)
-
-    private func attributesColumn(_ c: Character) -> some View {
-        let effects = c.effects
-        return sectionCard("Attributes") {
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 8
-            ) {
-                ForEach(AttributeID.standardGenerationAttributes, id: \.self) { id in
-                    editableAttributeTile(
-                        id,
-                        base: c.attributes[id],
-                        bonus: effects.attributeBonus(for: id)
-                    )
-                }
-                editableAttributeTile(
-                    .edge,
-                    base: c.attributes.edge,
-                    bonus: effects.attributeBonus(for: .edge)
-                )
-                if c.awakened.usesMagic {
-                    editableAttributeTile(
-                        .magic,
-                        base: c.attributes.magic,
-                        bonus: effects.attributeBonus(for: .magic)
-                    )
-                }
-                if c.awakened.usesResonance {
-                    editableAttributeTile(
-                        .resonance,
-                        base: c.attributes.resonance,
-                        bonus: effects.attributeBonus(for: .resonance)
-                    )
-                }
-                attributeTile("Essence", value: essenceString(c), editable: false)
-            }
-            Text("± edits base rating. Bonuses from equipped gear, augs, qualities, and powers show as +N.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            if !effects.applied.isEmpty {
-                DisclosureGroup("Active modifiers (\(effects.applied.count))") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(effects.applied) { mod in
-                            Text(mod.summary)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .font(.caption)
-            }
-        }
-    }
-
-    private func editableAttributeTile(_ id: AttributeID, base: Int, bonus: Int) -> some View {
-        let effective = base + bonus
-        return VStack(spacing: 4) {
-            Text(id.displayName)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                Button {
-                    adjustAttribute(id, by: -1)
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-
-                VStack(spacing: 0) {
-                    Text("\(effective)")
-                        .font(.title3.monospacedDigit().weight(.semibold))
-                        .frame(minWidth: 28)
-                    if bonus != 0 {
-                        Text(bonus > 0 ? "\(base)+\(bonus)" : "\(base)\(bonus)")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.tint)
-                    }
-                }
-
-                Button {
-                    adjustAttribute(id, by: 1)
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(
-            (bonus != 0 ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08)),
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-        )
-        .help(bonus != 0 ? "Base \(base), modifiers \(bonus >= 0 ? "+" : "")\(bonus)" : "Base \(base)")
-    }
-
-    // MARK: - Identity
-
-    private func identityColumn(_ c: Character) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(c.displayTitle)
-                .font(.largeTitle.weight(.bold))
-                .textSelection(.enabled)
-
-            HStack(alignment: .center, spacing: 12) {
-                FlowChips(items: [
-                    c.edition.shortName,
-                    c.metatype.displayName,
-                    c.awakened == .mundane ? "Mundane" : c.awakened.displayName,
-                    c.generation.system.displayName,
-                ])
-
-                Spacer(minLength: 8)
-
-                HStack(spacing: 8) {
-                    if c.houseRules.enabled.isEmpty {
-                        Text("Core book rules")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("\(c.houseRules.enabled.count) house rules")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.tint)
-                    }
-                    Button("House Rules…") {
-                        showHouseRulesBrowser = true
-                    }
-                    .controlSize(.small)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $showHouseRulesBrowser) {
-            HouseRulesBrowserView(
-                houseRules: Binding(
-                    get: { character?.houseRules ?? .coreBook },
-                    set: { newRules in
-                        updateCharacter({ $0.houseRules = newRules }, status: "House rules updated.")
-                    }
-                ),
-                editionBaselineKarma: rules.standardPriorityKarma,
-                onApply: {
-                    showHouseRulesBrowser = false
-                    statusMessage = "House rules updated — validation & essence use the new set."
-                },
-                onCancel: { showHouseRulesBrowser = false }
-            )
-        }
-    }
-
-    /// Resource / derived vitals — after portrait / attributes.
-    private func vitalsGrid(_ c: Character) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
-                vital("Edge", "\(c.attributes.edge)", "bolt.fill")
-                // Available = unspent; Total = career earned (including already spent).
-                // + awards (total & available up); − spends available only.
-                karmaAwardVital(
-                    title: "Karma Available",
-                    value: c.karmaAvailable,
-                    systemImage: "sparkles",
-                    onAward: { advanceKarma(by: 1) },
-                    onAwardFive: { advanceKarma(by: 5) }
-                )
-                vital("Karma Total", "\(c.karmaTotal)", "chart.line.uptrend.xyaxis")
-                vital("Nuyen", "¥\(formatInt(c.nuyen))", "yensign.circle.fill")
-                vital("Essence", essenceString(c), "heart.fill")
-                vital("Armor", "\(derived.armor)", "shield.lefthalf.filled")
-                vital("Initiative", initiativeString(c), "gauge.with.dots.needle.67percent")
-                if let phys = derived.physicalLimit {
-                    vital("Phys. Limit", "\(phys)", "shield")
-                }
-                vital("Contacts", "\(c.contacts.count)", "person.2")
-                vital("Augmentations", "\(c.augmentations.count)", "cpu")
-                if !c.adeptPowers.isEmpty {
-                    vital("Adept Powers", "\(c.adeptPowers.count)", "bolt.heart")
-                }
-                if !c.spells.isEmpty {
-                    vital("Spells", "\(c.spells.count)", "wand.and.stars")
-                }
-            }
-            Text("Karma + awards 1 (available & total). Right‑click + to Award 5. Spend karma by raising skills, magic, etc.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    // MARK: - Story / Background
-
-    private func storySection(_ c: Character) -> some View {
-        sectionCard("Concept & Background") {
-            if isEditingStory {
-                storyEditor
-            } else {
-                storyModeDisplay(c)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        conceptDraft = c.concept
-                        backgroundDraft = resolvedBackground(for: c)
-                        isEditingStory = true
-                    }
-                    .help("Click to edit concept and background")
-            }
-        }
-    }
-
-    private var storyEditor: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Concept")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextField("Short tagline (e.g. Ex-Renraku coder adept)", text: $conceptDraft)
-                .textFieldStyle(.roundedBorder)
-
-            Text("Background")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextEditor(text: $backgroundDraft)
-                .font(.body)
-                .frame(minHeight: 120, maxHeight: 180)
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-                }
-
-            HStack {
-                Spacer()
-                Button("Cancel") {
-                    isEditingStory = false
-                }
-                .keyboardShortcut(.cancelAction)
-                Button("Save Story") {
-                    commitStory()
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-    }
-
-    private func storyModeDisplay(_ c: Character) -> some View {
-        let concept = c.concept.trimmingCharacters(in: .whitespacesAndNewlines)
-        let background = resolvedBackground(for: c)
-
-        return VStack(alignment: .leading, spacing: 10) {
-            if concept.isEmpty && background.isEmpty {
-                HStack(spacing: 10) {
-                    Image(systemName: "book.closed")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("No concept or background yet")
-                            .font(.callout.weight(.medium))
-                        Text("Click to add a tagline and story blurb for this runner.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
-            } else {
-                if !concept.isEmpty {
-                    Text(concept)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
-
-                if !background.isEmpty {
-                    Text(background)
-                        .font(.body)
-                        .foregroundStyle(.primary.opacity(0.9))
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
-
-                Text("Click to edit")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Prefer dedicated background; fall back to legacy “Background\\n…” block in notes.
+    /// Prefer dedicated background; fall back to legacy “Background\n…” block in notes.
     private func resolvedBackground(for c: Character) -> String {
         if let bg = c.background?.trimmingCharacters(in: .whitespacesAndNewlines), !bg.isEmpty {
             return bg
         }
-        return Self.extractLegacyBackground(from: c.notes) ?? ""
-    }
-
-    private static func extractLegacyBackground(from notes: String) -> String? {
-        // Older imports stuffed “Background\\n…” into notes.
-        let plain = ChummerParsingHelpers.cleanRichText(notes)
-        guard let range = plain.range(of: "Background", options: [.caseInsensitive, .anchored])
-                ?? plain.range(of: "\nBackground\n", options: .caseInsensitive)
-                ?? plain.range(of: "Background\n", options: .caseInsensitive)
-        else {
-            return nil
-        }
-        var rest = String(plain[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        if rest.hasPrefix("\n") { rest = String(rest.dropFirst()) }
-        // Stop at next major section if present.
-        let cutMarkers = ["\nImported from Chummer", "\nPlayer:", "\nSRM ", "\nMale,", "\nFemale,"]
-        var end = rest.endIndex
-        for marker in cutMarkers {
-            if let r = rest.range(of: marker) {
-                end = min(end, r.lowerBound)
-            }
-        }
-        let extracted = String(rest[..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
-        return extracted.isEmpty ? nil : extracted
-    }
-
-    private func vital(_ title: String, _ value: String, _ systemImage: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.headline.monospacedDigit())
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    /// Session karma awards only — spending happens when buying skills/augs/etc.
-    private func karmaAwardVital(
-        title: String,
-        value: Int,
-        systemImage: String,
-        onAward: @escaping () -> Void,
-        onAwardFive: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    Text("\(value)")
-                        .font(.headline.monospacedDigit())
-                        .frame(minWidth: 24)
-
-                    Button(action: onAward) {
-                        Image(systemName: "plus.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help("Award 1 Karma (available + total). Right-click for Award 5.")
-                    .contextMenu {
-                        Button("Award 1 Karma") { onAward() }
-                        Button("Award 5 Karma") { onAwardFive() }
-                    }
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        return CharacterGlanceStorySection.extractLegacyBackground(from: c.notes) ?? ""
     }
 
     // MARK: - Notes (end of sheet)
@@ -800,99 +589,6 @@ struct CharacterAtAGlanceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 180)
-            }
-        }
-    }
-
-    // MARK: - Condition monitors (clickable)
-
-    private func conditionCard(_ c: Character) -> some View {
-        sectionCard("Condition Monitors") {
-            VStack(alignment: .leading, spacing: 12) {
-                monitorRow(
-                    title: "Physical",
-                    damage: derived.condition.physicalFilled,
-                    boxes: derived.condition.physicalBoxes,
-                    color: .green
-                ) { boxIndex in
-                    setPhysicalDamage(boxIndex + 1)
-                } onClear: {
-                    setPhysicalDamage(0)
-                }
-
-                monitorRow(
-                    title: "Stun",
-                    damage: derived.condition.stunFilled,
-                    boxes: derived.condition.stunBoxes,
-                    color: .green
-                ) { boxIndex in
-                    setStunDamage(boxIndex + 1)
-                } onClear: {
-                    setStunDamage(0)
-                }
-
-                Text("Click a box to fill through that mark (damage). Click Clear for healthy. Overflow capacity: \(derived.condition.overflowBoxes).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func monitorRow(
-        title: String,
-        damage: Int,
-        boxes: Int,
-        color: Color,
-        onSelect: @escaping (Int) -> Void,
-        onClear: @escaping () -> Void
-    ) -> some View {
-        let remaining = max(0, boxes - damage)
-        let status: String = {
-            if boxes <= 0 { return "—" }
-            if damage <= 0 { return "Healthy" }
-            if remaining <= 0 { return "Filled" }
-            return "\(remaining) open"
-        }()
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("\(damage) damage / \(boxes) boxes · \(status)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(damage > 0 ? color : .secondary)
-                Button("Clear") { onClear() }
-                    .controlSize(.mini)
-                    .buttonStyle(.borderless)
-            }
-            let columns = Array(repeating: GridItem(.fixed(16), spacing: 3), count: min(max(boxes, 1), 18))
-            LazyVGrid(columns: columns, spacing: 3) {
-                ForEach(0..<max(boxes, 0), id: \.self) { i in
-                    let filled = i < damage
-                    Button {
-                        // Click box i → fill through that box (damage = i + 1).
-                        // Re-click the last filled box to step damage down by one.
-                        if damage == i + 1 {
-                            if i == 0 {
-                                onClear()
-                            } else {
-                                onSelect(i - 1)
-                            }
-                        } else {
-                            onSelect(i)
-                        }
-                    } label: {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(filled ? color.opacity(0.9) : Color.secondary.opacity(0.15))
-                            .frame(width: 16, height: 20)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Set damage through box \(i + 1)")
-                }
             }
         }
     }
@@ -1068,15 +764,17 @@ struct CharacterAtAGlanceView: View {
     }
 
     private func attributeTile(_ title: String, value: String, editable: Bool = false) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             Text(title)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
-                .font(.title3.monospacedDigit().weight(.semibold))
+                .font(.body.monospacedDigit().weight(.semibold))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
@@ -1090,12 +788,14 @@ struct CharacterAtAGlanceView: View {
                 conceptDraft = c.concept
                 backgroundDraft = resolvedBackground(for: c)
                 // Lift legacy background out of notes once, if dedicated field is empty.
-                if (c.background == nil || c.background?.isEmpty == true),
-                   let legacy = Self.extractLegacyBackground(from: c.notes)
-                {
-                    updateCharacter({ char in
-                        char.background = legacy
-                    })
+                // Defer save so we don't nest Observable/state publishes during onAppear.
+                if c.background == nil || c.background?.isEmpty == true,
+                   let legacy = CharacterGlanceStorySection.extractLegacyBackground(from: c.notes) {
+                    Task { @MainActor in
+                        self.updateCharacter { char in
+                            char.background = legacy
+                        }
+                    }
                 }
                 errorMessage = nil
             } else {
@@ -1203,7 +903,8 @@ struct CharacterAtAGlanceView: View {
             let ext = url.pathExtension.lowercased()
             c.avatar.inlineData = data
             c.avatar.mimeType = AvatarStoragePolicy.mimeType(forFileExtension: ext)
-            c.avatar.isAnimated = ext == "gif"
+            // Prefer real multi-frame detection over extension alone (covers APNG / mislabeled files).
+            c.avatar.isAnimated = GIFDecoder.isAnimatedImageData(data) || ext == "gif"
             c.touch()
             try libraryEnvironment.library.save(c, avatarData: data)
             character = try libraryEnvironment.library.fetch(id: characterID)
@@ -1286,6 +987,21 @@ struct CharacterAtAGlanceView: View {
             c.karmaTotal += amount
             c.karmaAvailable += amount
         }, status: "Awarded \(amount) Karma.")
+        manualKarmaAwardStack.append(amount)
+    }
+
+    /// Reverts the most recent Summary-sheet manual award (both available and total).
+    /// Session-only — not a full karma history; Plan spends are not on this stack.
+    private func undoLastManualKarmaAward() {
+        guard let amount = manualKarmaAwardStack.popLast(), amount > 0 else { return }
+        updateCharacter({ c in
+            c.karmaTotal = max(0, c.karmaTotal - amount)
+            c.karmaAvailable = max(0, c.karmaAvailable - amount)
+            // Keep available from drifting above total if other edits intervened.
+            if c.karmaAvailable > c.karmaTotal {
+                c.karmaAvailable = c.karmaTotal
+            }
+        }, status: "Undid last karma award (−\(amount)).")
     }
 
     private func deleteCharacter() {
@@ -1326,7 +1042,7 @@ struct CharacterAtAGlanceView: View {
 
 // MARK: - Chips
 
-private struct FlowChips: View {
+struct FlowChips: View {
     let items: [String]
 
     var body: some View {

@@ -17,7 +17,7 @@ public struct CampaignSheetReport: Sendable {
 
     public var isCampaignReady: Bool { validation.isValid }
 
-    public static func build(for character: Character) -> CampaignSheetReport {
+    public static func build(for character: Character) -> Self {
         let rules = RulesRegistry.rules(for: character.edition)
         let effects = CharacterEffectsEngine.resolve(character)
         let derived = rules.deriveStats(for: character)
@@ -31,7 +31,7 @@ public struct CampaignSheetReport: Sendable {
                 .map(\.displayName)
                 .joined(separator: ", ")
         }
-        return CampaignSheetReport(
+        return Self(
             character: character,
             effects: effects,
             derived: derived,

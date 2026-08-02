@@ -48,7 +48,7 @@ struct ArchetypeBackdrop: View {
                     let x = size.width * CGFloat(fract(sin(seed) * 43758.5453))
                     let speed = 20.0 + Double(i % 7) * 8.0
                     let y = size.height * CGFloat(fract((t * speed * 0.01) + seed))
-                    let r: CGFloat = i % 3 == 0 ? 2.5 : 1.2
+                    let r: CGFloat = i.isMultiple(of: 3) ? 2.5 : 1.2
                     let dot = Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r * 3))
                     context.fill(dot, with: .color(colors[2].opacity(0.55)))
                 }

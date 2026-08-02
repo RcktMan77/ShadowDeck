@@ -22,8 +22,7 @@ public enum ChummerCatalogLoader {
     /// explicitly enables an external Chummer data folder override.
     public static func load() -> CatalogLoadResult {
         if CatalogSettings.preferExternalCatalog,
-           let dir = resolvedExternalDataDirectory()
-        {
+           let dir = resolvedExternalDataDirectory() {
             let external = loadFromChummerXML(directory: dir)
             if !external.entries.isEmpty {
                 return external
@@ -42,7 +41,7 @@ public enum ChummerCatalogLoader {
             URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent() // Catalog/
                 .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Catalog/sr5_catalog.json"),
+                .appendingPathComponent("Resources/Catalog/sr5_catalog.json")
         ]
 
         guard let url = candidates.compactMap({ $0 }).first(where: {
@@ -103,62 +102,62 @@ public enum ChummerCatalogLoader {
 
         loadFile("weapons.xml") { root in
             parseNamedItems(root, element: "weapon", kind: .weapon) { el, base in
-                var e = base
-                e.damage = child(el, "damage")
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.damage = child(el, "damage")
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("armor.xml") { root in
             parseNamedItems(root, element: "armor", kind: .armor) { el, base in
-                var e = base
-                if let a = Int(child(el, "armor")) { e.armorRating = a }
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                if let a = Int(child(el, "armor")) { entry.armorRating = a }
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("gear.xml") { root in
             parseNamedItems(root, element: "gear", kind: .gear) { el, base in
-                var e = base
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("cyberware.xml") { root in
             parseNamedItems(root, element: "cyberware", kind: .cyberware) { el, base in
-                var e = base
+                var entry = base
                 let ess = child(el, "ess")
-                e.essenceText = ess.isEmpty ? nil : ess
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.essenceText = ess.isEmpty ? nil : ess
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("bioware.xml") { root in
             parseNamedItems(root, element: "bioware", kind: .bioware) { el, base in
-                var e = base
+                var entry = base
                 let ess = child(el, "ess")
-                e.essenceText = ess.isEmpty ? nil : ess
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.essenceText = ess.isEmpty ? nil : ess
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("qualities.xml") { root in
             parseNamedItems(root, element: "quality", kind: .quality) { el, base in
-                var e = base
-                e.karma = Int(child(el, "karma"))
-                e.modifiers = BonusParser.parse(el)
-                return e
+                var entry = base
+                entry.karma = Int(child(el, "karma"))
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("powers.xml") { root in
             parseNamedItems(root, element: "power", kind: .adeptPower) { el, base in
-                var e = base
+                var entry = base
                 let pts = child(el, "points")
-                if !pts.isEmpty { e.notes = "PP \(pts)" }
+                if !pts.isEmpty { entry.notes = "PP \(pts)" }
                 let action = child(el, "action")
-                e.category = action.isEmpty ? "Adept Power" : action
-                e.modifiers = BonusParser.parse(el)
-                return e
+                entry.category = action.isEmpty ? "Adept Power" : action
+                entry.modifiers = BonusParser.parse(el)
+                return entry
             }
         }
         loadFile("contacts.xml") { root in
@@ -236,8 +235,7 @@ public enum ChummerCatalogLoader {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return nil }
         if t.contains("*") || t.contains("+") || t.contains("-") || t.contains("/")
-            || t.rangeOfCharacter(from: .letters) != nil
-        {
+            || t.rangeOfCharacter(from: .letters) != nil {
             if t.allSatisfy({ $0.isNumber || $0 == "," }) {
                 return Int(t.replacingOccurrences(of: ",", with: ""))
             }
@@ -396,16 +394,16 @@ enum BonusParser {
         var ratingOffset: Int
         var ratingTable: [Int]?
 
-        static func fixed(_ n: Int) -> ParsedAmount {
-            ParsedAmount(amount: n, usesRating: false, ratingOffset: 0, ratingTable: nil)
+        static func fixed(_ n: Int) -> Self {
+            Self(amount: n, usesRating: false, ratingOffset: 0, ratingTable: nil)
         }
 
-        static func rating(coefficient: Int = 1, offset: Int = 0) -> ParsedAmount {
-            ParsedAmount(amount: coefficient, usesRating: true, ratingOffset: offset, ratingTable: nil)
+        static func rating(coefficient: Int = 1, offset: Int = 0) -> Self {
+            Self(amount: coefficient, usesRating: true, ratingOffset: offset, ratingTable: nil)
         }
 
-        static func table(_ values: [Int]) -> ParsedAmount {
-            ParsedAmount(amount: values.first ?? 0, usesRating: false, ratingOffset: 0, ratingTable: values)
+        static func table(_ values: [Int]) -> Self {
+            Self(amount: values.first ?? 0, usesRating: false, ratingOffset: 0, ratingTable: values)
         }
 
         func asModifier(
@@ -449,11 +447,11 @@ enum BonusParser {
         }
 
         // Rating*N / Rating * N
-        if let m = t.range(
+        if let match = t.range(
             of: #"^Rating\s*\*\s*(-?\d+)$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let digits = String(t[m])
+            let digits = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .replacingOccurrences(of: "*", with: "")
                 .trimmingCharacters(in: .whitespaces)
@@ -461,11 +459,11 @@ enum BonusParser {
         }
 
         // Rating+N / Rating-N
-        if let m = t.range(
+        if let match = t.range(
             of: #"^Rating\s*([+-]\d+)$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let digits = String(t[m])
+            let digits = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .trimmingCharacters(in: .whitespaces)
             if let n = Int(digits) { return .rating(coefficient: 1, offset: n) }
@@ -496,32 +494,67 @@ enum BonusParser {
 // MARK: - Settings
 
 public enum CatalogSettings {
-    private static let pathKey = "chummerDataPath"
-    private static let preferExternalKey = "preferExternalChummerCatalog"
-
     /// Optional external Chummer `data/` path (developers only).
     public static var chummerDataPath: String? {
         get {
-            let s = UserDefaults.standard.string(forKey: pathKey)
+            let s = AppPreferences.string(.chummerDataPath)
             return (s?.isEmpty == false) ? s : nil
         }
         set {
             if let newValue, !newValue.isEmpty {
-                UserDefaults.standard.set(newValue, forKey: pathKey)
+                AppPreferences.set(newValue, for: .chummerDataPath)
             } else {
-                UserDefaults.standard.removeObject(forKey: pathKey)
+                AppPreferences.remove(.chummerDataPath)
             }
         }
     }
 
     /// When true and an external path is set, load XML from disk instead of the bundle.
     public static var preferExternalCatalog: Bool {
-        get { UserDefaults.standard.bool(forKey: preferExternalKey) }
-        set { UserDefaults.standard.set(newValue, forKey: preferExternalKey) }
+        get { AppPreferences.bool(.preferExternalChummerCatalog) }
+        set { AppPreferences.set(newValue, for: .preferExternalChummerCatalog) }
     }
 }
 
-/// Process-wide cached catalog.
+/// Process-wide shared catalog entries (single load path for UI + import).
+/// Thread-safe; filled once on first access or via `CatalogStore.reload()`.
+enum CatalogCache {
+    private static let lock = NSLock()
+    /// Guarded by `lock`; marked unsafe for Swift 6 global-state rules.
+    nonisolated(unsafe) private static var cachedEntries: [CatalogEntry]?
+    nonisolated(unsafe) private static var cachedResult: CatalogLoadResult?
+
+    static func loadResult() -> CatalogLoadResult {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cachedResult { return cachedResult }
+        let loaded = ChummerCatalogLoader.load()
+        cachedResult = loaded
+        cachedEntries = loaded.entries
+        return loaded
+    }
+
+    static func entries() -> [CatalogEntry] {
+        loadResult().entries
+    }
+
+    /// Replace cache after an explicit reload (Settings → refresh catalog).
+    static func replace(with result: CatalogLoadResult) {
+        lock.lock()
+        defer { lock.unlock() }
+        cachedResult = result
+        cachedEntries = result.entries
+    }
+
+    static func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        cachedEntries = nil
+        cachedResult = nil
+    }
+}
+
+/// Process-wide cached catalog for SwiftUI (lazy — no decode at app launch).
 @MainActor
 public final class CatalogStore: ObservableObject {
     public static let shared = CatalogStore()
@@ -532,22 +565,34 @@ public final class CatalogStore: ObservableObject {
         loadedFiles: [],
         errors: []
     )
+    @Published public private(set) var isLoaded = false
 
     private init() {
+        // Intentionally empty: decode on first browser/settings access, not at launch.
+    }
+
+    /// Load catalog if needed (idempotent). Call from Catalog browser / Settings appear.
+    public func ensureLoaded() {
+        guard !isLoaded else { return }
         reload()
     }
 
     public func reload() {
-        result = ChummerCatalogLoader.load()
+        let loaded = ChummerCatalogLoader.load()
+        CatalogCache.replace(with: loaded)
+        result = loaded
+        isLoaded = true
     }
 
     public func entries(kinds: Set<CatalogKind>, query: String) -> [CatalogEntry] {
+        ensureLoaded()
         let scoped = result.entries.filter { kinds.contains($0.kind) }
         return CatalogSearch.filter(scoped, query: query)
     }
 
     /// Case-insensitive exact name match (first hit). Used when attaching catalog mods on import.
     public func entry(named name: String) -> CatalogEntry? {
+        ensureLoaded()
         let key = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !key.isEmpty else { return nil }
         return result.entries.first { $0.name.lowercased() == key }
@@ -558,19 +603,10 @@ public final class CatalogStore: ObservableObject {
     }
 }
 
-/// Non-UI catalog lookup for import / rules (loads bundled JSON once).
+/// Non-UI catalog lookup for import / rules (shares `CatalogCache` with `CatalogStore`).
 public enum CatalogLookup {
-    private static let lock = NSLock()
-    /// Guarded by `lock`; marked unsafe for Swift 6 global-state rules.
-    nonisolated(unsafe) private static var cached: [CatalogEntry]?
-
     public static func allEntries() -> [CatalogEntry] {
-        lock.lock()
-        defer { lock.unlock() }
-        if let cached { return cached }
-        let entries = ChummerCatalogLoader.load().entries
-        cached = entries
-        return entries
+        CatalogCache.entries()
     }
 
     public static func entry(named name: String) -> CatalogEntry? {
@@ -596,8 +632,6 @@ public enum CatalogLookup {
 
     /// Clear cached entries (e.g. after regenerating the bundled catalog in tests).
     public static func resetCache() {
-        lock.lock()
-        defer { lock.unlock() }
-        cached = nil
+        CatalogCache.reset()
     }
 }

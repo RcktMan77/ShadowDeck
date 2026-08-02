@@ -9,8 +9,8 @@ import AppKit
 import Foundation
 
 public enum AvatarThumbnail {
-    /// Edge length in points for library-row portraits.
-    public static let listEdge: CGFloat = 72
+    /// Edge length in points for library-row portraits (also used for gallery cards).
+    public static let listEdge: CGFloat = 200
 
     /// Returns a compact JPEG suitable for list display, or nil if the source cannot be decoded.
     public static func make(from data: Data, edge: CGFloat = listEdge) -> Data? {

@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class CharacterModelTests: XCTestCase {
-
     func testSampleCharactersExistForEachEdition() {
         let samples = SampleCharacters.makeAll()
         XCTAssertEqual(samples.count, 3)
@@ -129,7 +128,7 @@ final class CharacterModelTests: XCTestCase {
         character.qualities = [
             QualityInstance(catalogKey: "magician", name: "Magician", kind: .positive, karmaValue: 20),
             QualityInstance(catalogKey: "codeslinger", name: "Codeslinger", kind: .positive, karmaValue: 10),
-            QualityInstance(catalogKey: "photographic_memory", name: "Photographic Memory", kind: .positive, karmaValue: 6),
+            QualityInstance(catalogKey: "photographic_memory", name: "Photographic Memory", kind: .positive, karmaValue: 6)
         ]
         let result = rules.validate(character)
         XCTAssertFalse(result.errors.contains { $0.code == "qualities.positive_cap" })

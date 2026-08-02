@@ -44,14 +44,29 @@ public final class CharacterLibrary {
         // Sort in-process to avoid Swift 6 Sendable warnings on SortDescriptor KeyPaths.
         let records = try modelContext.fetch(FetchDescriptor<CharacterRecord>())
             .sorted { $0.modifiedAt > $1.modifiedAt }
-        return records.map { record in
+        var didBackfill = false
+        let summaries: [CharacterSummary] = records.map { record in
+            // Backfill short library taglines for rows saved before ConceptTagline existed
+            // (empty denormalized concept but full story in the payload).
+            if record.concept.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let character = try? CharacterMapper.decodePayload(record.payload) {
+                let label = ConceptTagline.libraryLabel(
+                    concept: character.concept,
+                    background: character.background,
+                    awakened: character.awakened
+                )
+                if !label.isEmpty {
+                    record.concept = label
+                    didBackfill = true
+                }
+            }
+
             var summary = record.summary
             // Thumbnail generation must never take down the library list.
             // Prefer avatar store (file/inline), then raw inline snapshot bytes.
             let full: Data? = {
                 if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
-                   !loaded.isEmpty
-                {
+                   !loaded.isEmpty {
                     return loaded
                 }
                 if let inline = record.avatarSnapshot.inlineData, !inline.isEmpty {
@@ -70,6 +85,10 @@ public final class CharacterLibrary {
             }
             return summary
         }
+        if didBackfill {
+            try? modelContext.save()
+        }
+        return summaries
     }
 
     public func count() throws -> Int {

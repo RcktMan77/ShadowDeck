@@ -1,0 +1,3184 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "dice-hits",
+      "title": "Hits on a dice pool",
+      "category": "dice",
+      "tags": [
+        "hits",
+        "success",
+        "dice",
+        "test"
+      ],
+      "summary": "Roll a number of d6 equal to your pool. By default, each die showing 5 or 6 is a hit. Some house rules count 4–6 as hits. Net hits are hits after any threshold or opposed hits are subtracted.",
+      "formula": "Hit on 5–6 (default) · optional house rule: hit on 4–6",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 60,
+          "label": "SR4A (tests)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 44,
+          "label": "SR5 CRB (tests)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 36,
+          "label": "SR6 Core (tests)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-glitch",
+        "dice-rule-of-six"
+      ]
+    },
+    {
+      "id": "dice-glitch",
+      "title": "Glitches and critical glitches",
+      "category": "dice",
+      "tags": [
+        "glitch",
+        "critical glitch",
+        "ones",
+        "dice"
+      ],
+      "summary": "A glitch happens when you roll too many 1s relative to the dice you checked. Edition and house rules choose whether that is more than half or at least half ones. A critical glitch is a glitch with zero hits. ShadowDeck’s roller applies your character’s dice house rules.",
+      "formula": "Glitch: ones vs pool · Critical: glitch and 0 hits",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 62,
+          "label": "SR4A (glitches)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 45,
+          "label": "SR5 CRB (glitches)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 37,
+          "label": "SR6 Core (glitches)"
+        }
+      ],
+      "calculator": "glitchThreshold",
+      "relatedIDs": [
+        "dice-hits",
+        "dice-house-rules"
+      ]
+    },
+    {
+      "id": "dice-rule-of-six",
+      "title": "Rule of Six (exploding sixes)",
+      "category": "dice",
+      "tags": [
+        "rule of six",
+        "explode",
+        "edge",
+        "six"
+      ],
+      "summary": "When Rule of Six applies, each 6 is a hit and is rolled again (and can explode again). Core tables usually enable this when spending Edge to push the limit; a house rule can make every 6 explode on every test.",
+      "formula": "On 6: count hit, roll again (may chain)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 74,
+          "label": "SR4A (Edge)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 56,
+          "label": "SR5 CRB (Edge)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 46,
+          "label": "SR6 Core (Edge)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-edge-push",
+        "dice-house-rules"
+      ]
+    },
+    {
+      "id": "dice-edge-push",
+      "title": "Push the Limit (Edge before the roll)",
+      "category": "dice",
+      "tags": [
+        "edge",
+        "push the limit",
+        "pre-roll"
+      ],
+      "summary": "Spend Edge before rolling to add your Edge rating in dice and enable Rule of Six on that test (edition- and house-rule dependent). ShadowDeck’s dice roller models this as Push the Limit.",
+      "formula": "Pool = base + Edge rating; Rule of Six on",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 74,
+          "label": "SR4A (Edge)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 56,
+          "label": "SR5 CRB (Edge)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 46,
+          "label": "SR6 Core (Edge)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-edge-second-chance",
+        "dice-rule-of-six"
+      ]
+    },
+    {
+      "id": "dice-edge-second-chance",
+      "title": "Second Chance (Edge after the roll)",
+      "category": "dice",
+      "tags": [
+        "edge",
+        "second chance",
+        "post-roll"
+      ],
+      "summary": "After seeing the dice, spend Edge to re-roll failed dice (not the 1s that already count toward a glitch, depending on edition procedure). ShadowDeck previews Second Chance from the last roll in the dice inspector.",
+      "formula": "Re-roll non-hit dice (see book for 1s / Edge cost)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 74,
+          "label": "SR4A (Edge)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 56,
+          "label": "SR5 CRB (Edge)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 47,
+          "label": "SR6 Core (Edge)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-edge-push",
+        "dice-glitch"
+      ]
+    },
+    {
+      "id": "dice-house-rules",
+      "title": "Dice house rules in ShadowDeck",
+      "category": "dice",
+      "tags": [
+        "house rules",
+        "glitch",
+        "hits",
+        "rule of six"
+      ],
+      "summary": "Per-character House Rules can change glitch threshold (edition default, more than half, half or more), whether exploded dice count for glitches, hits on 4+, and whether Rule of Six is Edge-only or always on. The roller and glitch calculator read the active character’s resolved dice rules.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": "glitchThreshold",
+      "relatedIDs": [
+        "dice-glitch",
+        "dice-hits"
+      ]
+    },
+    {
+      "id": "dice-opposed-tests",
+      "title": "Opposed tests",
+      "category": "dice",
+      "tags": [
+        "opposed",
+        "net hits",
+        "contest"
+      ],
+      "summary": "Both sides roll. Compare hits; the higher total wins by the difference (net hits). Ties usually favor the defender or produce no effect—check the specific action. Glitches still apply to each side’s roll.",
+      "formula": "Net hits = attacker hits − defender hits",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 63,
+          "label": "SR4A (opposed)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 48,
+          "label": "SR5 CRB (opposed)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 38,
+          "label": "SR6 Core (opposed)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits",
+        "dice-extended-tests"
+      ]
+    },
+    {
+      "id": "dice-extended-tests",
+      "title": "Extended tests (overview)",
+      "category": "dice",
+      "tags": [
+        "extended",
+        "threshold",
+        "interval"
+      ],
+      "summary": "An extended test accumulates hits over multiple intervals toward a threshold. Each interval is a separate roll of the same pool (often with a rising difficulty or time cost). Use your book for interval length, max rolls, and botch consequences.",
+      "formula": "Sum hits over intervals ≥ threshold",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 64,
+          "label": "SR4A (extended)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 48,
+          "label": "SR5 CRB (extended)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 39,
+          "label": "SR6 Core (extended)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits",
+        "dice-opposed-tests"
+      ]
+    },
+    {
+      "id": "dice-teamwork",
+      "title": "Teamwork tests",
+      "category": "dice",
+      "tags": [
+        "teamwork",
+        "assist",
+        "help"
+      ],
+      "summary": "Helpers roll first and add some of their hits as dice to the primary actor’s pool (with a cap). Editions differ on who can help and how many bonus dice transfer—use your core book for the exact cap and skill requirements.",
+      "formula": "Helpers roll → limited hits become bonus dice for the leader",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 65,
+          "label": "SR4A (teamwork) p.65"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 49,
+          "label": "SR5 CRB (teamwork) p.49"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 39,
+          "label": "SR6 Core (teamwork) p.39"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits"
+      ]
+    },
+    {
+      "id": "dice-thresholds",
+      "title": "Success tests and thresholds",
+      "category": "dice",
+      "tags": [
+        "threshold",
+        "success test"
+      ],
+      "summary": "A success test rolls against a threshold or opposed hits. Net hits equal your hits minus the threshold (or defender’s hits). Many actions list a threshold in the book (e.g. climb, perception).",
+      "formula": "Net hits = hits − threshold (or opposed hits)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 62,
+          "label": "SR4A (tests) p.62"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 47,
+          "label": "SR5 CRB (thresholds) p.47"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 37,
+          "label": "SR6 Core (tests) p.37"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits",
+        "dice-opposed-tests"
+      ]
+    },
+    {
+      "id": "dice-buying-hits",
+      "title": "Buying hits (optional rule)",
+      "category": "dice",
+      "tags": [
+        "buying hits",
+        "optional"
+      ],
+      "summary": "Some tables allow buying hits instead of rolling when time is short: typically one hit per four dice in the pool (rounded down), with no glitch chance. Confirm your edition’s optional rule before using it.",
+      "formula": "Often ⌊pool ÷ 4⌋ hits, no roll",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 45,
+          "label": "SR5 CRB (buying hits) p.45"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits"
+      ]
+    },
+    {
+      "id": "dice-composition",
+      "title": "Building a dice pool",
+      "category": "dice",
+      "tags": [
+        "pool",
+        "skill",
+        "attribute",
+        "modifier"
+      ],
+      "summary": "Most pools are skill + linked attribute, plus modifiers (wounds, visibility, gear, spells). Untrained skills often roll attribute −1 or similar. ShadowDeck shows derived pools on the sheet; situational mods go into the roller’s modifier field.",
+      "formula": "Pool ≈ skill + attribute ± modifiers",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 61,
+          "label": "SR4A (skills) p.61"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 47,
+          "label": "SR5 CRB (pools) p.47"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 38,
+          "label": "SR6 Core (pools) p.38"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-hits"
+      ]
+    },
+    {
+      "id": "dice-defaulting",
+      "title": "Defaulting (untrained skills)",
+      "category": "dice",
+      "tags": [
+        "defaulting",
+        "untrained"
+      ],
+      "summary": "When you lack a skill, you may default with the linked attribute at a penalty (commonly −1 die) if the skill allows defaulting. Some skills cannot be defaulted. Check skill lists in your core book.",
+      "formula": "Often attribute − 1 (if default allowed)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 110,
+          "label": "SR4A (defaulting) p.110"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 130,
+          "label": "SR5 CRB (defaulting) p.130"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 92,
+          "label": "SR6 Core (skills) p.92"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-composition"
+      ]
+    },
+    {
+      "id": "dice-edge-refresh",
+      "title": "Edge refresh and session Edge",
+      "category": "dice",
+      "tags": [
+        "edge",
+        "refresh",
+        "session"
+      ],
+      "summary": "Edge rating is a character stat; available Edge is the spendable pool. Refresh timing differs by edition (scene, session, downtime). SR6 emphasizes Edge as a renewable session resource. ShadowDeck tracks Edge for the roller session; permanent Edge changes belong on the sheet.",
+      "formula": "Spend available Edge; refresh per edition downtime rules",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 74,
+          "label": "SR4A (Edge) p.74"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 56,
+          "label": "SR5 CRB (Edge) p.56"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 45,
+          "label": "SR6 Core (Edge) p.45"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-edge-push"
+      ]
+    },
+    {
+      "id": "dice-notoriety-public",
+      "title": "Public awareness and notoriety (pointer)",
+      "category": "dice",
+      "tags": [
+        "street cred",
+        "notoriety",
+        "public awareness"
+      ],
+      "summary": "Reputation tracks (street cred, notoriety, public awareness) modify social and legwork tests in some editions. ShadowDeck does not fully automate rep dice—use your book when a contact or Johnson cares who you are.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 372,
+          "label": "SR5 CRB (reputation) p.372"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette"
+      ]
+    },
+    {
+      "id": "adv-skill-raise",
+      "title": "Karma cost to raise a skill",
+      "category": "advancement",
+      "tags": [
+        "karma",
+        "skill",
+        "raise",
+        "advance"
+      ],
+      "summary": "After chargen, raising an active skill by one rank costs karma based on the new rating and edition table. Knowledge and language skills are usually cheaper. ShadowDeck’s Plan tab uses the live edition rules (and soft caps).",
+      "formula": "SR4/SR5 active: new × 2 · SR6 active: new × 5 · knowledge/language: often new × 1",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 264,
+          "label": "SR4A (improving)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 103,
+          "label": "SR5 CRB (improving skills)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 68,
+          "label": "SR6 Core (advancement)"
+        }
+      ],
+      "calculator": "karmaRaise",
+      "relatedIDs": [
+        "adv-attribute-raise",
+        "adv-new-skill",
+        "adv-specialization"
+      ]
+    },
+    {
+      "id": "adv-attribute-raise",
+      "title": "Karma cost to raise an attribute",
+      "category": "advancement",
+      "tags": [
+        "karma",
+        "attribute",
+        "raise"
+      ],
+      "summary": "Raising a natural attribute by one costs karma equal to the new rating times a multiplier (commonly ×5). Metatype maximums still apply. A house rule can switch to a flat cost per step.",
+      "formula": "Default: new rating × 5 · house rule: flat 5 per step",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 264,
+          "label": "SR4A (attributes)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 103,
+          "label": "SR5 CRB (improving attributes)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 68,
+          "label": "SR6 Core (advancement)"
+        }
+      ],
+      "calculator": "karmaRaise",
+      "relatedIDs": [
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-new-skill",
+      "title": "Learning a new skill (rank 0 → 1)",
+      "category": "advancement",
+      "tags": [
+        "karma",
+        "new skill",
+        "learn"
+      ],
+      "summary": "Buying a skill you do not have usually means paying the karma cost for rating 1 under that skill’s category. ShadowDeck’s Plan tab can add a new skill item and apply it when you have the karma.",
+      "formula": "Cost of raising from 0 → 1 for that category",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 105,
+          "label": "SR5 CRB (skills) p.105"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 68,
+          "label": "SR6 Core (advancement) p.68"
+        }
+      ],
+      "calculator": "karmaRaise",
+      "relatedIDs": [
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-specialization",
+      "title": "Skill specializations (overview)",
+      "category": "advancement",
+      "tags": [
+        "specialization",
+        "spec",
+        "skill"
+      ],
+      "summary": "A specialization narrows a skill for a bonus on matching tests (commonly +2 dice). Buying or improving specializations costs karma per your edition. ShadowDeck stores a single specialization string per skill instance.",
+      "formula": "See edition for karma and bonus (often +2 dice)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 110,
+          "label": "SR4A (specializations) p.110"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 90,
+          "label": "SR5 CRB (specializations) p.90"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 93,
+          "label": "SR6 Core (specializations) p.93"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-available-vs-total",
+      "title": "Karma available vs karma total",
+      "category": "advancement",
+      "tags": [
+        "karma",
+        "available",
+        "total"
+      ],
+      "summary": "Karma Total is career karma earned (including what you already spent). Karma Available is the unspent pool you can put into raises. Manual + on Summary awards both; Plan spends reduce available only. Run Apply Awards can credit both with a ledger entry.",
+      "formula": "Spent ≈ Total − Available (not always exact after imports)",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-qualities-post",
+      "title": "Buying qualities after chargen",
+      "category": "advancement",
+      "tags": [
+        "quality",
+        "karma",
+        "post-chargen"
+      ],
+      "summary": "Positive qualities after play usually cost karma (often double chargen prices). Negative qualities can return karma with GM approval. ShadowDeck’s Qualities tab stores ranks and karma values; legality is between you and your table.",
+      "formula": "Often 2× chargen karma for positive qualities",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 106,
+          "label": "SR5 CRB (qualities) p.106"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 69,
+          "label": "SR6 Core (qualities) p.69"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-qualities"
+      ]
+    },
+    {
+      "id": "adv-initiation",
+      "title": "Initiation and submersion (overview)",
+      "category": "advancement",
+      "tags": [
+        "initiation",
+        "submersion",
+        "metamagic",
+        "echo"
+      ],
+      "summary": "Awakened characters initiate; technomancers submerge. Each grade raises Magic or Resonance potential and may grant metamagics or echoes. Costs escalate with grade. ShadowDeck tracks Magic/Resonance ranks—full initiation trees live in the books.",
+      "formula": "Karma scales with new grade (see edition table)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 324,
+          "label": "SR5 CRB (initiation) p.324"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 130,
+          "label": "SR6 Core (initiation) p.130"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain",
+        "matrix-resonance"
+      ]
+    },
+    {
+      "id": "adv-contacts-loyalty",
+      "title": "Improving contacts",
+      "category": "advancement",
+      "tags": [
+        "contact",
+        "loyalty",
+        "connection"
+      ],
+      "summary": "Raising a contact’s Loyalty or Connection often costs karma or nuyen and fiction time. ShadowDeck stores Loyalty/Connection and favor standing; exact improvement costs are edition- and table-dependent.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 387,
+          "label": "SR5 CRB (contacts) p.387"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 178,
+          "label": "SR6 Core (contacts) p.178"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-contacts"
+      ]
+    },
+    {
+      "id": "adv-knowledge-language",
+      "title": "Knowledge and language advances",
+      "category": "advancement",
+      "tags": [
+        "knowledge",
+        "language",
+        "karma"
+      ],
+      "summary": "Knowledge and language skills usually improve more cheaply than active skills. Some tables treat languages with special ranks (basic/conversational/fluent). Plan tab costs follow edition knowledge multipliers.",
+      "formula": "Often new rating × 1 karma per rank",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 105,
+          "label": "SR5 CRB (knowledge) p.105"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 68,
+          "label": "SR6 Core (advancement) p.68"
+        }
+      ],
+      "calculator": "karmaRaise",
+      "relatedIDs": [
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-martial-arts",
+      "title": "Martial arts and techniques (pointer)",
+      "category": "advancement",
+      "tags": [
+        "martial arts",
+        "technique"
+      ],
+      "summary": "Martial arts styles and techniques can grant combat options or dice. Costs and prerequisites vary widely by edition supplement. ShadowDeck does not fully encode martial arts trees—track key techniques in notes if needed.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 121,
+          "label": "SR5 CRB (combat skills) p.121"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types"
+      ]
+    },
+    {
+      "id": "adv-soft-caps",
+      "title": "Attribute and skill soft caps",
+      "category": "advancement",
+      "tags": [
+        "soft cap",
+        "maximum",
+        "metatype"
+      ],
+      "summary": "Metatype maximums and skill soft caps limit how high ranks can go without special rules. ShadowDeck’s Plan tab respects edition soft caps and metatype ceilings where the rules engine knows them.",
+      "formula": "Cannot exceed metatype max / skill soft cap without special rules",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 103,
+          "label": "SR5 CRB (limits on improvement) p.103"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 68,
+          "label": "SR6 Core (advancement) p.68"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-attribute-raise",
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "adv-run-awards",
+      "title": "Run awards (nuyen and karma)",
+      "category": "advancement",
+      "tags": [
+        "run",
+        "award",
+        "karma",
+        "nuyen"
+      ],
+      "summary": "Completed runs often award nuyen and karma. ShadowDeck’s Apply Awards splits a run’s payout equally among available linked runners with a confirmation sheet—never automatic on status change.",
+      "formula": "Equal floor split among available participants",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-available-vs-total"
+      ]
+    },
+    {
+      "id": "life-levels",
+      "title": "Lifestyle levels and monthly cost",
+      "category": "lifestyle",
+      "tags": [
+        "lifestyle",
+        "rent",
+        "monthly",
+        "nuyen"
+      ],
+      "summary": "Lifestyles abstract housing and living costs. ShadowDeck stores a monthly nuyen cost per lifestyle (user-editable) and offers SR5-oriented suggested amounts for Street through Luxury. Active lifestyles contribute to monthly burn.",
+      "formula": "Suggested SR5: Street 0 · Squatter 500 · Low 2k · Middle 5k · High 10k · Luxury 100k ¥/mo",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 308,
+          "label": "SR4A (lifestyle)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 369,
+          "label": "SR5 CRB (lifestyle)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 174,
+          "label": "SR6 Core (lifestyle)"
+        }
+      ],
+      "calculator": "lifestyleBurn",
+      "relatedIDs": [
+        "life-process-month",
+        "life-reserve"
+      ]
+    },
+    {
+      "id": "life-process-month",
+      "title": "Process Month (paying lifestyle)",
+      "category": "lifestyle",
+      "tags": [
+        "process month",
+        "prepaid",
+        "burn"
+      ],
+      "summary": "ShadowDeck never auto-charges lifestyle. When you Process Month (1–3 months), prepaid months on each active lifestyle are consumed first; remaining cost pulls from lifestyle reserve, then nuyen. Shortfall blocks the whole action.",
+      "formula": "Each month: prepaid −1 or pay monthlyCost from reserve then nuyen",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": "lifestyleBurn",
+      "relatedIDs": [
+        "life-levels",
+        "life-reserve"
+      ]
+    },
+    {
+      "id": "life-reserve",
+      "title": "Lifestyle nuyen reserve",
+      "category": "lifestyle",
+      "tags": [
+        "reserve",
+        "buffer",
+        "nuyen"
+      ],
+      "summary": "A lifestyle reserve is a buffer spent before liquid nuyen when processing months. You can deposit or withdraw between reserve and nuyen on the Lifestyle tab. It does not replace prepaid months.",
+      "formula": "Process cost: reserve first, then nuyen",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "life-process-month",
+        "life-levels"
+      ]
+    },
+    {
+      "id": "life-prepay",
+      "title": "Prepaying lifestyle months",
+      "category": "lifestyle",
+      "tags": [
+        "prepay",
+        "months"
+      ],
+      "summary": "You can prepay months on a lifestyle so Process Month burns prepaid counters before cash. Prepay spends nuyen immediately. Useful when a runner will be offline or in the bush.",
+      "formula": "Pay monthlyCost × months now; store prepaid count",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "life-process-month"
+      ]
+    },
+    {
+      "id": "life-multiple",
+      "title": "Multiple lifestyles",
+      "category": "lifestyle",
+      "tags": [
+        "multiple",
+        "safehouse"
+      ],
+      "summary": "Runners may maintain more than one lifestyle (safehouse + bolt-hole). ShadowDeck sums active lifestyles for monthly burn. Fiction should explain who is covering which site.",
+      "formula": "Monthly burn = sum of active lifestyle costs",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": "lifestyleBurn",
+      "relatedIDs": [
+        "life-levels"
+      ]
+    },
+    {
+      "id": "life-hospitalized",
+      "title": "Hospitalized and special lifestyles (pointer)",
+      "category": "lifestyle",
+      "tags": [
+        "hospitalized",
+        "special"
+      ],
+      "summary": "Special lifestyle conditions (hospitalized, identity subscriptions, dependants) appear in some books with extra costs. Model them as extra lifestyle rows or notes when your table uses them.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 369,
+          "label": "SR5 CRB (lifestyle options) p.369"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "life-levels"
+      ]
+    },
+    {
+      "id": "life-buying",
+      "title": "Buying a lifestyle (up-front)",
+      "category": "lifestyle",
+      "tags": [
+        "purchase",
+        "up-front"
+      ],
+      "summary": "Some editions list a purchase price to establish a lifestyle tier permanently. ShadowDeck focuses on monthly burn tracking; record large buy-ins as nuyen expenses or gear/notes if your table uses them.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 369,
+          "label": "SR5 CRB (buying lifestyles) p.369"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "life-levels"
+      ]
+    },
+    {
+      "id": "life-sin",
+      "title": "SINs and lifestyle (pointer)",
+      "category": "lifestyle",
+      "tags": [
+        "SIN",
+        "identity"
+      ],
+      "summary": "Fake SINs often include lifestyle coverage or subscriptions. Keep SIN quality separate from lifestyle cost unless your table bundles them. ShadowDeck does not auto-link SINs to lifestyles.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 367,
+          "label": "SR5 CRB (SINs) p.367"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "life-levels"
+      ]
+    },
+    {
+      "id": "combat-condition-monitors",
+      "title": "Condition monitors (physical and stun)",
+      "category": "combat",
+      "tags": [
+        "damage",
+        "boxes",
+        "physical",
+        "stun",
+        "monitor"
+      ],
+      "summary": "Physical and stun tracks hold damage boxes. Capacity is derived from Body and Willpower. Filled boxes are play state on the character. Overflow and wound modifiers follow your edition—use the book for death and penalty tables.",
+      "formula": "Physical = 8 + ⌈Body/2⌉ · Stun = 8 + ⌈Willpower/2⌉",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 163,
+          "label": "SR4A (damage)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 101,
+          "label": "SR5 CRB (condition monitors)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 40,
+          "label": "SR6 Core (damage)"
+        }
+      ],
+      "calculator": "conditionMonitors",
+      "relatedIDs": [
+        "combat-damage-resistance",
+        "combat-wound-modifiers"
+      ]
+    },
+    {
+      "id": "combat-limits-sr5",
+      "title": "SR5 limits (physical, mental, social)",
+      "category": "combat",
+      "tags": [
+        "limit",
+        "sr5",
+        "physical limit",
+        "mental limit",
+        "social limit"
+      ],
+      "summary": "In SR5, limits cap how many hits you can keep on many tests. Physical, Mental, and Social limits are derived from attributes (and essence for social). SR4 and SR6 do not use this limit trio the same way—ShadowDeck only shows SR5 limits on SR5 sheets.",
+      "formula": "Physical ⌈(STR×2+BOD+REA)/3⌉ · Mental ⌈(LOG×2+INT+WIL)/3⌉ · Social ⌈(CHA×2+WIL+ESS)/3⌉",
+      "editions": [
+        "SR5"
+      ],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 46,
+          "label": "SR5 CRB (limits)"
+        }
+      ],
+      "calculator": "limitsSR5",
+      "relatedIDs": [
+        "dice-hits"
+      ]
+    },
+    {
+      "id": "combat-initiative",
+      "title": "Initiative (score overview)",
+      "category": "combat",
+      "tags": [
+        "initiative",
+        "pass",
+        "order"
+      ],
+      "summary": "Initiative score is typically Reaction + Intuition (plus modifiers and initiative dice from gear or magic). Higher goes first; initiative passes and Edge options differ by edition. ShadowDeck shows a base initiative figure on the play sheet—not a multi-domain combat tracker.",
+      "formula": "Base often REA + INT (+ initiative dice from effects)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 144,
+          "label": "SR4A (initiative)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 158,
+          "label": "SR5 CRB (initiative)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 40,
+          "label": "SR6 Core (initiative)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types",
+        "combat-surprise"
+      ]
+    },
+    {
+      "id": "combat-action-types",
+      "title": "Action types (overview)",
+      "category": "combat",
+      "tags": [
+        "free action",
+        "simple action",
+        "complex action",
+        "interrupt"
+      ],
+      "summary": "Combat time is built from free, simple, and complex actions (plus interrupts/reactions depending on edition). Exact lists and what you can combine in a pass live in your core book. This card is a pointer only—not a full action encyclopedia.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 146,
+          "label": "SR4A (actions) p.146"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 163,
+          "label": "SR5 CRB (actions) p.163"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 41,
+          "label": "SR6 Core (actions) p.41"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-initiative"
+      ]
+    },
+    {
+      "id": "combat-damage-resistance",
+      "title": "Damage resistance (concept)",
+      "category": "combat",
+      "tags": [
+        "damage resistance",
+        "armor",
+        "soak"
+      ],
+      "summary": "After a successful attack, the target usually rolls Body (+ armor, modified by AP) to reduce damage. Net hits left after resistance become boxes on a condition monitor. ShadowDeck tracks armor ratings and monitors but does not fully automate AP vs armor tables yet.",
+      "formula": "Resist pool ≈ Body + modified armor (see book for AP)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 161,
+          "label": "SR4A (damage resistance) p.161"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 169,
+          "label": "SR5 CRB (damage resistance) p.169"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 42,
+          "label": "SR6 Core (damage) p.42"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-condition-monitors",
+        "combat-armor-ap"
+      ]
+    },
+    {
+      "id": "combat-movement",
+      "title": "Walk and run rates",
+      "category": "combat",
+      "tags": [
+        "movement",
+        "walk",
+        "run",
+        "agility"
+      ],
+      "summary": "ShadowDeck’s derived stats use a simple walk/run estimate from Agility for sheet display. Full tactical movement, sprinting, and terrain modifiers belong in your core book and combat tracker workflow.",
+      "formula": "Display estimate: Walk AGI×2 · Run AGI×4 (meters/turn style guidance)",
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types"
+      ]
+    },
+    {
+      "id": "combat-armor-ap",
+      "title": "Armor and armor penetration",
+      "category": "combat",
+      "tags": [
+        "armor",
+        "AP",
+        "penetration"
+      ],
+      "summary": "Armor adds to damage resistance; armor penetration (AP) reduces effective armor (not below zero in most cases). Elemental and DV types may bypass or modify armor. Equip armor on the Gear tab so Summary reflects ratings.",
+      "formula": "Effective armor ≈ max(0, armor − AP) for that attack",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 160,
+          "label": "SR4A (armor) p.160"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 168,
+          "label": "SR5 CRB (armor) p.168"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 42,
+          "label": "SR6 Core (armor) p.42"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-damage-resistance"
+      ]
+    },
+    {
+      "id": "combat-wound-modifiers",
+      "title": "Wound modifiers",
+      "category": "combat",
+      "tags": [
+        "wound",
+        "penalty",
+        "modifier"
+      ],
+      "summary": "Filled damage boxes impose dice-pool penalties that grow as you take more damage. Editions differ on the breakpoint tables. ShadowDeck shows filled boxes; apply wound mods manually in the roller until fully automated.",
+      "formula": "See edition wound table for −dice by boxes filled",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 163,
+          "label": "SR4A (wound modifiers) p.163"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 170,
+          "label": "SR5 CRB (wound modifiers) p.170"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 40,
+          "label": "SR6 Core (damage) p.40"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-condition-monitors"
+      ]
+    },
+    {
+      "id": "combat-recoil",
+      "title": "Recoil compensation",
+      "category": "combat",
+      "tags": [
+        "recoil",
+        "firearms",
+        "burst",
+        "full auto"
+      ],
+      "summary": "Firing multiple bullets increases recoil. Compensation from strength, stock, and accessories reduces the penalty. Exact progressive recoil math is edition-specific—use the firearm chapter for full auto and burst rules.",
+      "formula": "Uncompensated recoil → dice penalty (see edition)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 175,
+          "label": "SR5 CRB (recoil) p.175"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 108,
+          "label": "SR6 Core (firearms) p.108"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types"
+      ]
+    },
+    {
+      "id": "combat-cover",
+      "title": "Cover and visibility",
+      "category": "combat",
+      "tags": [
+        "cover",
+        "visibility",
+        "range"
+      ],
+      "summary": "Cover can add dice to defense or impose attack penalties; visibility and range modifiers stack. ShadowDeck does not simulate battle maps—apply situational mods in the dice roller.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 174,
+          "label": "SR5 CRB (environmental) p.174"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 105,
+          "label": "SR6 Core (combat) p.105"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-composition"
+      ]
+    },
+    {
+      "id": "combat-defense",
+      "title": "Defense tests",
+      "category": "combat",
+      "tags": [
+        "defense",
+        "dodge",
+        "full defense"
+      ],
+      "summary": "Defenders typically roll Reaction (+ Intuition) plus modifiers against the attacker’s hits. Full defense and interrupt actions may raise the pool or cost actions. Net hits determine whether the attack lands and how hard.",
+      "formula": "Defense pool ≈ REA (+ INT) ± mods",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 150,
+          "label": "SR4A (defense) p.150"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 168,
+          "label": "SR5 CRB (defense) p.168"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 41,
+          "label": "SR6 Core (defense) p.41"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-damage-resistance",
+        "dice-opposed-tests"
+      ]
+    },
+    {
+      "id": "combat-surprise",
+      "title": "Surprise",
+      "category": "combat",
+      "tags": [
+        "surprise",
+        "ambush"
+      ],
+      "summary": "Surprised characters may lose actions or defend poorly at the start of combat. Perception and ambush setup matter. Resolve surprise with your book before the first initiative pass.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 161,
+          "label": "SR5 CRB (surprise) p.161"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 40,
+          "label": "SR6 Core (surprise) p.40"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-initiative"
+      ]
+    },
+    {
+      "id": "combat-called-shots",
+      "title": "Called shots (overview)",
+      "category": "combat",
+      "tags": [
+        "called shot",
+        "called shots"
+      ],
+      "summary": "Called shots trade dice penalties (or Edge) for special effects: disable a limb, bypass armor, trick shot, etc. Lists differ by edition. Not automated in ShadowDeck—apply the listed penalty in the roller.",
+      "formula": "Attack pool − called-shot penalty (see list)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 178,
+          "label": "SR5 CRB (called shots) p.178"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 109,
+          "label": "SR6 Core (called shots) p.109"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types"
+      ]
+    },
+    {
+      "id": "combat-melee",
+      "title": "Melee combat (overview)",
+      "category": "combat",
+      "tags": [
+        "melee",
+        "unarmed",
+        "reach"
+      ],
+      "summary": "Melee uses close-combat skills plus Strength or Agility depending on edition and weapon. Reach, charging, and multiple opponents have special rules. Use the combat chapter for grappling and martial arts.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 184,
+          "label": "SR5 CRB (melee) p.184"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 110,
+          "label": "SR6 Core (melee) p.110"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-action-types",
+        "combat-defense"
+      ]
+    },
+    {
+      "id": "combat-grenades",
+      "title": "Grenades and blast (pointer)",
+      "category": "combat",
+      "tags": [
+        "grenade",
+        "blast",
+        "area"
+      ],
+      "summary": "Grenades use throw tests and blast damage with distance falloff. Deviations on misses can endanger friends. Model damage on condition monitors after book resolution.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 181,
+          "label": "SR5 CRB (grenades) p.181"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-damage-resistance"
+      ]
+    },
+    {
+      "id": "combat-vehicles",
+      "title": "Vehicle combat (pointer)",
+      "category": "combat",
+      "tags": [
+        "vehicle",
+        "chase",
+        "rigger"
+      ],
+      "summary": "Vehicle combat uses handling, speed, and sensor tests with chase and ramming options. ShadowDeck is not a full chase engine—use the book and track vehicle condition in notes if needed.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 198,
+          "label": "SR5 CRB (vehicles) p.198"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 142,
+          "label": "SR6 Core (vehicles) p.142"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-initiative"
+      ]
+    },
+    {
+      "id": "magic-drain",
+      "title": "Drain (spellcasting)",
+      "category": "magic",
+      "tags": [
+        "drain",
+        "spell",
+        "force",
+        "magic"
+      ],
+      "summary": "Casting a spell causes Drain equal to a Force-based code (for example F/2+2). You resist Drain with Willpower plus your tradition attribute. This card’s calculator is a quick aid—traditions, reagents, overcasting, and full tables live in your core book.",
+      "formula": "DV from Force code · Resist WIL + tradition attribute",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 178,
+          "label": "SR4A (Drain)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 281,
+          "label": "SR5 CRB (Drain)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 129,
+          "label": "SR6 Core (magic)"
+        }
+      ],
+      "calculator": "drain",
+      "relatedIDs": [
+        "magic-force",
+        "magic-traditions"
+      ]
+    },
+    {
+      "id": "magic-force",
+      "title": "Spell Force",
+      "category": "magic",
+      "tags": [
+        "force",
+        "spell"
+      ],
+      "summary": "Force sets a spell’s power, range, and Drain code. You cannot usually cast above your Magic attribute without overcasting rules. Higher Force means harder Drain and stronger effects.",
+      "formula": "Force ≤ Magic (without overcast rules)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 281,
+          "label": "SR5 CRB (Force) p.281"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 129,
+          "label": "SR6 Core (spells) p.129"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-traditions",
+      "title": "Traditions and Drain attributes",
+      "category": "magic",
+      "tags": [
+        "tradition",
+        "drain attribute"
+      ],
+      "summary": "A tradition pairs Magic with a Drain attribute (e.g. Logic, Charisma, Intuition). It also colors spirits and roleplay. ShadowDeck stores tradition name; Drain calculator lets you pick the attribute.",
+      "formula": "Drain resist = WIL + tradition attribute",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 279,
+          "label": "SR5 CRB (traditions) p.279"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 128,
+          "label": "SR6 Core (traditions) p.128"
+        }
+      ],
+      "calculator": "drain",
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-summoning",
+      "title": "Summoning spirits (overview)",
+      "category": "magic",
+      "tags": [
+        "spirit",
+        "summon",
+        "binding"
+      ],
+      "summary": "Summoning rolls Magic + summoning skill against the spirit’s Force; Drain follows. Services and binding are separate steps. ShadowDeck is not a full spirit manager—track spirit Force and services in notes if needed.",
+      "formula": "Opposed Magic + skill vs Force; then Drain",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 300,
+          "label": "SR5 CRB (summoning) p.300"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 134,
+          "label": "SR6 Core (spirits) p.134"
+        }
+      ],
+      "calculator": "drain",
+      "relatedIDs": [
+        "magic-drain",
+        "magic-spirits"
+      ]
+    },
+    {
+      "id": "magic-spirits",
+      "title": "Spirits and services",
+      "category": "magic",
+      "tags": [
+        "spirit",
+        "services",
+        "banish"
+      ],
+      "summary": "Spirits have Force-based attributes and powers. Services are spent for combat, powers, or remote tasks. Banishing opposes the spirit. Exact type lists are edition-specific.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 303,
+          "label": "SR5 CRB (spirits) p.303"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 134,
+          "label": "SR6 Core (spirits) p.134"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-summoning"
+      ]
+    },
+    {
+      "id": "magic-adept",
+      "title": "Adept powers (overview)",
+      "category": "magic",
+      "tags": [
+        "adept",
+        "power points"
+      ],
+      "summary": "Adepts spend Power Points (usually equal to Magic) on powers that enhance combat, stealth, or social edges. ShadowDeck’s Magic tab tracks adept powers and can apply sheet modifiers when powers include mechanical bonuses.",
+      "formula": "Power Points ≈ Magic (before initiation losses)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 308,
+          "label": "SR5 CRB (adepts) p.308"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 136,
+          "label": "SR6 Core (adepts) p.136"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-initiation"
+      ]
+    },
+    {
+      "id": "magic-foci",
+      "title": "Foci and bonding",
+      "category": "magic",
+      "tags": [
+        "focus",
+        "foci",
+        "bond"
+      ],
+      "summary": "Foci add dice or sustain spells but cost karma to bond and can be turned against you. Force and type matter for availability and addiction risks in some editions. Track bonded foci as gear with notes.",
+      "formula": "Bonding karma often scales with Force",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 318,
+          "label": "SR5 CRB (foci) p.318"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 138,
+          "label": "SR6 Core (foci) p.138"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-reagents",
+      "title": "Reagents (overview)",
+      "category": "magic",
+      "tags": [
+        "reagents",
+        "alchemy"
+      ],
+      "summary": "Reagents can lower Drain, assist alchemy, or enable ritual work. Units and purity rules vary. ShadowDeck does not inventory reagents automatically—note stocks if your campaign tracks them.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 316,
+          "label": "SR5 CRB (reagents) p.316"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-alchemy",
+      "title": "Alchemy and preparations (pointer)",
+      "category": "magic",
+      "tags": [
+        "alchemy",
+        "preparation"
+      ],
+      "summary": "Alchemy creates preparations that release spell effects later. Potency, lynchpins, and command words are book systems. Use Magic notes for prepared items.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 304,
+          "label": "SR5 CRB (alchemy) p.304"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-astral",
+      "title": "Astral perception and projection",
+      "category": "magic",
+      "tags": [
+        "astral",
+        "projection",
+        "perception"
+      ],
+      "summary": "Astral perception lets you see auras; projection leaves the body vulnerable. Dual-natured threats and wards matter. Combat on the astral uses different attributes—see the astral combat section of your book.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 312,
+          "label": "SR5 CRB (astral) p.312"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 132,
+          "label": "SR6 Core (astral) p.132"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-wards",
+      "title": "Wards and magical security (pointer)",
+      "category": "magic",
+      "tags": [
+        "ward",
+        "security"
+      ],
+      "summary": "Wards block or alert on astral intrusion. Force and type determine resistance. Corporate sites lean heavily on wards—plan legwork accordingly.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 297,
+          "label": "SR5 CRB (wards) p.297"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-astral"
+      ]
+    },
+    {
+      "id": "magic-background",
+      "title": "Background count (pointer)",
+      "category": "magic",
+      "tags": [
+        "background count",
+        "aspected"
+      ],
+      "summary": "Background count can raise or lower effective Magic and Drain in corrupted or sacred sites. Apply as a situational Magic modifier when the GM declares a count.",
+      "formula": "Often ± count to Magic / Drain difficulty",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 280,
+          "label": "SR5 CRB (background count) p.280"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "magic-counterspelling",
+      "title": "Counterspelling",
+      "category": "magic",
+      "tags": [
+        "counterspelling",
+        "dispel"
+      ],
+      "summary": "Counterspelling adds dice to resist spells or can dispel sustained effects. Declare defense when you are aware of hostile magic. Pool uses Counterspelling skill + Magic.",
+      "formula": "Defense: Counterspelling + Magic (see book)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 294,
+          "label": "SR5 CRB (counterspelling) p.294"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 131,
+          "label": "SR6 Core (counterspelling) p.131"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "matrix-overwatch",
+      "title": "Overwatch Score (overview)",
+      "category": "matrix",
+      "tags": [
+        "overwatch",
+        "OS",
+        "GOD",
+        "matrix",
+        "decker"
+      ],
+      "summary": "Illegal or noisy Matrix actions accumulate Overwatch Score. When OS hits the convergence threshold, GOD comes looking. ShadowDeck’s calculator uses a simplified action cost table for session tracking—not a full Matrix resolution engine.",
+      "formula": "OS += action cost · Convergence often ~40 (edition-dependent)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 231,
+          "label": "SR5 CRB (Overwatch)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 174,
+          "label": "SR6 Core (Matrix)"
+        }
+      ],
+      "calculator": "overwatch",
+      "relatedIDs": [
+        "matrix-persona",
+        "matrix-noise"
+      ]
+    },
+    {
+      "id": "matrix-persona",
+      "title": "Personas and icons",
+      "category": "matrix",
+      "tags": [
+        "persona",
+        "ASDF",
+        "attributes"
+      ],
+      "summary": "Your persona is your Matrix self; devices and hosts appear as icons. Attack, Sleaze, Data Processing, and Firewall (or edition equivalents) define cybercombat and stealth. ShadowDeck stores decker gear but does not simulate hosts.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 218,
+          "label": "SR5 CRB (persona) p.218"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 172,
+          "label": "SR6 Core (Matrix) p.172"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-overwatch"
+      ]
+    },
+    {
+      "id": "matrix-noise",
+      "title": "Noise and signal",
+      "category": "matrix",
+      "tags": [
+        "noise",
+        "signal",
+        "jamming"
+      ],
+      "summary": "Noise from distance, spam, and jamming reduces Matrix dice pools. Sharing and data taps can help. Apply noise as a negative modifier when the GM declares it.",
+      "formula": "Matrix pool − noise (min 0)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 230,
+          "label": "SR5 CRB (noise) p.230"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 173,
+          "label": "SR6 Core (noise) p.173"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-overwatch"
+      ]
+    },
+    {
+      "id": "matrix-cybercombat",
+      "title": "Cybercombat (overview)",
+      "category": "matrix",
+      "tags": [
+        "cybercombat",
+        "Attack",
+        "Firewall"
+      ],
+      "summary": "Cybercombat pits Attack vs Firewall (and similar) with digital damage tracks. Programs and agent help. Convergence and link-locking end poorly for the decker.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 238,
+          "label": "SR5 CRB (cybercombat) p.238"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 176,
+          "label": "SR6 Core (cybercombat) p.176"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-overwatch",
+        "matrix-persona"
+      ]
+    },
+    {
+      "id": "matrix-sleaze",
+      "title": "Sleaze and running silent",
+      "category": "matrix",
+      "tags": [
+        "sleaze",
+        "silent",
+        "stealth"
+      ],
+      "summary": "Sleaze actions hide your icon or invade quietly. Running silent makes you harder to spot but can impede your own perception. Failed stealth raises OS or alerts hosts.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 235,
+          "label": "SR5 CRB (sleaze) p.235"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 175,
+          "label": "SR6 Core (sneaking) p.175"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-overwatch"
+      ]
+    },
+    {
+      "id": "matrix-hosts",
+      "title": "Hosts and IC (pointer)",
+      "category": "matrix",
+      "tags": [
+        "host",
+        "IC",
+        "spider"
+      ],
+      "summary": "Hosts have ratings, IC, and security spiders. Brute-forcing or social-engineering entry are both valid. ShadowDeck is not a host generator—use published hosts or GM notes.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 246,
+          "label": "SR5 CRB (hosts) p.246"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 177,
+          "label": "SR6 Core (hosts) p.177"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-cybercombat"
+      ]
+    },
+    {
+      "id": "matrix-resonance",
+      "title": "Technomancers and Resonance",
+      "category": "matrix",
+      "tags": [
+        "technomancer",
+        "resonance",
+        "sprite",
+        "fading"
+      ],
+      "summary": "Technomancers use Resonance instead of cyberdecks, with complex forms and sprites. Fading is their Drain analog. Submersion improves Resonance potential.",
+      "formula": "Fading similar to Drain structure",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 249,
+          "label": "SR5 CRB (technomancers) p.249"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 180,
+          "label": "SR6 Core (technomancers) p.180"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-initiation",
+        "magic-drain"
+      ]
+    },
+    {
+      "id": "matrix-rigging",
+      "title": "Rigging and RCCs (pointer)",
+      "category": "matrix",
+      "tags": [
+        "rigger",
+        "drone",
+        "RCC"
+      ],
+      "summary": "Riggers jump into drones and vehicles via RCCs and control rigs. Noise, sharing, and initiative in the machine matter. Track drones as gear; resolve jumped-in combat with the book.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 265,
+          "label": "SR5 CRB (rigging) p.265"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 142,
+          "label": "SR6 Core (rigging) p.142"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-vehicles"
+      ]
+    },
+    {
+      "id": "matrix-marks",
+      "title": "Marks (overview)",
+      "category": "matrix",
+      "tags": [
+        "mark",
+        "marks",
+        "access"
+      ],
+      "summary": "Marks represent illegal access on an icon. More marks enable stronger actions (edit, crash, reboot). Gaining marks is often an Attack or Sleaze test vs the target’s defenses.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 237,
+          "label": "SR5 CRB (marks) p.237"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 175,
+          "label": "SR6 Core (marks) p.175"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-sleaze",
+        "matrix-cybercombat"
+      ]
+    },
+    {
+      "id": "matrix-programs",
+      "title": "Programs and agents",
+      "category": "matrix",
+      "tags": [
+        "program",
+        "agent"
+      ],
+      "summary": "Common programs (Encryption, Biofeedback Filter, etc.) and agents automate tasks. Running too many programs can tax Data Processing. List key programs on your deck gear notes.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 243,
+          "label": "SR5 CRB (programs) p.243"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-persona"
+      ]
+    },
+    {
+      "id": "social-etiquette",
+      "title": "Social tests and etiquette",
+      "category": "social",
+      "tags": [
+        "etiquette",
+        "social",
+        "charisma"
+      ],
+      "summary": "Social skills (Etiquette, Negotiation, Con, Intimidation, Leadership) plus Charisma drive most interpersonal tests. Glitches can offend powerful people. Apply situational mods for culture, prejudice, and attire.",
+      "formula": "Pool ≈ social skill + CHA ± mods",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 130,
+          "label": "SR4A (social) p.130"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 140,
+          "label": "SR5 CRB (social skills) p.140"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 96,
+          "label": "SR6 Core (social) p.96"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-negotiation",
+        "social-contacts"
+      ]
+    },
+    {
+      "id": "social-negotiation",
+      "title": "Negotiation and opposed social",
+      "category": "social",
+      "tags": [
+        "negotiation",
+        "opposed",
+        "deal"
+      ],
+      "summary": "Negotiation is often opposed (your Negotiation vs their Negotiation or Willpower+Charisma). Net hits shift price, terms, or attitude. Bring leverage as dice or thresholds.",
+      "formula": "Opposed social skill tests; net hits = leverage",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 140,
+          "label": "SR5 CRB (negotiation) p.140"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 97,
+          "label": "SR6 Core (negotiation) p.97"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette",
+        "dice-opposed-tests"
+      ]
+    },
+    {
+      "id": "social-contacts",
+      "title": "Contacts (Loyalty and Connection)",
+      "category": "social",
+      "tags": [
+        "contact",
+        "loyalty",
+        "connection"
+      ],
+      "summary": "Loyalty measures how far a contact will go for you; Connection measures their reach. ShadowDeck stores both plus tags, favors, and an interaction log. Improve them with karma, nuyen, and fiction.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 280,
+          "label": "SR4A (contacts)"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 386,
+          "label": "SR5 CRB (contacts)"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 178,
+          "label": "SR6 Core (contacts)"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-contacts-loyalty",
+        "social-favors"
+      ]
+    },
+    {
+      "id": "social-favors",
+      "title": "Favors and chips",
+      "category": "social",
+      "tags": [
+        "favor",
+        "chip",
+        "debt"
+      ],
+      "summary": "Contacts owe or collect favors. ShadowDeck’s favor standing and log help track who is up. Spending a favor can remove dice penalties or open doors—GM fiat still rules outcomes.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "social-contacts"
+      ]
+    },
+    {
+      "id": "social-leadership",
+      "title": "Leadership and teamwork social",
+      "category": "social",
+      "tags": [
+        "leadership",
+        "inspire"
+      ],
+      "summary": "Leadership can coordinate teams, inspire, and sometimes grant teamwork benefits. Use it for crew briefings and NPC management mid-run.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 141,
+          "label": "SR5 CRB (leadership) p.141"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-teamwork",
+        "social-etiquette"
+      ]
+    },
+    {
+      "id": "social-intimidation",
+      "title": "Intimidation",
+      "category": "social",
+      "tags": [
+        "intimidation",
+        "fear"
+      ],
+      "summary": "Intimidation forces compliance through fear. It can backfire into lasting enmity. Opposed by Willpower-linked defenses or Intimidation.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 140,
+          "label": "SR5 CRB (intimidation) p.140"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette"
+      ]
+    },
+    {
+      "id": "social-con",
+      "title": "Con and disguise social",
+      "category": "social",
+      "tags": [
+        "con",
+        "fast talk",
+        "scam"
+      ],
+      "summary": "Con covers fast-talk and scams; disguise and forgery support false identities. Opposed by Judge Intentions / Perception-style defenses depending on edition.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 141,
+          "label": "SR5 CRB (con) p.141"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette"
+      ]
+    },
+    {
+      "id": "social-judge",
+      "title": "Judge Intentions",
+      "category": "social",
+      "tags": [
+        "judge intentions",
+        "sense motive"
+      ],
+      "summary": "Judge Intentions (or similar) pits your social perception against the target’s composure to sense honesty or mood. Useful before deals and ambushes.",
+      "formula": "Often CHA + skill vs WIL + skill",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 152,
+          "label": "SR5 CRB (judge intentions) p.152"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette",
+        "dice-opposed-tests"
+      ]
+    },
+    {
+      "id": "chargen-priority",
+      "title": "Priority chargen (overview)",
+      "category": "chargen",
+      "tags": [
+        "priority",
+        "chargen",
+        "A–E"
+      ],
+      "summary": "SR5 and SR6 default chargen assign A–E priorities to metatype, attributes, magic/resonance, skills, and resources. ShadowDeck’s wizard enforces the selected edition’s priority table and house-rule variants (e.g. Sum-to-Ten).",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 65,
+          "label": "SR5 CRB (priority) p.65"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 56,
+          "label": "SR6 Core (priority) p.56"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-metatype",
+        "chargen-resources"
+      ]
+    },
+    {
+      "id": "chargen-karmagen",
+      "title": "Karma generation (overview)",
+      "category": "chargen",
+      "tags": [
+        "karmagen",
+        "point buy"
+      ],
+      "summary": "Some tables use pure karma build instead of priorities. Point totals and freebies differ by house rule pack. ShadowDeck’s primary path is priority/wizard; karma gen is a table agreement.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 84,
+          "label": "SR4A (build points) p.84"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-priority"
+      ]
+    },
+    {
+      "id": "chargen-metatype",
+      "title": "Metatype choice",
+      "category": "chargen",
+      "tags": [
+        "metatype",
+        "elf",
+        "ork",
+        "troll",
+        "dwarf"
+      ],
+      "summary": "Metatype sets attribute minimums/maximums and special qualities (low-light, reach, etc.). Priority or BP cost reflects how strong the metatype is. ShadowDeck applies metatype attribute bounds in the wizard and validation.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 66,
+          "label": "SR4A (metatypes) p.66"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 66,
+          "label": "SR5 CRB (metatypes) p.66"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 57,
+          "label": "SR6 Core (metatypes) p.57"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-priority",
+        "adv-soft-caps"
+      ]
+    },
+    {
+      "id": "chargen-qualities",
+      "title": "Qualities at chargen",
+      "category": "chargen",
+      "tags": [
+        "quality",
+        "positive",
+        "negative"
+      ],
+      "summary": "Positive qualities cost build resources; negative qualities return resources with roleplay hooks. Essence, karma, and availability limits apply. ShadowDeck’s Qualities tab and catalog browser support selection.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 90,
+          "label": "SR4A (qualities) p.90"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 71,
+          "label": "SR5 CRB (qualities) p.71"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 60,
+          "label": "SR6 Core (qualities) p.60"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-qualities-post"
+      ]
+    },
+    {
+      "id": "chargen-resources",
+      "title": "Resources and nuyen at start",
+      "category": "chargen",
+      "tags": [
+        "resources",
+        "nuyen",
+        "gear"
+      ],
+      "summary": "Resources priority (or BP) becomes starting nuyen for gear. Leftover cash may convert to lifestyle or carry into play per table rules. ShadowDeck sets starting nuyen from the wizard resources step.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 94,
+          "label": "SR5 CRB (resources) p.94"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 64,
+          "label": "SR6 Core (resources) p.64"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-priority"
+      ]
+    },
+    {
+      "id": "chargen-magic-res",
+      "title": "Magic / Resonance at chargen",
+      "category": "chargen",
+      "tags": [
+        "magic",
+        "resonance",
+        "adept",
+        "technomancer"
+      ],
+      "summary": "Magic or Resonance priority grants Magician, Adept, Technomancer, etc., with a starting Magic/Resonance rank and skills. Mundanes skip this column. ShadowDeck’s wizard branches on the chosen path.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 68,
+          "label": "SR5 CRB (magic priority) p.68"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 58,
+          "label": "SR6 Core (magic) p.58"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "magic-adept",
+        "matrix-resonance"
+      ]
+    },
+    {
+      "id": "chargen-skills",
+      "title": "Skill ranks at chargen",
+      "category": "chargen",
+      "tags": [
+        "skills",
+        "chargen"
+      ],
+      "summary": "Skill points or skill priorities buy ranks and groups. Specializations may be free or cheap at chargen. ShadowDeck’s wizard allocates skill ranks per edition method.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 88,
+          "label": "SR5 CRB (skills) p.88"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 62,
+          "label": "SR6 Core (skills) p.62"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-skill-raise",
+        "dice-composition"
+      ]
+    },
+    {
+      "id": "chargen-attributes",
+      "title": "Attributes at chargen",
+      "category": "chargen",
+      "tags": [
+        "attributes",
+        "chargen"
+      ],
+      "summary": "Attribute points raise stats within metatype limits. Special attributes (Edge, Magic, Resonance) follow separate budgets. Validation catches illegal arrays.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 66,
+          "label": "SR5 CRB (attributes) p.66"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 57,
+          "label": "SR6 Core (attributes) p.57"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-metatype",
+        "adv-attribute-raise"
+      ]
+    },
+    {
+      "id": "chargen-essence",
+      "title": "Essence and cyberware at chargen",
+      "category": "chargen",
+      "tags": [
+        "essence",
+        "cyberware",
+        "bioware"
+      ],
+      "summary": "Cyberware and bioware cost Essence and nuyen. Magic users lose maximum Magic as Essence drops. ShadowDeck tracks Essence on augs and validates Magic caps.",
+      "formula": "Essence starts at 6; augs reduce it",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr4a",
+          "page": 310,
+          "label": "SR4A (cyberware) p.310"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 454,
+          "label": "SR5 CRB (cyberware) p.454"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 164,
+          "label": "SR6 Core (augs) p.164"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "catalog-cyberware"
+      ]
+    },
+    {
+      "id": "chargen-knowledge",
+      "title": "Knowledge skills at chargen",
+      "category": "chargen",
+      "tags": [
+        "knowledge",
+        "language",
+        "chargen"
+      ],
+      "summary": "Knowledge and language points are often free formulas from attributes (e.g. Logic/Intuition based). House rules may grant free knowledge ranks. ShadowDeck supports free-knowledge house rules where implemented.",
+      "formula": "Often free points from LOG / INT formulas",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 88,
+          "label": "SR5 CRB (knowledge) p.88"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-knowledge-language"
+      ]
+    },
+    {
+      "id": "chargen-contacts-start",
+      "title": "Starting contacts",
+      "category": "chargen",
+      "tags": [
+        "contacts",
+        "chargen"
+      ],
+      "summary": "Chargen may grant free contact points (CHA-based) to buy Loyalty and Connection. ShadowDeck’s contact tools work the same after play begins.",
+      "formula": "Often free contact points ≈ CHA × N",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 98,
+          "label": "SR5 CRB (contacts) p.98"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 66,
+          "label": "SR6 Core (contacts) p.66"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-contacts"
+      ]
+    },
+    {
+      "id": "chargen-final-touches",
+      "title": "Final touches and playability",
+      "category": "chargen",
+      "tags": [
+        "validation",
+        "checklist"
+      ],
+      "summary": "Before play, confirm lifestyle, SIN, commlink, and a way to receive jobs. ShadowDeck’s validation banner flags empty skills, zero Edge issues, and other sheet problems.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "life-levels",
+        "chargen-priority"
+      ]
+    },
+    {
+      "id": "catalog-gear",
+      "title": "Gear ratings and availability",
+      "category": "catalog",
+      "tags": [
+        "gear",
+        "availability",
+        "rating"
+      ],
+      "summary": "Gear has rating, availability, and cost. Restricted items need licenses or black-market channels. ShadowDeck’s catalog browser lists bundled SR5 stats; custom gear is always allowed.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 416,
+          "label": "SR5 CRB (gear) p.416"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "catalog-weapons",
+        "chargen-resources"
+      ]
+    },
+    {
+      "id": "catalog-weapons",
+      "title": "Weapons and damage codes",
+      "category": "catalog",
+      "tags": [
+        "weapon",
+        "DV",
+        "AP",
+        "firearm"
+      ],
+      "summary": "Weapons list DV, AP, mode, and ammo. Skill and specialization govern the attack pool. Equip weapons on the Gear tab so armor and bonuses update the sheet.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 424,
+          "label": "SR5 CRB (weapons) p.424"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-damage-resistance",
+        "combat-recoil"
+      ]
+    },
+    {
+      "id": "catalog-armor",
+      "title": "Armor pieces and capacity",
+      "category": "catalog",
+      "tags": [
+        "armor",
+        "capacity"
+      ],
+      "summary": "Armor provides rating and often capacity for modifications. Stacking rules prevent infinite armor. ShadowDeck uses equipped armor ratings for Summary armor display.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 436,
+          "label": "SR5 CRB (armor) p.436"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-armor-ap"
+      ]
+    },
+    {
+      "id": "catalog-cyberware",
+      "title": "Cyberware grades",
+      "category": "catalog",
+      "tags": [
+        "cyberware",
+        "grade",
+        "essence"
+      ],
+      "summary": "Standard, alpha, beta, and delta grades change Essence cost and price. Used cyberware may be cheaper and riskier. ShadowDeck stores grade and Essence on augmentation rows.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 451,
+          "label": "SR5 CRB (cyberware) p.451"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-essence"
+      ]
+    },
+    {
+      "id": "catalog-bioware",
+      "title": "Bioware",
+      "category": "catalog",
+      "tags": [
+        "bioware",
+        "essence"
+      ],
+      "summary": "Bioware costs Essence (often less harshly than cyber) and nuyen, with culturing time in fiction. Track implanted bioware on the Augs tab.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 458,
+          "label": "SR5 CRB (bioware) p.458"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "catalog-cyberware"
+      ]
+    },
+    {
+      "id": "catalog-commlinks",
+      "title": "Commlinks and decks",
+      "category": "catalog",
+      "tags": [
+        "commlink",
+        "cyberdeck",
+        "device"
+      ],
+      "summary": "Commlinks provide Matrix attributes for everyday users; cyberdecks power deckers. Device rating and programs matter. Store devices as gear with notes for ASDF arrays.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 438,
+          "label": "SR5 CRB (electronics) p.438"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "matrix-persona"
+      ]
+    },
+    {
+      "id": "catalog-vehicles",
+      "title": "Vehicles and drones",
+      "category": "catalog",
+      "tags": [
+        "vehicle",
+        "drone"
+      ],
+      "summary": "Vehicles list handling, speed, body, armor, and pilot. Drones need pilots or jumped-in riggers. ShadowDeck can store them as gear; combat uses book vehicle rules.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 460,
+          "label": "SR5 CRB (vehicles) p.460"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-vehicles",
+        "matrix-rigging"
+      ]
+    },
+    {
+      "id": "catalog-ammo",
+      "title": "Ammunition types",
+      "category": "catalog",
+      "tags": [
+        "ammo",
+        "ammunition"
+      ],
+      "summary": "Ammo variants change DV, AP, or special effects (gel, APDS, explosive). Track loaded ammo in notes if your table is strict about counts.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 433,
+          "label": "SR5 CRB (ammo) p.433"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "catalog-weapons"
+      ]
+    },
+    {
+      "id": "catalog-drugs",
+      "title": "Drugs and toxins (pointer)",
+      "category": "catalog",
+      "tags": [
+        "drug",
+        "toxin",
+        "addiction"
+      ],
+      "summary": "Drugs grant short bonuses with addiction and side effects. Toxins use vector and power. Resolve with the toxin chapter; record doses in gear or notes.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 409,
+          "label": "SR5 CRB (drugs) p.409"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-damage-resistance"
+      ]
+    },
+    {
+      "id": "catalog-ware-essence",
+      "title": "Essence loss and Magic",
+      "category": "catalog",
+      "tags": [
+        "essence",
+        "magic",
+        "maximum"
+      ],
+      "summary": "As Essence falls, maximum Magic/Resonance usually falls. Adepts and magicians must plan ware carefully. ShadowDeck validation warns when Magic exceeds Essence-based maximums where known.",
+      "formula": "Max Magic often ≤ ⌈Essence⌉ (see edition)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 278,
+          "label": "SR5 CRB (Magic and Essence) p.278"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "chargen-essence",
+        "magic-adept"
+      ]
+    },
+    {
+      "id": "other-glitch-fiction",
+      "title": "Playing glitches at the table",
+      "category": "other",
+      "tags": [
+        "glitch",
+        "GMing",
+        "fiction"
+      ],
+      "summary": "Mechanical glitches are an invitation for complication, not automatic failure of the whole mission. Critical glitches should sting without ending the campaign unless the fiction demands it.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-glitch"
+      ]
+    },
+    {
+      "id": "other-house-rules-scope",
+      "title": "House rules philosophy",
+      "category": "other",
+      "tags": [
+        "house rules",
+        "table"
+      ],
+      "summary": "ShadowDeck’s House Rules browser toggles popular mechanical variants (Sum-to-Ten, dice, free knowledge, etc.). Keep the list short so the table remembers what is on. Custom fiction rules stay in notes.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-house-rules",
+        "chargen-priority"
+      ]
+    },
+    {
+      "id": "other-legwork",
+      "title": "Legwork and matrix search",
+      "category": "other",
+      "tags": [
+        "legwork",
+        "investigation"
+      ],
+      "summary": "Legwork combines social contacts, Matrix search, and knowledge skills. Extended tests and teamwork often apply. Use dice cards for the rolls; use contacts for the fiction pipeline.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 48,
+          "label": "SR5 CRB (extended) p.48"
+        },
+        {
+          "bookKey": "sr5-crb",
+          "page": 387,
+          "label": "SR5 CRB (contacts) p.387"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-extended-tests",
+        "social-contacts",
+        "matrix-sleaze"
+      ]
+    },
+    {
+      "id": "other-heat",
+      "title": "Heat and consequences",
+      "category": "other",
+      "tags": [
+        "heat",
+        "consequences",
+        "run"
+      ],
+      "summary": "Runs generate heat that can raise security, close contacts, or attract hunters. ShadowDeck’s Run tracker records heat fields—apply fiction fallout on the next job.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "adv-run-awards"
+      ]
+    },
+    {
+      "id": "other-downtime",
+      "title": "Downtime between runs",
+      "category": "other",
+      "tags": [
+        "downtime",
+        "training"
+      ],
+      "summary": "Downtime is for healing, training, lifestyle, and side hustles. ShadowDeck’s Process Month, Plan tab, and contact logs are the mechanical hooks—schedule fiction between sessions.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [],
+      "calculator": null,
+      "relatedIDs": [
+        "life-process-month",
+        "adv-skill-raise"
+      ]
+    },
+    {
+      "id": "other-healing",
+      "title": "Healing and recovery (overview)",
+      "category": "other",
+      "tags": [
+        "healing",
+        "recovery",
+        "medicine"
+      ],
+      "summary": "Stun heals faster than physical; medicine and magic can accelerate recovery. Overflow and permanent damage rules are edition-specific. Clear boxes on the condition track when the book says you recover.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 205,
+          "label": "SR5 CRB (healing) p.205"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 43,
+          "label": "SR6 Core (healing) p.43"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "combat-condition-monitors"
+      ]
+    },
+    {
+      "id": "other-perception",
+      "title": "Perception tests",
+      "category": "other",
+      "tags": [
+        "perception",
+        "notice"
+      ],
+      "summary": "Perception (or similar) notices details, ambushes, and Matrix icons. Thresholds rise with distance and distraction. Team perception can use teamwork rules.",
+      "formula": "Pool ≈ Perception + INT ± mods",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 135,
+          "label": "SR5 CRB (perception) p.135"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 95,
+          "label": "SR6 Core (perception) p.95"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-thresholds",
+        "combat-surprise"
+      ]
+    },
+    {
+      "id": "other-sneaking",
+      "title": "Sneaking and infiltration",
+      "category": "other",
+      "tags": [
+        "sneaking",
+        "infiltration",
+        "stealth"
+      ],
+      "summary": "Sneaking is opposed by Perception. Cameras, magic, and noise change the contest. Matrix silent running is the digital cousin.",
+      "formula": "Sneaking + AGI vs Perception + INT (typical)",
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 136,
+          "label": "SR5 CRB (sneaking) p.136"
+        },
+        {
+          "bookKey": "sr6-core",
+          "page": 95,
+          "label": "SR6 Core (stealth) p.95"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-opposed-tests",
+        "matrix-sleaze"
+      ]
+    },
+    {
+      "id": "other-survival",
+      "title": "Survival and environment",
+      "category": "other",
+      "tags": [
+        "survival",
+        "environment",
+        "toxic"
+      ],
+      "summary": "Survival covers weather, wilderness, and toxic zones. Extended tests and gear (breathers, survival kits) matter. Apply environmental wound or fatigue rules from the book.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 137,
+          "label": "SR5 CRB (survival) p.137"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "dice-extended-tests"
+      ]
+    },
+    {
+      "id": "other-etiquette-subculture",
+      "title": "Subculture etiquette",
+      "category": "other",
+      "tags": [
+        "etiquette",
+        "subculture"
+      ],
+      "summary": "Etiquette specializations (street, corporate, magic, Matrix) can grant bonuses when you speak the right language of power. Wrong scene, wrong clothes—take penalties.",
+      "formula": null,
+      "editions": [],
+      "pageRefs": [
+        {
+          "bookKey": "sr5-crb",
+          "page": 140,
+          "label": "SR5 CRB (etiquette) p.140"
+        }
+      ],
+      "calculator": null,
+      "relatedIDs": [
+        "social-etiquette"
+      ]
+    }
+  ]
+}

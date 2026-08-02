@@ -87,6 +87,8 @@ public struct HouseRules: Codable, Sendable, Hashable {
     public var essenceRoundingStep: Decimal
     /// Karma budget for full karmagen when enabled.
     public var karmaGenBudget: Int
+    /// Dice-test house rules (glitch, Rule of Six, hit band). Optional for legacy payloads.
+    public var dice: DiceHouseRules?
 
     public init(
         enabled: Set<HouseRuleID> = [],
@@ -95,7 +97,8 @@ public struct HouseRules: Codable, Sendable, Hashable {
         extraContactPoints: Int = 0,
         positiveQualityKarmaCap: Int? = nil,
         essenceRoundingStep: Decimal = Decimal(string: "0.1") ?? 0.1,
-        karmaGenBudget: Int = 750
+        karmaGenBudget: Int = 750,
+        dice: DiceHouseRules? = nil
     ) {
         self.enabled = enabled
         self.bonusKarma = bonusKarma
@@ -104,6 +107,12 @@ public struct HouseRules: Codable, Sendable, Hashable {
         self.positiveQualityKarmaCap = positiveQualityKarmaCap
         self.essenceRoundingStep = essenceRoundingStep
         self.karmaGenBudget = karmaGenBudget
+        self.dice = dice
+    }
+
+    /// Dice rules with core-book defaults when unset.
+    public var resolvedDice: DiceHouseRules {
+        dice ?? .coreBook
     }
 
     public func isEnabled(_ rule: HouseRuleID) -> Bool {
@@ -119,31 +128,32 @@ public struct HouseRules: Codable, Sendable, Hashable {
     }
 
     /// Strict core-book defaults — no house rules.
-    public static let coreBook = HouseRules()
+    public static let coreBook = Self()
 
     /// A sensible “popular table” preset covering the most common conveniences.
-    public static let popularTable = HouseRules(
+    public static let popularTable = Self(
         enabled: [
             .sumToTen,
             .bonusStartingKarma,
             .freeKnowledgeSkills,
             .expandedContacts,
-            .qualityBudgetAdjustment,
+            .qualityBudgetAdjustment
         ],
         bonusKarma: 25,
         freeKnowledgePoints: 0, // edition rules compute from Logic/Intuition when 0 means “auto”
         extraContactPoints: 3,
-        positiveQualityKarmaCap: 35
+        positiveQualityKarmaCap: 35,
+        dice: .popularTable
     )
 
     /// Prime-runner leaning preset.
-    public static let primeRunner = HouseRules(
+    public static let primeRunner = Self(
         enabled: [
             .sumToTen,
             .primeRunnerPackage,
             .bonusStartingKarma,
             .expandedContacts,
-            .exceptionalAttributeAtChargen,
+            .exceptionalAttributeAtChargen
         ],
         bonusKarma: 50,
         freeKnowledgePoints: 0,
