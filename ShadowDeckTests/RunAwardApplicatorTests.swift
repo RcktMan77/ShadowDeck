@@ -379,6 +379,163 @@ final class RunAwardApplicatorTests: XCTestCase {
         XCTAssertNil(run.awardsAppliedNote)
     }
 
+    // MARK: - Reputation & heat (Phase 2D)
+
+    func testApplyReputationDeltasAndHeatNote() throws {
+        let a = UUID()
+        let b = UUID()
+        var chars = [
+            makeCharacter(id: a, name: "Alpha", nuyen: 0, karmaAvailable: 0, karmaTotal: 0),
+            makeCharacter(id: b, name: "Bravo", nuyen: 0, karmaAvailable: 0, karmaTotal: 0)
+        ]
+        chars[0].streetCred = 2
+        chars[0].notoriety = 0
+        chars[0].publicAwareness = 1
+        var run = finishedRun(
+            title: "Quiet Extraction",
+            participantIDs: [a, b],
+            expected: RunPayout(nuyen: 2_000, karma: 2)
+        )
+
+        var shares = RunAwardApplicator.preview(
+            run: run,
+            charactersByID: Dictionary(uniqueKeysWithValues: chars.map { ($0.id, $0) })
+        ).perCharacter
+        // Equal split: 1000 each, 1 karma each
+        shares[0].streetCredDelta = 1
+        shares[0].notorietyDelta = 0
+        shares[0].publicAwarenessDelta = 0
+        shares[1].streetCredDelta = 0
+        shares[1].notorietyDelta = 1
+        shares[1].publicAwarenessDelta = 1
+
+        let appliedAt = Date(timeIntervalSince1970: 1_710_000_000)
+        let result = try RunAwardApplicator.apply(
+            run: &run,
+            characters: &chars,
+            shares: shares,
+            note: "Paid in certified",
+            heatNote: "+1 heat from messy exit",
+            at: appliedAt
+        )
+
+        XCTAssertEqual(result.heatNote, "+1 heat from messy exit")
+        XCTAssertEqual(result.applied[0].streetCredDelta, 1)
+
+        let alpha = chars.first { $0.id == a }!
+        let bravo = chars.first { $0.id == b }!
+        XCTAssertEqual(alpha.streetCred, 3)
+        XCTAssertEqual(alpha.notoriety, 0)
+        XCTAssertEqual(alpha.publicAwareness, 1)
+        XCTAssertEqual(bravo.streetCred, 0)
+        XCTAssertEqual(bravo.notoriety, 1)
+        XCTAssertEqual(bravo.publicAwareness, 1)
+
+        let ledger = alpha.advancementLedgerEntries.first
+        XCTAssertEqual(ledger?.streetCredDelta, 1)
+        XCTAssertTrue(ledger?.summary.contains("SC") == true)
+
+        XCTAssertTrue(run.sessionLog.contains { $0.kind == .heat && $0.text.contains("messy exit") })
+        XCTAssertTrue(run.sessionLog.contains { $0.kind == .note && $0.text.contains("Reputation") })
+    }
+
+    func testApplyZeroReputationLeavesScoresUntouched() throws {
+        let id = UUID()
+        var chars = [makeCharacter(id: id)]
+        // Pre-existing rep bag stays put when all deltas are 0.
+        chars[0].streetCred = 5
+        chars[0].notoriety = 1
+        var run = finishedRun(
+            participantIDs: [id],
+            expected: RunPayout(nuyen: 100, karma: 1)
+        )
+
+        _ = try RunAwardApplicator.apply(run: &run, characters: &chars)
+        XCTAssertEqual(chars[0].streetCred, 5)
+        XCTAssertEqual(chars[0].notoriety, 1)
+        XCTAssertEqual(chars[0].publicAwareness, 0)
+
+        // Fresh character with no reputation bag never gets one from zero deltas.
+        var fresh = [makeCharacter(id: id)]
+        var run2 = finishedRun(
+            participantIDs: [id],
+            expected: RunPayout(nuyen: 50, karma: 1)
+        )
+        _ = try RunAwardApplicator.apply(run: &run2, characters: &fresh)
+        XCTAssertNil(fresh[0].reputation)
+        XCTAssertEqual(fresh[0].streetCred, 0)
+    }
+
+    func testApplyCustomSharesMismatchThrows() {
+        let a = UUID()
+        let b = UUID()
+        var chars = [makeCharacter(id: a), makeCharacter(id: b)]
+        var run = finishedRun(
+            participantIDs: [a, b],
+            expected: RunPayout(nuyen: 100, karma: 1)
+        )
+        let badShares = [
+            AwardShare(characterID: a, name: "Alpha", nuyen: 100, karma: 1)
+            // missing b
+        ]
+
+        XCTAssertThrowsError(
+            try RunAwardApplicator.apply(run: &run, characters: &chars, shares: badShares)
+        ) { error in
+            XCTAssertEqual(error as? RunAwardApplicatorError, .shareSetMismatch)
+        }
+    }
+
+    func testCharacterReputationLegacyDecodeDefaultsToZero() throws {
+        // Minimal character JSON without reputation key still decodes.
+        var c = makeCharacter(name: "Legacy")
+        c.reputation = nil
+        let data = try PortableCharacterCoding.encodeCharacter(c)
+        // Strip reputation if encoder wrote null — use a character that never set it.
+        let decoded = try PortableCharacterCoding.decode(from: data).character
+        XCTAssertEqual(decoded.streetCred, 0)
+        XCTAssertEqual(decoded.notoriety, 0)
+        XCTAssertEqual(decoded.publicAwareness, 0)
+    }
+
+    func testCharacterReputationRoundTrip() throws {
+        var c = makeCharacter(name: "Rep Runner")
+        c.streetCred = 7
+        c.notoriety = 2
+        c.publicAwareness = 3
+        let data = try PortableCharacterCoding.encodeCharacter(c)
+        let decoded = try PortableCharacterCoding.decode(from: data).character
+        XCTAssertEqual(decoded.streetCred, 7)
+        XCTAssertEqual(decoded.notoriety, 2)
+        XCTAssertEqual(decoded.publicAwareness, 3)
+    }
+
+    func testLegacyLedgerWithoutRepDeltasDecodes() throws {
+        let id = UUID()
+        let date = Date(timeIntervalSince1970: 1_600_000_000)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        // Build via encode of entry without rep fields set (zeros omitted on encode)
+        let entry = AdvancementLedgerEntry(
+            id: id,
+            date: date,
+            kind: .runAward,
+            summary: "Job — ¥100 + 1 karma",
+            karmaSpent: -1,
+            nuyenDelta: 100
+        )
+        let data = try encoder.encode(entry)
+        // Ensure rep keys were omitted when zero
+        let json = String(data: data, encoding: .utf8) ?? ""
+        XCTAssertFalse(json.contains("streetCredDelta"))
+        let decoded = try decoder.decode(AdvancementLedgerEntry.self, from: data)
+        XCTAssertEqual(decoded.streetCredDelta, 0)
+        XCTAssertEqual(decoded.notorietyDelta, 0)
+        XCTAssertEqual(decoded.publicAwarenessDelta, 0)
+    }
+
     // MARK: - Codable fields
 
     func testRunAwardsFieldsCodableRoundTrip() throws {
