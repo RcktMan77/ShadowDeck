@@ -94,6 +94,7 @@ struct ContentView: View {
     /// Open this campaign detail after Create → New Campaign (or toolbar create).
     @State private var openCampaignID: UUID?
     @State private var showNewRunFromTemplate = false
+    @State private var showDraftRunFromPDF = false
     @State private var templatePreferredCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
@@ -116,7 +117,11 @@ struct ContentView: View {
                     selection = .importCharacter
                 },
                 onNewRun: { requestNewRun() },
-                onNewRunFromTemplate: { showNewRunFromTemplate = true }
+                onNewRunFromTemplate: { showNewRunFromTemplate = true },
+                onNewRunFromPDF: { showDraftRunFromPDF = true },
+                onOpenPDFShelf: {
+                    RulesReferenceOpener.requestPDFLibrary()
+                }
             )
         } detail: {
             NavigationStack {
@@ -154,6 +159,15 @@ struct ContentView: View {
             templatePreferredCampaignID = note.userInfo?["campaignID"] as? UUID
             showNewRunFromTemplate = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromPDF)) { _ in
+            showDraftRunFromPDF = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openRunDetail)) { note in
+            guard let runID = note.userInfo?["runID"] as? UUID else { return }
+            newRunDetailID = runID
+            selection = .newRun
+            libraryEnvironment.refreshRunCount()
+        }
         .sheet(isPresented: $showNewRunFromTemplate) {
             NewRunFromTemplateSheet(
                 preferredCampaignID: templatePreferredCampaignID,
@@ -164,6 +178,19 @@ struct ContentView: View {
                 onCreated: { runID in
                     showNewRunFromTemplate = false
                     templatePreferredCampaignID = nil
+                    newRunDetailID = runID
+                    selection = .newRun
+                    libraryEnvironment.refreshRunCount()
+                }
+            )
+            .environment(libraryEnvironment)
+        }
+        .sheet(isPresented: $showDraftRunFromPDF) {
+            DraftRunFromPDFSheet(
+                preferredCampaignID: templatePreferredCampaignID,
+                onCancel: { showDraftRunFromPDF = false },
+                onCreated: { runID in
+                    showDraftRunFromPDF = false
                     newRunDetailID = runID
                     selection = .newRun
                     libraryEnvironment.refreshRunCount()
@@ -201,10 +228,13 @@ struct ContentView: View {
             let query = note.userInfo?["query"] as? String
             let edition = note.userInfo?["edition"] as? Edition
             let calc = note.userInfo?["calcContext"] as? RulesCalcContext
+            let modeRaw = note.userInfo?["mode"] as? String
+            let mode = modeRaw.flatMap(RulesReferenceMode.init(rawValue:)) ?? .reference
             RulesReferenceSession.shared.prepare(
                 query: query,
                 edition: edition ?? calc?.edition,
-                calcContext: calc
+                calcContext: calc,
+                mode: mode
             )
             openWindow(id: RulesReferenceOpener.windowID)
         }
