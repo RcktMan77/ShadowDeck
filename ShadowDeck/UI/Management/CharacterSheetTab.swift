@@ -14,6 +14,8 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
     case augmentations
     case qualities
     case contacts
+    case lifestyle
+    case advance
     case magic
 
     var id: String { rawValue }
@@ -26,6 +28,9 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
         case .augmentations: "Augs"
         case .qualities: "Qualities"
         case .contacts: "Contacts"
+        case .lifestyle: "Lifestyle"
+        // Tab label is "Plan"; the view title remains "Advancement Planner".
+        case .advance: "Plan"
         case .magic: "Magic"
         }
     }
@@ -38,12 +43,14 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
         case .augmentations: "cpu"
         case .qualities: "star.circle"
         case .contacts: "person.2"
+        case .lifestyle: "house"
+        case .advance: "arrow.up.heart"
         case .magic: "sparkles"
         }
     }
 
     /// Tabs shown for a given awakened path (Magic is always available for notes/spells import).
-    static func tabs(for path: AwakenedPath) -> [CharacterSheetTab] {
+    static func tabs(for path: AwakenedPath) -> [Self] {
         // Keep Magic tab for all so imported spells/powers remain reachable after path edits.
         allCases
     }

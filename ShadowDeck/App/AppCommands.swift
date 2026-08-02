@@ -9,6 +9,7 @@ import Foundation
 
 public enum AppCommand {
     public static let newCharacter = Notification.Name("com.shadowdeck.command.newCharacter")
+    public static let newRun = Notification.Name("com.shadowdeck.command.newRun")
     public static let importCharacter = Notification.Name("com.shadowdeck.command.importCharacter")
     public static let openPackage = Notification.Name("com.shadowdeck.command.openPackage")
     /// Posted with a `URL` object when Finder / File > Open hands us a package.
@@ -19,6 +20,20 @@ public enum AppCommand {
     public static let openCharacterForScreenshots = Notification.Name("com.shadowdeck.marketing.openCharacter")
     /// Marketing screenshot runner: jump generation wizard to Concept & Role.
     public static let wizardShowRoleStep = Notification.Name("com.shadowdeck.marketing.wizardRole")
+    /// Marketing screenshot runner: select the Advance tab on the open character sheet.
+    public static let characterSheetShowAdvanceTab = Notification.Name("com.shadowdeck.marketing.characterSheetAdvance")
+    /// Marketing: force RunDetailView to reload from the library after storyboard mutations.
+    public static let marketingReloadRun = Notification.Name("com.shadowdeck.marketing.reloadRun")
+    /// Marketing: force character sheet to reload after storyboard mutations.
+    public static let marketingReloadCharacter = Notification.Name("com.shadowdeck.marketing.reloadCharacter")
+    /// Marketing GIF focus: `userInfo` keys `anchor` (scroll id) and optional `highlight` (control id).
+    public static let marketingFocus = Notification.Name("com.shadowdeck.marketing.focus")
+    /// Open the character-sheet dice roller (⌘D when a sheet is focused).
+    public static let openDiceRoller = Notification.Name("com.shadowdeck.command.openDiceRoller")
+    /// Marketing: open Skills + dice inspector with a completed skill roll (Edge options visible).
+    public static let marketingShowDiceRoller = Notification.Name("com.shadowdeck.marketing.showDiceRoller")
+    /// Open Rules Reference (⌘R). `userInfo["query"]` optional String for search seed.
+    public static let openRulesReference = Notification.Name("com.shadowdeck.command.openRulesReference")
 }
 
 import UniformTypeIdentifiers

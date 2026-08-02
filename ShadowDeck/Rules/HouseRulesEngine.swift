@@ -47,8 +47,7 @@ public enum HouseRulesEngine {
         houseRules: HouseRules
     ) -> Int {
         if houseRules.isEnabled(.qualityBudgetAdjustment),
-           let override = houseRules.positiveQualityKarmaCap
-        {
+           let override = houseRules.positiveQualityKarmaCap {
             return override
         }
         return houseRules.positiveQualityKarmaCap ?? editionDefault

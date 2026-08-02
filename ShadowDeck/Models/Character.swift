@@ -46,7 +46,16 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     public var karmaTotal: Int
     public var karmaAvailable: Int
     public var nuyen: Int
+    /// Buffer spent first when processing monthly lifestyle costs.
     public var lifestyleNuyenReserve: Int
+    /// Last successful “Process Month” (any number of months).
+    public var lifestyleLastProcessedAt: Date?
+    /// Append-only lifestyle payment history (optional in payloads for legacy decode).
+    public var lifestyleLedger: [LifestyleLedgerEntry]?
+    /// Append-only karma advancement history (optional for legacy decode).
+    public var advancementLedger: [AdvancementLedgerEntry]?
+    /// Draft advancement plan (cart). Persists so users can save goals across sessions/tabs.
+    public var advancementPlan: [AdvancementPlanItem]?
 
     /// Play-state condition damage. Optional so legacy library payloads still decode.
     public var conditionTrack: ConditionTrack?
@@ -65,7 +74,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
 
     public init(
         id: UUID = UUID(),
-        schemaVersion: Int = Character.currentSchemaVersion,
+        schemaVersion: Int = Self.currentSchemaVersion,
         name: String,
         streetName: String = "",
         concept: String = "",
@@ -91,6 +100,10 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         karmaAvailable: Int = 0,
         nuyen: Int = 0,
         lifestyleNuyenReserve: Int = 0,
+        lifestyleLastProcessedAt: Date? = nil,
+        lifestyleLedger: [LifestyleLedgerEntry]? = nil,
+        advancementLedger: [AdvancementLedgerEntry]? = nil,
+        advancementPlan: [AdvancementPlanItem]? = nil,
         conditionTrack: ConditionTrack? = nil,
         avatar: AvatarRef = AvatarRef(),
         importProvenance: ImportProvenance? = nil,
@@ -124,11 +137,51 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.karmaAvailable = karmaAvailable
         self.nuyen = nuyen
         self.lifestyleNuyenReserve = lifestyleNuyenReserve
+        self.lifestyleLastProcessedAt = lifestyleLastProcessedAt
+        self.lifestyleLedger = lifestyleLedger
+        self.advancementLedger = advancementLedger
+        self.advancementPlan = advancementPlan
         self.conditionTrack = conditionTrack
         self.avatar = avatar
         self.importProvenance = importProvenance
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
+    }
+
+    /// Ledger entries (empty if never set).
+    public var lifestyleLedgerEntries: [LifestyleLedgerEntry] {
+        get { lifestyleLedger ?? [] }
+        set { lifestyleLedger = newValue.isEmpty ? [] : newValue }
+    }
+
+    public mutating func appendLifestyleLedger(_ entry: LifestyleLedgerEntry, keepLast limit: Int = 40) {
+        var entries = lifestyleLedgerEntries
+        entries.insert(entry, at: 0)
+        if entries.count > limit {
+            entries = Array(entries.prefix(limit))
+        }
+        lifestyleLedger = entries
+    }
+
+    /// Advancement ledger entries (empty if never set).
+    public var advancementLedgerEntries: [AdvancementLedgerEntry] {
+        get { advancementLedger ?? [] }
+        set { advancementLedger = newValue.isEmpty ? [] : newValue }
+    }
+
+    public mutating func appendAdvancementLedger(_ entry: AdvancementLedgerEntry, keepLast limit: Int = 40) {
+        var entries = advancementLedgerEntries
+        entries.insert(entry, at: 0)
+        if entries.count > limit {
+            entries = Array(entries.prefix(limit))
+        }
+        advancementLedger = entries
+    }
+
+    /// Draft plan items (empty if never set). Survives tab switches and library saves.
+    public var advancementPlanItems: [AdvancementPlanItem] {
+        get { advancementPlan ?? [] }
+        set { advancementPlan = newValue.isEmpty ? nil : newValue }
     }
 
     public var physicalDamage: Int {

@@ -138,7 +138,7 @@ public struct CharacterSummary: Identifiable, Hashable, Sendable {
         self.thumbnailData = thumbnailData
     }
 
-    public static func == (lhs: CharacterSummary, rhs: CharacterSummary) -> Bool {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.id == rhs.id
             && lhs.name == rhs.name
             && lhs.streetName == rhs.streetName

@@ -45,6 +45,10 @@ struct HouseRulesBrowserView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button("Look up", systemImage: "book.pages") {
+                    RulesReferenceOpener.request(query: "house rules")
+                }
+                .help("Open Rules Reference for dice house rules and table variants")
                 Button("Cancel", action: onCancel)
             }
 
@@ -77,6 +81,10 @@ struct HouseRulesBrowserView: View {
                     }
                 }
 
+                Section("Dice & tests") {
+                    diceRulesSection
+                }
+
                 if !houseRules.enabled.isEmpty {
                     Section("Live effects") {
                         ForEach(
@@ -100,8 +108,7 @@ struct HouseRulesBrowserView: View {
                 GroupBox("Rule parameters") {
                     VStack(alignment: .leading, spacing: 10) {
                         if houseRules.isEnabled(.bonusStartingKarma)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Bonus starting karma")
                                 Spacer()
@@ -120,8 +127,7 @@ struct HouseRulesBrowserView: View {
                             }
                         }
                         if houseRules.isEnabled(.expandedContacts)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Extra contact points")
                                 Spacer()
@@ -131,8 +137,7 @@ struct HouseRulesBrowserView: View {
                             }
                         }
                         if houseRules.isEnabled(.qualityBudgetAdjustment)
-                            || houseRules.isEnabled(.primeRunnerPackage)
-                        {
+                            || houseRules.isEnabled(.primeRunnerPackage) {
                             HStack {
                                 Text("Positive quality karma cap")
                                 Spacer()
@@ -185,6 +190,109 @@ struct HouseRulesBrowserView: View {
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
+    }
+
+    @ViewBuilder
+    private var diceRulesSection: some View {
+        let diceBinding = Binding(
+            get: { houseRules.dice ?? .coreBook },
+            set: { houseRules.dice = $0 }
+        )
+
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Applied by the character-sheet dice roller. Core Book uses edition defaults.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Picker("Glitch threshold", selection: Binding(
+                get: { diceBinding.wrappedValue.glitchThreshold },
+                set: { v in
+                    var d = diceBinding.wrappedValue
+                    d.glitchThreshold = v
+                    diceBinding.wrappedValue = d
+                }
+            )) {
+                ForEach(DiceGlitchThresholdMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            Text(diceBinding.wrappedValue.glitchThreshold.summary)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            Picker("Rule of Six", selection: Binding(
+                get: { diceBinding.wrappedValue.ruleOfSix },
+                set: { v in
+                    var d = diceBinding.wrappedValue
+                    d.ruleOfSix = v
+                    diceBinding.wrappedValue = d
+                }
+            )) {
+                ForEach(DiceRuleOfSixMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            Text(diceBinding.wrappedValue.ruleOfSix.summary)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            Toggle(isOn: Binding(
+                get: { diceBinding.wrappedValue.countExplodedDiceForGlitch },
+                set: { v in
+                    var d = diceBinding.wrappedValue
+                    d.countExplodedDiceForGlitch = v
+                    diceBinding.wrappedValue = d
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Count exploded dice for glitch")
+                    Text("Off = only the original pool size is used for the glitch check.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.checkbox)
+
+            Toggle(isOn: Binding(
+                get: { diceBinding.wrappedValue.hitsOn4 },
+                set: { v in
+                    var d = diceBinding.wrappedValue
+                    d.hitsOn4 = v
+                    diceBinding.wrappedValue = d
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hits on 4+")
+                    Text("4, 5, and 6 count as hits. Ones still trigger glitches.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.checkbox)
+
+            Toggle(isOn: Binding(
+                get: { diceBinding.wrappedValue.simplifiedSR6Edge },
+                set: { v in
+                    var d = diceBinding.wrappedValue
+                    d.simplifiedSR6Edge = v
+                    diceBinding.wrappedValue = d
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Simplified SR6 Edge")
+                    Text("Push the Limit + Second Chance style (SR5-like). Recommended for SR6 tables.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.checkbox)
+
+            Button("Reset dice rules to core book") {
+                houseRules.dice = .coreBook
+            }
+            .controlSize(.small)
+        }
+        .padding(.vertical, 4)
     }
 
     private func ruleRow(_ rule: HouseRuleID) -> some View {

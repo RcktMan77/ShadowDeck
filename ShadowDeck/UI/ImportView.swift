@@ -199,22 +199,9 @@ struct ImportView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            let url: URL?
-            if let data = item as? Data {
-                url = URL(dataRepresentation: data, relativeTo: nil)
-            } else if let urlItem = item as? URL {
-                url = urlItem
-            } else if let str = item as? String {
-                url = URL(fileURLWithPath: str)
-            } else {
-                url = nil
-            }
-            guard let url else { return }
-            Task { @MainActor in
-                await importURL(url)
-            }
+        Task { @MainActor in
+            guard let url = await LibraryFileDrop.firstFileURL(from: providers) else { return }
+            await importURL(url)
         }
         return true
     }
@@ -227,7 +214,7 @@ struct ImportView: View {
         defer { isImporting = false }
 
         do {
-            let result = try libraryEnvironment.library.importAndSave(from: url)
+            let result = try await libraryEnvironment.library.importAndSave(from: url)
             lastResult = result
             libraryEnvironment.lastErrorMessage = nil
         } catch {
@@ -237,7 +224,7 @@ struct ImportView: View {
 }
 
 #Preview {
-    ImportView(onFinished: { _ in })
+    ImportView { _ in }
         .environment(LibraryEnvironment.preview())
         .frame(width: 640, height: 520)
 }

@@ -45,11 +45,11 @@ enum ManagementSupport {
             return n
         }
         // "0.25 * Rating" style
-        if let m = t.range(
+        if let match = t.range(
             of: #"^([\d.]+)\s*\*\s*Rating$"#,
             options: [.regularExpression, .caseInsensitive]
         ) {
-            let coef = String(t[m])
+            let coef = String(t[match])
                 .replacingOccurrences(of: "Rating", with: "", options: .caseInsensitive)
                 .replacingOccurrences(of: "*", with: "")
                 .trimmingCharacters(in: .whitespaces)
@@ -191,11 +191,35 @@ struct ManagementEmptyState: View {
     }
 }
 
+/// Soft accent ring used by marketing GIF storyboards to show “where we click”.
+struct MarketingHighlightPulse: ViewModifier {
+    var active: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .padding(active ? 4 : 0)
+            .background {
+                if active {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.accentColor, lineWidth: 2.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: active)
+    }
+}
+
 struct ManagementListChrome<Content: View>: View {
     let title: String
     let subtitle: String
     var onAdd: (() -> Void)?
     var addLabel: String = "Add"
+    /// Opens Rules Reference (optional look-up aid for this tab).
+    var onLookUp: (() -> Void)?
+    var lookUpLabel: String = "Look up"
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -208,7 +232,13 @@ struct ManagementListChrome<Content: View>: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
+                Spacer(minLength: 12)
+                if let onLookUp {
+                    Button(lookUpLabel, systemImage: "book.pages") {
+                        onLookUp()
+                    }
+                    .help("Open Rules Reference for this topic (⌘R)")
+                }
                 if let onAdd {
                     Button(addLabel, systemImage: "plus.circle") {
                         onAdd()

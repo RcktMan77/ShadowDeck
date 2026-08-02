@@ -125,6 +125,7 @@ struct SettingsView: View {
         .onAppear {
             preferExternal = CatalogSettings.preferExternalCatalog
             externalPath = CatalogSettings.chummerDataPath ?? ""
+            catalog.ensureLoaded()
         }
     }
 
