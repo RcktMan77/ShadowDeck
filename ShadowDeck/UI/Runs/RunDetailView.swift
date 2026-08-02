@@ -133,9 +133,14 @@ struct RunDetailView: View {
         .sheet(isPresented: $showAddContactSheet) {
             AddRunContactSheet(
                 characterSummaries: characterSummaries,
+                existingLinkedKeys: RunContactLinkKey.set(from: run?.contacts ?? []),
                 onCancel: { showAddContactSheet = false },
-                onAdd: { link in
-                    updateRun { $0.addContactLink(link) }
+                onAdd: { links in
+                    updateRun { r in
+                        for link in links {
+                            r.addContactLink(link)
+                        }
+                    }
                     showAddContactSheet = false
                 }
             )
