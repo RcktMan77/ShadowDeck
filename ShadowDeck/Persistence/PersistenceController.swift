@@ -19,7 +19,7 @@ import SwiftData
 public enum PersistenceController {
     public static let schema = Schema([
         CharacterRecord.self,
-        RunRecord.self,
+        RunRecord.self
     ])
 
     public static func makeContainer(

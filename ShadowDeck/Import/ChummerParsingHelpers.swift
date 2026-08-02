@@ -156,7 +156,7 @@ enum ChummerParsingHelpers {
         documentType: NSAttributedString.DocumentType
     ) -> String? {
         var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: documentType,
+            .documentType: documentType
         ]
         if documentType == .html {
             options[.characterEncoding] = String.Encoding.utf8.rawValue

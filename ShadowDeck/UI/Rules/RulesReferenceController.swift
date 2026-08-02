@@ -182,7 +182,7 @@ final class RulesReferenceController: ObservableObject {
     var selectedEntry: RuleEntry? {
         guard let selectedID else { return nil }
         return store.entry(id: selectedID)
-            ?? results.first(where: { $0.entry.id == selectedID })?.entry
+            ?? results.first { $0.entry.id == selectedID }?.entry
     }
 
     var selectedPDFItem: PDFLibraryItem? {
@@ -582,44 +582,37 @@ final class RulesReferenceController: ObservableObject {
         guard !didRestoreState else { return }
         didRestoreState = true
         if let raw = AppPreferences.string(.rulesRefMode),
-           let m = RulesReferenceMode(rawValue: raw)
-        {
+           let m = RulesReferenceMode(rawValue: raw) {
             mode = m
         }
         query = AppPreferences.string(.rulesRefQuery) ?? ""
         if let raw = AppPreferences.string(.rulesRefCategory),
-           let c = RuleCategory(rawValue: raw)
-        {
+           let c = RuleCategory(rawValue: raw) {
             selectedCategory = c
         }
         if let raw = AppPreferences.string(.rulesRefEdition),
-           let e = Edition(rawValue: raw)
-        {
+           let e = Edition(rawValue: raw) {
             editionFilter = e
         }
         if let id = AppPreferences.string(.rulesRefSelectedID), store.entry(id: id) != nil {
             selectedID = id
         }
         if let raw = AppPreferences.string(.rulesRefLibraryLayout),
-           let layout = LibraryShelfLayout(rawValue: raw)
-        {
+           let layout = LibraryShelfLayout(rawValue: raw) {
             libraryLayout = layout
         }
         if let raw = AppPreferences.string(.rulesRefLibrarySort),
-           let sort = LibraryShelfSort(rawValue: raw)
-        {
+           let sort = LibraryShelfSort(rawValue: raw) {
             librarySort = sort
         }
         if let uuid = AppPreferences.string(.rulesRefLibraryItem).flatMap(UUID.init(uuidString:)),
-           pdfLibrary.item(id: uuid) != nil
-        {
+           pdfLibrary.item(id: uuid) != nil {
             selectedLibraryItemID = uuid
         }
         let page = AppPreferences.int(.rulesRefPDFPage)
         if page > 0 { pdfTargetPage = page }
         if let data = AppPreferences.data(.rulesRefZoomMap),
-           let decoded = try? JSONDecoder().decode([String: String].self, from: data)
-        {
+           let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
             var map: [UUID: PDFZoomPreset] = [:]
             for (k, v) in decoded {
                 if let id = UUID(uuidString: k), let preset = PDFZoomPreset(rawValue: v) {

@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  ShadowDeck
 //
-//  Root window: library list, at-a-glance summary, import, and generation.
+//  Root window: sidebar shell, detail routing, library/import/generation.
 //
 
 import AppKit
@@ -29,7 +29,6 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     }
 
     var systemImage: String {
-        // Filled variants read more like Finder / System Settings sidebar glyphs.
         switch self {
         case .characters: "person.3.fill"
         case .runs: "list.clipboard.fill"
@@ -62,98 +61,25 @@ struct ContentView: View {
     @State private var summaries: [CharacterSummary] = []
     @State var statusMessage: String?
     @State var selectedCharacterID: UUID?
-    /// Pending library delete (confirmation dialog).
     @State private var characterPendingDelete: CharacterSummary?
     @State var libraryQuery = ""
     @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
-    /// Run opened via Create → New Run / File → New Run (detail only; never a list host).
     @State private var newRunDetailID: UUID?
-    /// Marketing screenshots: force-open a run inside the Runs library list host.
     @State var marketingOpenRunID: UUID?
-    /// Marketing GIF: pin RunsListView to list mode (never detail).
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) private var openWindow
 
-    /// Finder-like sidebar row: larger hierarchical SF Symbol + body label.
-    private func sidebarLabel(_ item: SidebarItem, isSelected: Bool) -> some View {
-        Label {
-            Text(item.title)
-                .font(.body.weight(isSelected ? .semibold : .regular))
-        } icon: {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                // Keep icons readable; selected state uses accent via the row fill.
-                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                .frame(width: 24, height: 20, alignment: .center)
-        }
-        .labelStyle(.titleAndIcon)
-        .foregroundStyle(isSelected ? Color.primary : Color.primary)
-    }
-
-    /// Custom selected-row fill so accent (green) shows even when the list is not
-    /// first responder. System `List(selection:)` uses a grey “inactive” highlight
-    /// until the sidebar is clicked — which is what users saw after splash / launch.
-    private func sidebarRowBackground(isSelected: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .fill(isSelected ? Color.accentColor.opacity(0.22) : Color.clear)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 1)
-    }
-
-    /// Button-driven sidebar item (no system selection chrome).
-    private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
-        let isSelected = selection == item
-        return Button {
-            if item == .newRun {
-                // Re-clicking New Run while already selected still mints a fresh job.
-                requestNewRun()
-            } else {
-                selection = item
-            }
-        } label: {
-            HStack(spacing: 0) {
-                sidebarLabel(item, isSelected: isSelected)
-                Spacer(minLength: 8)
-                if let badge {
-                    Text("\(badge)")
-                        .font(.body.monospacedDigit())
-                        .foregroundStyle(isSelected ? Color.secondary : Color.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .padding(.vertical, 2)
-        }
-        .buttonStyle(.plain)
-        .listRowBackground(sidebarRowBackground(isSelected: isSelected))
-        .help(item.help ?? "")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
     var body: some View {
         NavigationSplitView {
-            // No `List(selection:)` — system selection greys out when the list is
-            // not first responder (common right after splash / detail focus).
-            List {
-                Section("Library") {
-                    sidebarItem(.characters, badge: summaries.count)
-                    sidebarItem(.runs, badge: libraryEnvironment.runCount)
-                }
-                Section("Create") {
-                    sidebarItem(.newCharacter)
-                    sidebarItem(.importCharacter)
-                    sidebarItem(.newRun)
-                }
+            MainSidebarView(
+                selection: $selection,
+                characterCount: summaries.count,
+                runCount: libraryEnvironment.runCount
+            ) {
+                requestNewRun()
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 240)
-            .listStyle(.sidebar)
-            // Finder-like row density: slightly roomier rows for the larger glyphs.
-            .environment(\.defaultMinListRowHeight, 28)
         } detail: {
-            // NavigationStack keeps the detail column a proper primary column;
-            // shared min frame prevents collapse under contentMinSize sizing.
             NavigationStack {
                 detail
                     .frame(
@@ -170,18 +96,13 @@ struct ContentView: View {
         .onAppear { refresh() }
         .onChange(of: selection) { _, newValue in
             if newValue == .characters {
-                // Stay on summary if a character is selected; refresh list data.
                 refresh()
             } else {
                 selectedCharacterID = nil
             }
             if newValue == .runs {
-                // Keep the Runs badge / list in sync after create/delete from other routes.
                 refresh()
             }
-            // Create → New Run is handled by requestNewRun() (sidebar button / File menu).
-            // Do not mint here: a stale newRunDetailID previously blocked creation, and
-            // pairing onChange with requestNewRun would double-create.
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newCharacter)) { _ in
             selection = .newCharacter
@@ -195,13 +116,12 @@ struct ContentView: View {
             selectedCharacterID = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openPackage)) { _ in
-            // Unified with Import… (packages, Chummer JSON, .chum5).
             selection = .importCharacter
             selectedCharacterID = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openPackageURL)) { note in
             if let url = note.object as? URL {
-                importShadowDeckPackage(from: url)
+                Task { await importShadowDeckPackage(from: url) }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: MarketingScreenshotExporter.phaseNotification)) { note in
@@ -249,6 +169,8 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Detail routing
+
     @ViewBuilder
     private var detail: some View {
         switch selection {
@@ -257,10 +179,8 @@ struct ContentView: View {
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
                 forceListOnly: marketingForceRunListOnly
             )
-            // Remount when toggling list-only so detail cannot stick.
             .id(marketingForceRunListOnly ? "runs-list-only" : "runs-\(marketingOpenRunID?.uuidString ?? "list")")
         case .newRun:
-            // Detail only — creation happens once in beginNewRun(), never via onAppear.
             if let newRunDetailID {
                 RunDetailView(
                     runID: newRunDetailID,
@@ -332,35 +252,19 @@ struct ContentView: View {
         }
     }
 
-    /// Drag-and-drop import for the library (`.json` / `.chum5` / `.shadowdeck`).
+    // MARK: - Import / drop
+
     private func handleLibraryFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            let url: URL?
-            if let data = item as? Data {
-                url = URL(dataRepresentation: data, relativeTo: nil)
-            } else if let urlItem = item as? URL {
-                url = urlItem
-            } else if let str = item as? String {
-                url = URL(fileURLWithPath: str)
-            } else {
-                url = nil
-            }
-            guard let url else { return }
-            Task { @MainActor in
-                importDroppedFile(from: url)
-            }
+        Task { @MainActor in
+            guard let url = await LibraryFileDrop.firstFileURL(from: providers) else { return }
+            await importDroppedFile(from: url)
         }
         return true
     }
 
-    private func importDroppedFile(from url: URL) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
+    private func importDroppedFile(from url: URL) async {
         do {
-            let result = try libraryEnvironment.library.importAndSave(from: url)
+            let result = try await libraryEnvironment.library.importAndSave(from: url)
             selection = .characters
             selectedCharacterID = result.character.id
             refresh()
@@ -370,8 +274,6 @@ struct ContentView: View {
         }
     }
 
-    /// After import: open the character only when they are the sole library entry;
-    /// otherwise land on the library list so the user can choose among runners.
     private func finishImport(importedID: UUID) {
         selection = .characters
         do {
@@ -390,13 +292,33 @@ struct ContentView: View {
         }
     }
 
+    private func importShadowDeckPackage(from url: URL) async {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+        do {
+            // Package import is lightweight vs Chummer parse; still async for UI consistency.
+            let character = try libraryEnvironment.library.importPackage(from: url)
+            selection = .characters
+            selectedCharacterID = character.id
+            refresh()
+            statusMessage = "Opened package “\(character.displayTitle)” into the library."
+        } catch {
+            selection = .characters
+            refresh()
+            statusMessage = "Could not open package: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Library actions
+
     func refresh() {
         do {
             summaries = try libraryEnvironment.library.listSummaries()
             libraryEnvironment.refreshRunCount()
             if selectedCharacterID != nil,
-               !summaries.contains(where: { $0.id == selectedCharacterID })
-            {
+               !summaries.contains(where: { $0.id == selectedCharacterID }) {
                 selectedCharacterID = nil
             }
             if selectedCharacterID == nil, selection == .characters || selection == nil {
@@ -409,27 +331,21 @@ struct ContentView: View {
         }
     }
 
-    /// Open the character sheet after the current view update finishes.
-    /// Avoids “Publishing changes within view updates” when navigating from gallery/list actions.
     private func openCharacterSheet(_ id: UUID) {
         Task { @MainActor in
             selectedCharacterID = id
         }
     }
 
-    /// Sidebar / File menu: always mint a new run and show its detail under Create → New Run.
-    /// Never reuses `newRunDetailID` (that caused “completed run still open” after New Run).
     private func requestNewRun() {
         selectedCharacterID = nil
         beginNewRun()
         selection = .newRun
     }
 
-    /// Mint exactly one run and point the New Run detail at it.
     private func beginNewRun() {
         var run = Run.makeDraft(title: "New Run")
         let count = (try? libraryEnvironment.runLibrary.count()) ?? 0
-        // Next ordinal: 1 existing → "New Run 2", etc.
         if count > 0 {
             run.title = "New Run \(count + 1)"
         }
@@ -470,45 +386,26 @@ struct ContentView: View {
     }
 
     private func exportCharacter(_ summary: CharacterSummary) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.shadowdeckCharacter]
-        let baseName: String = {
-            if !summary.streetName.isEmpty { return summary.streetName }
-            if !summary.name.isEmpty { return summary.name }
-            return "Runner"
-        }()
-        panel.nameFieldStringValue = "\(baseName).\(ShadowDeckFormat.fileExtension)"
-        panel.canCreateDirectories = true
-        panel.message = "Export a portable ShadowDeck character package"
-        panel.prompt = "Export"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try libraryEnvironment.library.exportPackage(id: summary.id, to: url)
-            statusMessage = "Exported \(url.lastPathComponent)."
+            statusMessage = try CharacterLibraryExportActions.exportPackage(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled save panel.
         } catch {
             statusMessage = "Export failed: \(error.localizedDescription)"
         }
     }
 
-    /// Import a portable `.shadowdeck` package into the library (File menu / double-click).
     private func exportPDFSheet(_ summary: CharacterSummary) {
         do {
-            let character = try libraryEnvironment.library.require(summary.id)
-            let report = CampaignSheetReport.build(for: character)
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [.pdf]
-            let baseName: String = {
-                if !summary.streetName.isEmpty { return summary.streetName }
-                if !summary.name.isEmpty { return summary.name }
-                return "Runner"
-            }()
-            panel.nameFieldStringValue = "\(baseName)_sheet.pdf"
-            panel.canCreateDirectories = true
-            panel.message = "Export a printable ShadowDeck character sheet (PDF)"
-            panel.prompt = "Export PDF"
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-            try CharacterSheetPDF.write(report: report, to: url)
-            statusMessage = "Exported PDF sheet for \(summary.displayTitle)."
+            statusMessage = try CharacterLibraryExportActions.exportPDFSheet(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled.
         } catch {
             statusMessage = "PDF export failed: \(error.localizedDescription)"
         }
@@ -516,47 +413,14 @@ struct ContentView: View {
 
     private func exportChummer(_ summary: CharacterSummary) {
         do {
-            let character = try libraryEnvironment.library.require(summary.id)
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [UTType(filenameExtension: "chum5") ?? .xml]
-            let baseName: String = {
-                if !summary.streetName.isEmpty { return summary.streetName }
-                if !summary.name.isEmpty { return summary.name }
-                return "Runner"
-            }()
-            panel.nameFieldStringValue = "\(baseName).chum5"
-            panel.canCreateDirectories = true
-            let hasOriginal = character.importProvenance?.originalPayload != nil
-            panel.message = hasOriginal
-                ? "Export original imported Chummer file when available"
-                : "Best-effort regenerated Chummer .chum5"
-            panel.prompt = "Export .chum5"
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-            let result = try ChummerXMLExporter.export(character, mode: .preferOriginal)
-            try result.xmlData.write(to: url, options: .atomic)
-            statusMessage = result.usedOriginalPayload
-                ? "Exported original Chummer file for \(summary.displayTitle)."
-                : "Exported regenerated Chummer file for \(summary.displayTitle)."
+            statusMessage = try CharacterLibraryExportActions.exportChummer(
+                summary: summary,
+                library: libraryEnvironment.library
+            )
+        } catch is CancellationError {
+            // User cancelled.
         } catch {
             statusMessage = "Chummer export failed: \(error.localizedDescription)"
-        }
-    }
-
-    private func importShadowDeckPackage(from url: URL) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
-        do {
-            let character = try libraryEnvironment.library.importPackage(from: url)
-            selection = .characters
-            selectedCharacterID = character.id
-            refresh()
-            statusMessage = "Opened package “\(character.displayTitle)” into the library."
-        } catch {
-            selection = .characters
-            refresh()
-            statusMessage = "Could not open package: \(error.localizedDescription)"
         }
     }
 }

@@ -54,7 +54,8 @@ struct MagicManagementView: View {
                 )
             )
             onPersist()
-        }}
+        }
+        }
         .sheet(isPresented: $showPowerCatalog) {
             CatalogBrowserView(
                 title: "Add Adept Power",
@@ -79,7 +80,8 @@ struct MagicManagementView: View {
                 )
             )
             onPersist()
-        }}
+        }
+        }
     }
 
     private var powersSection: some View {
@@ -307,7 +309,7 @@ struct MagicManagementView: View {
                 notes: [
                     entry.category,
                     entry.notes,
-                    entry.source.isEmpty ? nil : "\(entry.source) p.\(entry.page)",
+                    entry.source.isEmpty ? nil : "\(entry.source) p.\(entry.page)"
                 ].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
                 modifiers: ManagementSupport.instanceModifiers(from: entry)
             )

@@ -24,7 +24,7 @@ public enum ValidationHelpers {
         "enchanter",
         "sorcerer",
         "conjurer",
-        "explorer",
+        "explorer"
     ]
 
     /// Maximum allowed attribute rating for a *play sheet* (natural max + aug bonus,
@@ -59,7 +59,7 @@ public enum ValidationHelpers {
             "enchanter",
             "sorcerer",
             "conjurer",
-            "explorer",
+            "explorer"
         ]
         if freeNames.contains(name) { return false }
         if name.hasPrefix("aspected ") { return false }

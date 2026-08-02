@@ -9,7 +9,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class RunModelTests: XCTestCase {
-
     // MARK: - Codable
 
     func testRunCodableRoundTrip() throws {
@@ -19,7 +18,7 @@ final class RunModelTests: XCTestCase {
         run.location = "Seattle, Downtown"
         run.objectives = [
             RunObjective(text: "Extract paydata", isPrimary: true, status: .pending),
-            RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
+            RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending)
         ]
         run.opposition = "High-threat Matrix IC, two security mage teams"
         run.complicationsNotes = "Johnson may double-cross"
@@ -30,7 +29,7 @@ final class RunModelTests: XCTestCase {
         run.participantCharacterIDs = [a, b]
         run.sessionLog = [
             RunLogEntry(kind: .session, text: "Session 1 — matrix recon"),
-            RunLogEntry(kind: .complication, text: "Spider noticed the probe"),
+            RunLogEntry(kind: .complication, text: "Spider noticed the probe")
         ]
         run.gmNotes = "Keep decker spotlight."
         run.outcomeSummary = ""
@@ -227,7 +226,7 @@ final class RunModelTests: XCTestCase {
         run.objectives = [
             RunObjective(text: "A", isPrimary: true),
             RunObjective(text: "B", isPrimary: false),
-            RunObjective(text: "C", isPrimary: true),
+            RunObjective(text: "C", isPrimary: true)
         ]
         XCTAssertEqual(run.primaryObjectives.map(\.text), ["A", "C"])
         XCTAssertEqual(run.secondaryObjectives.map(\.text), ["B"])

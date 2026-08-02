@@ -142,7 +142,7 @@ public enum MetatypeCatalog {
             .charisma: AttributeBounds(minimum: charisma.lowerBound, maximum: charisma.upperBound),
             .edge: AttributeBounds(minimum: edge.lowerBound, maximum: edge.upperBound),
             .magic: AttributeBounds(minimum: magic.lowerBound, maximum: magic.upperBound),
-            .resonance: AttributeBounds(minimum: resonance.lowerBound, maximum: resonance.upperBound),
+            .resonance: AttributeBounds(minimum: resonance.lowerBound, maximum: resonance.upperBound)
         ]
     }
 }

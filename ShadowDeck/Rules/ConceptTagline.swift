@@ -46,12 +46,9 @@ public enum ConceptTagline {
         if roles.isEmpty {
             roles.append(contentsOf: awakenedFallback(awakened))
         } else if awakened.usesMagic,
-                  !roles.contains(where: { magicRoleLabels.contains($0) })
-        {
+                  !roles.contains(where: { magicRoleLabels.contains($0) }) {
             // e.g. “coder” + awakened adept prose → keep coder, add Adept if present in text
-            if haystack.contains("adept") { roles.insert("Adept", at: 0) }
-            else if haystack.contains("mystic") { roles.insert("Mystic Adept", at: 0) }
-            else if haystack.contains("mage") || haystack.contains("magician") || haystack.contains("spell") {
+            if haystack.contains("adept") { roles.insert("Adept", at: 0) } else if haystack.contains("mystic") { roles.insert("Mystic Adept", at: 0) } else if haystack.contains("mage") || haystack.contains("magician") || haystack.contains("spell") {
                 roles.insert("Mage", at: 0)
             }
         }
@@ -83,7 +80,7 @@ public enum ConceptTagline {
     // MARK: - Matching
 
     private static let magicRoleLabels: Set<String> = [
-        "Mage", "Magician", "Adept", "Mystic Adept", "Aspected Mage", "Technomancer",
+        "Mage", "Magician", "Adept", "Mystic Adept", "Aspected Mage", "Technomancer"
     ]
 
     /// Ordered rules: first match wins a slot; later unique labels may append.
@@ -106,7 +103,7 @@ public enum ConceptTagline {
         (["smuggler"], "Smuggler"),
         (["bodyguard"], "Bodyguard"),
         (["investigator", "detective", "PI "], "Investigator"),
-        (["ex-corp", "ex corp", "former corp", "corpsec", "corp shadow"], "Ex-Corp"),
+        (["ex-corp", "ex corp", "former corp", "corpsec", "corp shadow"], "Ex-Corp")
     ]
 
     private static let flavorRules: [(tokens: [String], label: String)] = [
@@ -119,7 +116,7 @@ public enum ConceptTagline {
         (["chicago"], "Chicago"),
         (["seattle"], "Seattle"),
         (["denver"], "Denver"),
-        (["neo-tokyo", "neotokyo", "tokyo"], "Neo-Tokyo"),
+        (["neo-tokyo", "neotokyo", "tokyo"], "Neo-Tokyo")
     ]
 
     private static func matchRoles(in haystack: String) -> [String] {

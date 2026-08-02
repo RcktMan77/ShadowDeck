@@ -52,7 +52,7 @@ public enum OverwatchCalculator {
         OverwatchAction(id: "crash", name: "Crash program / device", osCost: 4),
         OverwatchAction(id: "edit_file", name: "Edit file", osCost: 2),
         OverwatchAction(id: "spoof", name: "Spoof command", osCost: 3),
-        OverwatchAction(id: "dump_shock_event", name: "Dumpshock / loud fail", osCost: 6, note: "Messy exit"),
+        OverwatchAction(id: "dump_shock_event", name: "Dumpshock / loud fail", osCost: 6, note: "Messy exit")
     ]
 
     public static func apply(score: Int, action: OverwatchAction) -> Int {

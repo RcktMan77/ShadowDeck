@@ -8,7 +8,6 @@ import XCTest
 
 @MainActor
 final class GenerationTests: XCTestCase {
-
     func testDraftDefaultsPerEdition() {
         let draft = GenerationDraft()
         draft.selectEdition(.sr4)
@@ -126,7 +125,7 @@ final class GenerationTests: XCTestCase {
             .attributes: .a,
             .magicOrResonance: .b,
             .skills: .c,
-            .resources: .e,
+            .resources: .e
         ])
         XCTAssertFalse(draft.priorityValid)
 
@@ -135,7 +134,7 @@ final class GenerationTests: XCTestCase {
             .attributes: .b,
             .magicOrResonance: .e,
             .skills: .a,
-            .resources: .d,
+            .resources: .d
         ])
         // 2+3+0+4+1 = 10
         XCTAssertEqual(draft.priority.sumToTenTotal, 10)

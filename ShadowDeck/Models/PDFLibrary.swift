@@ -46,7 +46,7 @@ public enum PDFShelfSection: String, Codable, Sendable, CaseIterable, Identifiab
     }
 
     /// Best-effort default from a book key / title (user can override).
-    public static func inferred(bookKey: String?, title: String) -> PDFShelfSection {
+    public static func inferred(bookKey: String?, title: String) -> Self {
         let key = (bookKey ?? "").lowercased()
         let t = title.lowercased()
         if key == PageRef.BookKey.sr4a
@@ -57,8 +57,7 @@ public enum PDFShelfSection: String, Codable, Sendable, CaseIterable, Identifiab
             || t.contains("core rulebook")
             || t.contains("core book")
             || t.hasSuffix(" core")
-            || t.contains("20th anniversary")
-        {
+            || t.contains("20th anniversary") {
             return .coreRulebook
         }
         if key.hasPrefix("srm")
@@ -66,8 +65,7 @@ public enum PDFShelfSection: String, Codable, Sendable, CaseIterable, Identifiab
             || t.contains("mission")
             || t.contains("adventure")
             || t.contains("chasin")
-            || t.contains("campaign")
-        {
+            || t.contains("campaign") {
             return .mission
         }
         if key.contains("run")
@@ -77,8 +75,7 @@ public enum PDFShelfSection: String, Codable, Sendable, CaseIterable, Identifiab
             || t.contains("street grimoire")
             || t.contains("chrome flesh")
             || t.contains("sourcebook")
-            || t.contains("companion")
-        {
+            || t.contains("companion") {
             return .sourcebook
         }
         return .other
@@ -219,6 +216,6 @@ public enum PDFBookKeyCatalog {
     public static let curated: [(key: String, label: String)] = [
         (PageRef.BookKey.sr4a, "SR4A Core"),
         (PageRef.BookKey.sr5CRB, "SR5 Core Rulebook"),
-        (PageRef.BookKey.sr6Core, "SR6 Core"),
+        (PageRef.BookKey.sr6Core, "SR6 Core")
     ]
 }

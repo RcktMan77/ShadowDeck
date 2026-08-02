@@ -16,9 +16,9 @@ struct RuleDetailCard: View {
     /// Optional character snapshot for calculator prefills.
     var calcContext: RulesCalcContext = .neutral
     /// Prefer this edition’s page chip first (open character).
-    var preferPageEdition: Edition? = nil
+    var preferPageEdition: Edition?
     /// Resolve related entry titles (id → title).
-    var relatedTitle: ((String) -> String?)? = nil
+    var relatedTitle: ((String) -> String?)?
     /// When set, page chips jump into the bound PDF (if present).
     var onPageRefTap: ((PageRef) -> Void)?
     /// Whether a book key is bound to a library PDF.

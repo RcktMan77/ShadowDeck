@@ -147,7 +147,7 @@ public enum ChargenRecommendations {
             .decker: [("hacking", 6), ("electronics", 5), ("perception", 3), ("sneaking", 2)],
             .rigger: [("piloting", 6), ("electronics", 4), ("perception", 3), ("pistols", 2)],
             .technomancer: [("hacking", 5), ("electronics", 5), ("perception", 3), ("negotiation", 2)],
-            .spy: [("sneaking", 6), ("perception", 5), ("athletics", 3), ("pistols", 2)],
+            .spy: [("sneaking", 6), ("perception", 5), ("athletics", 3), ("pistols", 2)]
         ]
         var ranks: [String: Int] = [:]
         var remaining = max(0, pointBudget)

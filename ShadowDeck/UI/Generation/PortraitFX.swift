@@ -63,7 +63,7 @@ enum PortraitFX {
         .init(x: 0.60, y: 0.72),
         .init(x: 0.68, y: 0.74),
         .init(x: 0.74, y: 0.70),
-        .init(x: 0.78, y: 0.64),
+        .init(x: 0.78, y: 0.64)
     ]
 
     private static let technoLiquid = NormRect(x: 0.845, y: 0.68, w: 0.045, h: 0.09)
@@ -171,7 +171,7 @@ enum PortraitFX {
                 Gradient(colors: [
                     Color.purple.opacity(0.18 * envelope),
                     Color.purple.opacity(0.06 * envelope),
-                    .clear,
+                    .clear
                 ]),
                 center: pos,
                 startRadius: mid * 0.5,
@@ -184,7 +184,7 @@ enum PortraitFX {
                 Gradient(colors: [
                     Color(red: 0.78, green: 0.5, blue: 1.0).opacity(0.32 * envelope),
                     Color.purple.opacity(0.12 * envelope),
-                    .clear,
+                    .clear
                 ]),
                 center: pos,
                 startRadius: 2,
@@ -197,7 +197,7 @@ enum PortraitFX {
                 Gradient(colors: [
                     Color.white.opacity(0.45 * envelope),
                     Color(red: 0.9, green: 0.75, blue: 1.0).opacity(0.22 * envelope),
-                    .clear,
+                    .clear
                 ]),
                 center: pos,
                 startRadius: 0.5,

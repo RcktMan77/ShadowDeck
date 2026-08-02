@@ -12,7 +12,7 @@ public enum CharacterImporter {
     public static let supportedExtensions: Set<String> = [
         "json",
         "chum5",
-        ShadowDeckFormat.fileExtension,
+        ShadowDeckFormat.fileExtension
     ]
 
     public static var contentTypes: [UTType] {
@@ -36,8 +36,7 @@ public enum CharacterImporter {
 
         // Sniff content.
         if let prefix = String(data: data.prefix(200), encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        {
+            .trimmingCharacters(in: .whitespacesAndNewlines) {
             let head = prefix.replacingOccurrences(of: "\u{FEFF}", with: "")
             if head.hasPrefix("<?xml") || head.hasPrefix("<character") {
                 return .chummerChum5
@@ -57,8 +56,7 @@ public enum CharacterImporter {
 
         var isDirectory: ObjCBool = false
         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-           isDirectory.boolValue
-        {
+           isDirectory.boolValue {
             return try importShadowDeckPackage(at: url)
         }
 
@@ -121,7 +119,7 @@ public enum CharacterImporter {
                     severity: .info,
                     code: "package.native",
                     message: "Imported native ShadowDeck package."
-                ),
+                )
             ],
             isPartial: false
         )
@@ -172,10 +170,22 @@ public enum CharacterImporter {
 
 @MainActor
 public extension CharacterLibrary {
-    /// Import a file and save it into the library. Returns the import result (with library id preserved).
+    /// Import a file and save it into the library.
+    /// Parse/map run **off the main actor** (large Chummer files); only the SwiftData
+    /// save hops back to MainActor.
     @discardableResult
-    func importAndSave(from url: URL) throws -> ImportResult {
-        var result = try CharacterImporter.importFile(at: url)
+    func importAndSave(from url: URL) async throws -> ImportResult {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+
+        // Security-scoped access is held on this actor while the detached task runs.
+        let parsed = try await Task.detached(priority: .userInitiated) {
+            try CharacterImporter.importFile(at: url)
+        }.value
+
+        var result = parsed
         try save(result.character, avatarData: result.character.avatar.inlineData)
         if let reloaded = try fetch(id: result.character.id) {
             result.character = reloaded

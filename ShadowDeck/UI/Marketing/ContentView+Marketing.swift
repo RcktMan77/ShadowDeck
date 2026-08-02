@@ -120,7 +120,7 @@ extension ContentView {
                 run.expectedPayout = RunPayout(nuyen: 18_000, karma: 6)
                 run.objectives = [
                     RunObjective(text: "Extract paydata from host 77-A", isPrimary: true, status: .pending),
-                    RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending),
+                    RunObjective(text: "No civilian casualties", isPrimary: false, status: .pending)
                 ]
                 run.opposition = "High-threat Matrix IC; two corp security mage teams on rotation."
                 focusAnchor = "overview"
@@ -144,7 +144,7 @@ extension ContentView {
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
-                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped.")
                 ]
                 focusAnchor = "sessionLog"
             case 7:
@@ -152,7 +152,7 @@ extension ContentView {
                 run.participantCharacterIDs = [SampleCharacters.sr5ID, SampleCharacters.sr4ID]
                 run.applyStatus(.active)
                 run.sessionLog = [
-                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
+                    RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped.")
                 ]
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
@@ -165,7 +165,7 @@ extension ContentView {
                 }
                 run.sessionLog = [
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
-                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured.")
                 ]
                 focusAnchor = "objectives"
                 focusHighlight = "objectives"
@@ -178,7 +178,7 @@ extension ContentView {
                 }
                 run.sessionLog = [
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
-                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured.")
                 ]
                 run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
                 run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
@@ -193,7 +193,7 @@ extension ContentView {
                 }
                 run.sessionLog = [
                     RunLogEntry(kind: .session, text: "Session 1 — matrix recon complete; host footprint mapped."),
-                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured."),
+                    RunLogEntry(kind: .objective, text: "Primary objective complete — paydata secured.")
                 ]
                 run.outcomeSummary = "Paydata extracted. Team extraction clean; Johnson paid full nuyen."
                 run.actualPayout = RunPayout(nuyen: 18_000, karma: 6)
@@ -372,5 +372,4 @@ extension ContentView {
             )
         }
     }
-
 }
