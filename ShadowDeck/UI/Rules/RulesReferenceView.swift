@@ -10,8 +10,21 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Token for `sheet(item:)` so Draft Run always opens with a concrete mission PDF id.
+private struct DraftRunSheetRequest: Identifiable, Hashable {
+    /// Unique per presentation so reopening the same PDF remounts a fresh sheet.
+    let id: UUID
+    let pdfID: UUID
+
+    init(pdfID: UUID) {
+        self.id = UUID()
+        self.pdfID = pdfID
+    }
+}
+
 struct RulesReferenceView: View {
     @ObservedObject var controller: RulesReferenceController
+    @Environment(LibraryEnvironment.self) private var libraryEnvironment
     @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var isImportingPDF = false
     @State private var libraryError: String?
@@ -19,6 +32,9 @@ struct RulesReferenceView: View {
     @State private var itemPendingRename: PDFLibraryItem?
     @State private var itemPendingBookSettings: PDFLibraryItem?
     @State private var isShelfDropTargeted = false
+    /// Presents Draft Run sheet with a stable preselected mission PDF id.
+    /// Uses `sheet(item:)` so the id is not lost to the isPresented + separate state race.
+    @State private var draftRunRequest: DraftRunSheetRequest?
     /// Preview-style find for the open PDF.
     @StateObject private var pdfSearch = PDFSearchBridge()
 
@@ -73,6 +89,24 @@ struct RulesReferenceView: View {
                     commitBookSettings(itemID: item.id, section: section, bookKey: key, pageOffset: offset)
                 }
             )
+        }
+        .sheet(item: $draftRunRequest) { request in
+            DraftRunFromPDFSheet(
+                preselectedPDFID: request.pdfID,
+                onCancel: { draftRunRequest = nil },
+                onCreated: { runID in
+                    draftRunRequest = nil
+                    libraryEnvironment.refreshRunCount()
+                    NotificationCenter.default.post(
+                        name: AppCommand.openRunDetail,
+                        object: nil,
+                        userInfo: ["runID": runID]
+                    )
+                }
+            )
+            .environment(libraryEnvironment)
+            // Force a fresh sheet identity per request (same PDF re-opened after dismiss).
+            .id(request.id)
         }
     }
 
@@ -419,6 +453,7 @@ struct RulesReferenceView: View {
                 onRename: { beginRename($0) },
                 onReveal: { revealInFinder($0) },
                 onRemove: { removePDF($0.id) },
+                onDraftRun: { beginDraftRun(from: $0) },
                 onDropProviders: { handleShelfFileDrop($0) }
             )
         }
@@ -547,6 +582,10 @@ struct RulesReferenceView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .center, spacing: 6) {
                     Menu {
+                        if item.shelfSection == .mission {
+                            Button("Draft run from PDF…") { beginDraftRun(from: item) }
+                            Divider()
+                        }
                         Button("Rename…") { beginRename(item) }
                         Button("Reveal in Finder") { revealInFinder(item) }
                         Button("Refresh cover from page 1") { refreshCover(item.id) }
@@ -600,6 +639,16 @@ struct RulesReferenceView: View {
 
             Spacer(minLength: 8)
 
+            if item.shelfSection == .mission {
+                AppChromeButton.labeled(
+                    "Draft run…",
+                    systemImage: "sparkles",
+                    help: "Draft a planning run from this mission PDF"
+                ) {
+                    beginDraftRun(from: item)
+                }
+            }
+
             // Flush trailing: book settings only.
             AppChromeButton.labeled(
                 (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
@@ -612,6 +661,12 @@ struct RulesReferenceView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func beginDraftRun(from item: PDFLibraryItem) {
+        guard item.shelfSection == .mission else { return }
+        // Unique presentation id each time so sheet(item:) always remounts with this pdfID.
+        draftRunRequest = DraftRunSheetRequest(pdfID: item.id)
     }
 
     /// Open a shelf book (controller already defers publishes off the view-update stack).

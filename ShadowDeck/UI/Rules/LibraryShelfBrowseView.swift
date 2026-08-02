@@ -20,6 +20,8 @@ struct LibraryShelfBrowseView: View {
     var onRename: (PDFLibraryItem) -> Void
     var onReveal: (PDFLibraryItem) -> Void
     var onRemove: (PDFLibraryItem) -> Void
+    /// Draft a planning run from a Missions & Adventures PDF.
+    var onDraftRun: (PDFLibraryItem) -> Void
     var onDropProviders: ([NSItemProvider]) -> Bool
 
     private var shelfFieldWidth: CGFloat { 240 }
@@ -332,6 +334,26 @@ struct LibraryShelfBrowseView: View {
         .padding(.vertical, 8)
     }
 
+    private var shelfSummaryLine: String {
+        let items = controller.pdfLibrary.items
+        var parts: [String] = ["\(items.count) book(s)"]
+        for section in PDFShelfSection.allCases.sorted(by: { $0.sortOrder < $1.sortOrder }) {
+            let count = items.filter { $0.shelfSection == section }.count
+            guard count > 0 else { continue }
+            parts.append(shelfSectionCountLabel(count, section: section))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func shelfSectionCountLabel(_ count: Int, section: PDFShelfSection) -> String {
+        switch section {
+        case .coreRulebook: return "\(count) core rulebook(s)"
+        case .mission: return "\(count) mission & adventure(s)"
+        case .sourcebook: return "\(count) sourcebook(s)"
+        case .other: return "\(count) other"
+        }
+    }
+
     @ViewBuilder
     private var shelfBooksBody: some View {
         let groups = controller.librarySectionGroups
@@ -362,7 +384,7 @@ struct LibraryShelfBrowseView: View {
             }
         } else {
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(controller.pdfLibrary.items.count) book(s) · local only · grouped by type")
+                Text(shelfSummaryLine)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
@@ -377,7 +399,8 @@ struct LibraryShelfBrowseView: View {
                         onBookSettings: onBookSettings,
                         onRename: onRename,
                         onReveal: onReveal,
-                        onRemove: onRemove
+                        onRemove: onRemove,
+                        onDraftRun: onDraftRun
                     )
                 case .list:
                     PDFLibraryListView(
@@ -387,7 +410,8 @@ struct LibraryShelfBrowseView: View {
                         onBookSettings: onBookSettings,
                         onRename: onRename,
                         onReveal: onReveal,
-                        onRemove: onRemove
+                        onRemove: onRemove,
+                        onDraftRun: onDraftRun
                     )
                 }
             }

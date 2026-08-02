@@ -195,6 +195,9 @@ struct RunsListView: View {
                 Button("New Run from Template…") {
                     NotificationCenter.default.post(name: AppCommand.newRunFromTemplate, object: nil)
                 }
+                Button("Draft Run from PDF… (Experimental)") {
+                    NotificationCenter.default.post(name: AppCommand.newRunFromPDF, object: nil)
+                }
             } label: {
                 // Match AppChromeButton.toolbar bezel via empty chrome-looking Label;
                 // Menu cannot host NSButton as label easily — use bordered style.

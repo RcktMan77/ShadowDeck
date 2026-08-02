@@ -153,6 +153,11 @@ struct ShadowDeckApp: App {
                     NotificationCenter.default.post(name: AppCommand.openRulesReference, object: nil)
                 }
                 .keyboardShortcut("r", modifiers: [.command])
+
+                Button("PDF Shelf…") {
+                    RulesReferenceOpener.requestPDFLibrary()
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
             }
 
             // Standard format shortcuts. Target the focused NSTextView (NotesEditor, etc.).
