@@ -412,6 +412,13 @@ struct CampaignDetailView: View {
                                         Button("Create New Run") {
                                             createRunInCampaign()
                                         }
+                                        Button("New Run from Template…") {
+                                            NotificationCenter.default.post(
+                                                name: AppCommand.newRunFromTemplate,
+                                                object: nil,
+                                                userInfo: ["campaignID": campaignID]
+                                            )
+                                        }
                                         Button("Add from Run Library…") {
                                             showAddRunsSheet = true
                                         }
@@ -420,6 +427,7 @@ struct CampaignDetailView: View {
                                     }
                                     .menuStyle(.borderlessButton)
                                     .fixedSize()
+                                    .help("Create a run, start from a template, or attach existing runs")
                                 }
                                 if runs.isEmpty {
                                     Text("No runs assigned yet. Add jobs from your Run Library or create a new one.")

@@ -261,7 +261,7 @@ A dedicated window (⌘R) with two modes — mechanical cards for the table, and
 | Section | Items |
 |---------|--------|
 | **Library** | Characters · Runs |
-| **Create** | New Character · Import Character… · New Run · New Campaign |
+| **Create** | New Character (wizard or import) · New Run (blank or from template) · New Campaign |
 
 ### Requirements
 
