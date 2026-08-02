@@ -244,8 +244,21 @@ final class RulesReferenceController: ObservableObject {
     func applyOpenContext(
         query initialQuery: String? = nil,
         edition: Edition? = nil,
-        calcContext: RulesCalcContext? = nil
+        calcContext: RulesCalcContext? = nil,
+        mode preferredMode: RulesReferenceMode = .reference
     ) {
+        if preferredMode == .library {
+            // Direct path from main window → PDF shelf (no Reference flash).
+            mode = .library
+            selectedLibraryItemID = nil
+            libraryStatusMessage = nil
+            if libraryTextSearchActive {
+                clearLibraryTextSearch()
+            }
+            persistUIState()
+            return
+        }
+
         mode = .reference
         returnToCardID = nil
         selectedCategory = nil
