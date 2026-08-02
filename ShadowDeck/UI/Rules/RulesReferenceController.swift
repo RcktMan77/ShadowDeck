@@ -424,6 +424,7 @@ final class RulesReferenceController: ObservableObject {
         mode = .library
         selectedLibraryItemID = nil
         libraryLayout = .gallery
+        librarySort = .title
         libraryFilter = ""
         libraryStatusMessage = nil
         libraryTextQuery = ""
