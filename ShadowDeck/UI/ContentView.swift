@@ -68,7 +68,7 @@ struct ContentView: View {
     @State private var newRunDetailID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openWindow) var openWindow
 
     var body: some View {
         NavigationSplitView {
