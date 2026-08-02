@@ -40,6 +40,8 @@ struct RunDetailView: View {
     @State var marketingHighlight: String?
     @State var showApplyAwardsSheet = false
     @State var applyAwardsPreview: AwardPreview?
+    @State var showSaveAsTemplate = false
+    @State var saveTemplateName = ""
 
     var body: some View {
         Group {
@@ -101,6 +103,45 @@ struct RunDetailView: View {
                     }
                 )
             }
+        }
+        .sheet(isPresented: $showSaveAsTemplate) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Save as Template")
+                    .font(.headline)
+                Text("Reusable job pattern for Create → New Run from Template.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("Template name", text: $saveTemplateName)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { showSaveAsTemplate = false }
+                    Button("Save Template") { commitSaveAsTemplate() }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(saveTemplateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(24)
+            .frame(minWidth: 360)
+        }
+    }
+
+    private func prepareSaveAsTemplate() {
+        commitRichTextDrafts(force: true)
+        saveTemplateName = run?.title.isEmpty == false ? "\(run!.title) template" : "Custom template"
+        showSaveAsTemplate = true
+    }
+
+    private func commitSaveAsTemplate() {
+        guard let run else { return }
+        let template = run.asTemplate(name: saveTemplateName)
+        do {
+            try libraryEnvironment.runTemplateStore.saveUserTemplate(template)
+            statusMessage = "Saved template “\(template.name)”."
+            errorMessage = nil
+            showSaveAsTemplate = false
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -222,6 +263,11 @@ struct RunDetailView: View {
                 RulesReferenceOpener.request(query: "run")
             }
             .help("Open Rules Reference for awards, heat, and downtime topics")
+
+            Button("Save as Template…", systemImage: "list.bullet.rectangle") {
+                prepareSaveAsTemplate()
+            }
+            .help("Save this job’s structure as a reusable run template")
 
             Button("Delete", systemImage: "trash", role: .destructive) {
                 confirmDelete = true

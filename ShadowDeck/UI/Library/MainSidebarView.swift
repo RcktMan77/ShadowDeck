@@ -14,6 +14,7 @@ struct MainSidebarView: View {
     var runCount: Int
     var onNewCampaign: () -> Void
     var onNewRun: () -> Void
+    var onNewRunFromTemplate: () -> Void
 
     var body: some View {
         // No `List(selection:)` — system selection greys out when the list is
@@ -25,11 +26,12 @@ struct MainSidebarView: View {
                 sidebarItem(.runs, badge: runCount)
                 sidebarItem(.campaigns, badge: campaignCount)
             }
-            // Create mirrors that order: character (+ import), then run, then campaign.
+            // Create: character (+ import), run (+ from template), campaign.
             Section("Create") {
                 sidebarItem(.newCharacter)
                 sidebarItem(.importCharacter)
                 sidebarItem(.newRun)
+                sidebarItem(.newRunFromTemplate)
                 sidebarItem(.newCampaign)
             }
         }
@@ -45,6 +47,8 @@ struct MainSidebarView: View {
             case .newRun:
                 // Re-clicking New Run while already selected still mints a fresh job.
                 onNewRun()
+            case .newRunFromTemplate:
+                onNewRunFromTemplate()
             case .newCampaign:
                 // Same pattern: always mint a campaign and open its detail.
                 onNewCampaign()
