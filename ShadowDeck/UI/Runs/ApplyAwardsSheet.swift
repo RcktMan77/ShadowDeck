@@ -71,12 +71,22 @@ struct ApplyAwardsSheet: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Apply Awards")
-                .font(.title2.weight(.semibold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Apply Awards")
+                    .font(.title2.weight(.semibold))
+                Spacer(minLength: 8)
+                Button {
+                    RulesReferenceOpener.request(query: "mission reputation")
+                } label: {
+                    Label("Mission reputation", systemImage: "book.pages")
+                }
+                .controlSize(.small)
+                .help("Open Rules Reference — Street Cred, Notoriety, and Public Awareness")
+            }
             Text(runTitle.isEmpty ? "Untitled run" : runTitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("Using \(preview.sourceLabel) payout. This credits linked runners and cannot be undone from the run.")
+            Text("Using \(preview.sourceLabel) payout. This credits linked runners and cannot be undone from the run. SC / Not / PA are optional per-runner reputation deltas.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

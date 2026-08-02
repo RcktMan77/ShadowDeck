@@ -7,6 +7,7 @@
 
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Payload for `sheet(item:)` so the briefing never presents empty content.
 struct PlayerBriefingPresentation: Identifiable, Hashable {
@@ -27,6 +28,7 @@ struct PlayerBriefingView: View {
     @State private var showProgress = false
     @State private var copyStatus: String?
     @State private var didConfigureDefaults = false
+    @State private var exportError: String?
 
     private var options: PlayerBriefingMarkdown.Options {
         PlayerBriefingMarkdown.Options(
@@ -118,12 +120,22 @@ struct PlayerBriefingView: View {
                     .foregroundStyle(.secondary)
                     .transition(.opacity)
             }
+            if let exportError {
+                Text(exportError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+            }
             Spacer()
             Button("Copy Markdown") {
                 copyMarkdown()
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .help("Copy the player-safe briefing as Markdown")
+            Button("Export PDF…") {
+                exportPDF()
+            }
+            .help("Save a printable player-safe PDF handout (same content as Markdown)")
             Button("Done", action: onDismiss)
                 .keyboardShortcut(.cancelAction)
         }
@@ -310,6 +322,7 @@ struct PlayerBriefingView: View {
     }
 
     private func copyMarkdown() {
+        exportError = nil
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(markdown, forType: .string)
@@ -322,6 +335,42 @@ struct PlayerBriefingView: View {
                     copyStatus = nil
                 }
             }
+        }
+    }
+
+    private func exportPDF() {
+        exportError = nil
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        let base = PlayerBriefingMarkdown.displayTitle(run.title)
+        let fileBase = base.isEmpty ? "Player-Briefing" : base
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: " -")
+        panel.nameFieldStringValue = "\(fileBase).pdf"
+        panel.message = "Export a player-safe briefing PDF (no GM-only fields)."
+        panel.prompt = "Export PDF"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try PlayerBriefingPDF.write(
+                markdown: markdown,
+                runTitle: base,
+                to: url
+            )
+            withAnimation {
+                copyStatus = "Saved PDF"
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation {
+                    if copyStatus == "Saved PDF" {
+                        copyStatus = nil
+                    }
+                }
+            }
+        } catch {
+            exportError = error.localizedDescription
         }
     }
 }
