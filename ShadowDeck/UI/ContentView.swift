@@ -11,8 +11,10 @@ import UniformTypeIdentifiers
 
 enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case characters
+    case campaigns
     case runs
     case newCharacter
+    case newCampaign
     case newRun
     case importCharacter
 
@@ -21,20 +23,33 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     var title: String {
         switch self {
         case .characters: "Characters"
+        case .campaigns: "Campaigns"
         case .runs: "Runs"
         case .newCharacter: "New Character"
+        case .newCampaign: "New Campaign"
         case .newRun: "New Run"
         case .importCharacter: "Import New Character"
         }
     }
 
+    /// Base glyph (Create run/campaign get a shared top-trailing `+` overlay in the sidebar).
     var systemImage: String {
         switch self {
         case .characters: "person.3.fill"
+        case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
         case .newCharacter: "plus.circle.fill"
-        case .newRun: "plus.rectangle.on.folder.fill"
+        case .newCampaign: "folder.fill"
+        case .newRun: "list.clipboard.fill"
         case .importCharacter: "square.and.arrow.down.fill"
+        }
+    }
+
+    /// When true, sidebar draws a consistent top-trailing plus badge (system `.badge.plus` glyphs place + differently).
+    var showsCreatePlusBadge: Bool {
+        switch self {
+        case .newRun, .newCampaign: true
+        default: false
         }
     }
 
@@ -42,12 +57,16 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         switch self {
         case .importCharacter:
             return "Import a new character from Chummer (.json / .chum5) or a .shadowdeck package"
+        case .newCampaign:
+            return "Create a campaign to group missions for a table or ruleset"
         case .newRun:
             return "Create a new mission / job in the Runs library"
         case .newCharacter:
             return "Start the character generation wizard"
         case .characters:
             return "Browse characters in your library"
+        case .campaigns:
+            return "Group missions under campaigns for a table or ruleset"
         case .runs:
             return "Browse missions and jobs"
         }
@@ -66,6 +85,8 @@ struct ContentView: View {
     @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
     @State private var newRunDetailID: UUID?
+    /// Open this campaign detail after Create → New Campaign (or toolbar create).
+    @State private var openCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) var openWindow
@@ -75,10 +96,11 @@ struct ContentView: View {
             MainSidebarView(
                 selection: $selection,
                 characterCount: summaries.count,
-                runCount: libraryEnvironment.runCount
-            ) {
-                requestNewRun()
-            }
+                campaignCount: libraryEnvironment.campaignCount,
+                runCount: libraryEnvironment.runCount,
+                onNewCampaign: { requestNewCampaign() },
+                onNewRun: { requestNewRun() }
+            )
         } detail: {
             NavigationStack {
                 detail
@@ -174,6 +196,15 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         switch selection {
+        case .campaigns:
+            CampaignsListView(
+                forcedOpenCampaignID: openCampaignID,
+                onOpenedForcedCampaign: { openCampaignID = nil }
+            )
+        case .newCampaign:
+            // Create action routes through requestNewCampaign → .campaigns + detail.
+            ProgressView("Creating campaign…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
@@ -239,8 +270,6 @@ struct ContentView: View {
                     libraryError: libraryEnvironment.lastErrorMessage,
                     onRefresh: { refresh() },
                     onLoadSamples: { seedSamplesIfEmpty() },
-                    onNewCharacter: { selection = .newCharacter },
-                    onImport: { selection = .importCharacter },
                     onOpen: { openCharacterSheet($0) },
                     onExportPackage: { exportCharacter($0) },
                     onExportPDF: { exportPDFSheet($0) },
@@ -341,6 +370,27 @@ struct ContentView: View {
         selectedCharacterID = nil
         beginNewRun()
         selection = .newRun
+    }
+
+    /// Create → New Campaign (re-click always mints another campaign, like New Run).
+    private func requestNewCampaign() {
+        selectedCharacterID = nil
+        var campaign = Campaign.makeDraft(name: "New Campaign")
+        let count = (try? libraryEnvironment.campaignLibrary.count(includeArchived: true)) ?? 0
+        if count > 0 {
+            campaign.name = "New Campaign \(count + 1)"
+        }
+        do {
+            try libraryEnvironment.campaignLibrary.save(campaign)
+            libraryEnvironment.refreshCampaignCount()
+            openCampaignID = campaign.id
+            selection = .campaigns
+            statusMessage = nil
+        } catch {
+            openCampaignID = nil
+            statusMessage = "Could not create campaign: \(error.localizedDescription)"
+            selection = .campaigns
+        }
     }
 
     private func beginNewRun() {
