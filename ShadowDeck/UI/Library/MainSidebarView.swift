@@ -12,6 +12,7 @@ struct MainSidebarView: View {
     var characterCount: Int
     var campaignCount: Int
     var runCount: Int
+    var onNewCampaign: () -> Void
     var onNewRun: () -> Void
 
     var body: some View {
@@ -26,6 +27,7 @@ struct MainSidebarView: View {
             Section("Create") {
                 sidebarItem(.newCharacter)
                 sidebarItem(.importCharacter)
+                sidebarItem(.newCampaign)
                 sidebarItem(.newRun)
             }
         }
@@ -37,10 +39,14 @@ struct MainSidebarView: View {
     private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
         let isSelected = selection == item
         return Button {
-            if item == .newRun {
+            switch item {
+            case .newRun:
                 // Re-clicking New Run while already selected still mints a fresh job.
                 onNewRun()
-            } else {
+            case .newCampaign:
+                // Same pattern: always mint a campaign and open its detail.
+                onNewCampaign()
+            default:
                 selection = item
             }
         } label: {
