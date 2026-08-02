@@ -116,11 +116,12 @@ struct GenerationWizardView: View {
                         .help(step.title)
                 }
             }
-            Button("Cancel", role: .cancel) {
+            AppChromeButton.title(
+                "Cancel",
+                help: "Leave without saving this character"
+            ) {
                 requestCancel()
             }
-            .keyboardShortcut(.cancelAction)
-            .help("Leave without saving this character")
         }
         .padding(16)
     }
@@ -143,11 +144,19 @@ struct GenerationWizardView: View {
 
     private var footer: some View {
         HStack {
-            Button("Cancel", role: .cancel) {
+            AppChromeButton.title(
+                "Cancel",
+                help: "Leave without saving this character"
+            ) {
                 requestCancel()
             }
-            Button("Back") { draft.goBack() }
-                .disabled(draft.step == .edition)
+            AppChromeButton.title(
+                "Back",
+                help: "Previous step",
+                isEnabled: draft.step != .edition
+            ) {
+                draft.goBack()
+            }
             if let statusMessage {
                 Text(statusMessage)
                     .font(.caption)
@@ -156,13 +165,25 @@ struct GenerationWizardView: View {
             }
             Spacer()
             if draft.step == .finish {
-                Button("Save Character") { saveCharacter() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!draft.canGoNext || didFinish)
+                AppChromeButton.title(
+                    "Save Character",
+                    help: "Save this character to your library",
+                    style: .prominent,
+                    isEnabled: draft.canGoNext && !didFinish,
+                    keyEquivalent: "\r"
+                ) {
+                    saveCharacter()
+                }
             } else {
-                Button("Continue") { draft.goNext() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!draft.canGoNext)
+                AppChromeButton.title(
+                    "Continue",
+                    help: "Next step",
+                    style: .prominent,
+                    isEnabled: draft.canGoNext,
+                    keyEquivalent: "\r"
+                ) {
+                    draft.goNext()
+                }
             }
         }
         .padding(16)
@@ -196,11 +217,13 @@ struct GenerationWizardView: View {
                             .lineLimit(2)
                     }
                     Spacer()
-                    Button("Configure…") {
+                    AppChromeButton.title(
+                        "Configure…",
+                        help: "Open the house rules catalog",
+                        style: .prominent
+                    ) {
                         showHouseRulesBrowser = true
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
                 }
 
                 if !draft.houseRules.enabled.isEmpty {
@@ -849,9 +872,18 @@ struct GenerationWizardView: View {
                 }
                 .frame(width: 220, height: 280)
 
-                Button("Choose Portrait…") { pickAvatar() }
+                AppChromeButton.title(
+                    "Choose Portrait…",
+                    help: "Choose a custom portrait image"
+                ) {
+                    pickAvatar()
+                }
                 if draft.avatarData != nil {
-                    Button("Use Role Art Instead", role: .destructive) {
+                    AppChromeButton.title(
+                        "Use Role Art Instead",
+                        help: "Clear the custom portrait and use role art",
+                        style: .destructive
+                    ) {
                         draft.avatarData = nil
                     }
                 }
