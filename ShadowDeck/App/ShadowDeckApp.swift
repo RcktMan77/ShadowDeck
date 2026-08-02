@@ -218,6 +218,9 @@ struct ShadowDeckApp: App {
             withTransaction(clear) {
                 showLaunchVeil = false
             }
+            // Reveal traffic lights / titlebar only after the veil is gone so a
+            // click-to-skip never paints the accent separator under the splash.
+            AppLaunchWindowPolicy.revealMainWindowChrome()
         }
     }
 }
