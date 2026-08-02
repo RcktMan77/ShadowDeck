@@ -12,8 +12,10 @@ enum AppPreferences {
     enum Key: String {
         // Launch / window
         case mainWindowFrame = "ShadowDeck.mainWindowFrame"
+        /// Legacy once-per-install flag; removed on launch.
+        case hasSeenLaunchSplash = "hasSeenLaunchSplash"
+        /// Legacy revision counter; removed on launch (splash always shows).
         case launchSplashRevision = "launchSplashRevision"
-        case hasSeenLaunchSplash = "hasSeenLaunchSplash" // legacy; cleared on launch
 
         // Catalog
         case chummerDataPath = "chummerDataPath"

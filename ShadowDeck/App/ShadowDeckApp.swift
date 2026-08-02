@@ -13,20 +13,18 @@ import UniformTypeIdentifiers
 struct ShadowDeckApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let libraryEnvironment: LibraryEnvironment
-    /// Bump when splash art/copy changes so users see the new splash once after update.
-    private static let splashRevision = 3
     @State private var showSplash: Bool
-    /// Opaque cover under the splash art; stays for a beat after dismiss so sidebar
-    /// accent / title-bar chrome cannot flash through during the hand-off.
+    /// Opaque black under the splash art; remains briefly after dismiss while the main
+    /// frame restores, then drops before chrome is revealed.
     @State private var showLaunchVeil: Bool
 
     init() {
-        // Show splash on every cold launch (skip with click/key).
+        // Splash on every cold launch (skip with click or any key).
         _showSplash = State(initialValue: true)
         _showLaunchVeil = State(initialValue: true)
-        // Clear legacy key so Settings / docs stay accurate.
+        // Legacy once-per-install flag from older builds.
         AppPreferences.remove(.hasSeenLaunchSplash)
-        AppPreferences.set(Self.splashRevision, for: .launchSplashRevision)
+        AppPreferences.remove(.launchSplashRevision)
         do {
             // Marketing captures never open the on-disk personal library.
             if MarketingScreenshotExporter.isEnabled {
@@ -53,9 +51,7 @@ struct ShadowDeckApp: App {
                     .environment(libraryEnvironment)
                     .modelContainer(libraryEnvironment.container)
 
-                // Always-opaque black under the splash (and briefly after dismiss).
-                // Without this, NavigationSplitView’s accent selection and title-bar
-                // safe area flash green through the click-to-skip hand-off.
+                // Veil under splash art; covers the deck during dismiss + frame restore.
                 if showLaunchVeil {
                     Color.black
                         .ignoresSafeArea()
@@ -110,7 +106,7 @@ struct ShadowDeckApp: App {
                         showSplash = true
                         AppLaunchWindowPolicy.beginColdLaunchGuard()
                     case .library, .generationRole, .characterSheet, .diceRoller, .runLibrary,
-                         .runGif, .advanceGif, .finished:
+                         .rulesReference, .pdfLibrary, .runGif, .advanceGif, .finished:
                         dismissSplashWithVeil()
                     }
                 }
@@ -196,8 +192,8 @@ struct ShadowDeckApp: App {
         }
     }
 
-    /// Drop splash art first under an opaque black veil, restore window chrome, then
-    /// reveal the library after a short settle so accent title/sidebar cannot flash.
+    /// Drop splash art under the veil, restore the main frame, then clear the veil
+    /// and reveal window chrome as soon as the next frame is committed.
     @MainActor
     private func dismissSplashWithVeil() {
         var t = Transaction()
@@ -206,20 +202,16 @@ struct ShadowDeckApp: App {
             showLaunchVeil = true
             showSplash = false
         }
-        // Restore library frame / traffic lights under the veil.
+        // Frame restore is synchronous; keep the veil only long enough for one layout pass.
         AppLaunchWindowPolicy.endColdLaunchGuard()
         Task { @MainActor in
-            // Two frames + a short settle: resize + NavigationSplitView first layout.
             await Task.yield()
-            await Task.yield()
-            try? await Task.sleep(for: .milliseconds(180))
+            try? await Task.sleep(for: .milliseconds(40))
             var clear = Transaction()
             clear.disablesAnimations = true
             withTransaction(clear) {
                 showLaunchVeil = false
             }
-            // Reveal traffic lights / titlebar only after the veil is gone so a
-            // click-to-skip never paints the accent separator under the splash.
             AppLaunchWindowPolicy.revealMainWindowChrome()
         }
     }
