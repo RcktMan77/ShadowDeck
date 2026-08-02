@@ -10,6 +10,8 @@ import Foundation
 public enum AppCommand {
     public static let newCharacter = Notification.Name("com.shadowdeck.command.newCharacter")
     public static let newRun = Notification.Name("com.shadowdeck.command.newRun")
+    /// Open New Run from Template sheet. Optional `userInfo["campaignID"]` as UUID.
+    public static let newRunFromTemplate = Notification.Name("com.shadowdeck.command.newRunFromTemplate")
     public static let importCharacter = Notification.Name("com.shadowdeck.command.importCharacter")
     public static let openPackage = Notification.Name("com.shadowdeck.command.openPackage")
     /// Posted with a `URL` object when Finder / File > Open hands us a package.
