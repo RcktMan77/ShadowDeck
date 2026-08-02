@@ -508,4 +508,3 @@ struct LifestyleManagementView: View {
         )
     }
 }
-
