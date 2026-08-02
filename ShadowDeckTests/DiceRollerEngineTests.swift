@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class DiceRollerEngineTests: XCTestCase {
-
     // MARK: - Hits / evaluate
 
     func testHitsOnFiveAndSix() {

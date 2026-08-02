@@ -74,7 +74,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
 
     public init(
         id: UUID = UUID(),
-        schemaVersion: Int = Character.currentSchemaVersion,
+        schemaVersion: Int = Self.currentSchemaVersion,
         name: String,
         streetName: String = "",
         concept: String = "",

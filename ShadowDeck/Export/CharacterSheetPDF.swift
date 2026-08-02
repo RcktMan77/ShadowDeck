@@ -92,7 +92,7 @@ public enum CharacterSheetPDF {
             ("KARMA", "\(c.karmaAvailable)/\(c.karmaTotal)"),
             ("ESSENCE", formatEssence(report.derived.currentEssence)),
             ("ARMOR", "\(report.derived.armor)"),
-            ("INIT", "\(report.derived.initiativeBase)+\(report.derived.initiativeDice)D6"),
+            ("INIT", "\(report.derived.initiativeBase)+\(report.derived.initiativeDice)D6")
         ]
         var vx: CGFloat = 36
         for (label, value) in vitals {
@@ -122,7 +122,7 @@ public enum CharacterSheetPDF {
             ("CHARISMA", eff.charisma, c.attributes.charisma),
             ("EDGE", eff.edge, c.attributes.edge),
             ("MAGIC", eff.magic, c.attributes.magic),
-            ("RESONANCE", eff.resonance, c.attributes.resonance),
+            ("RESONANCE", eff.resonance, c.attributes.resonance)
         ]
         let cols = 4
         let cellW = (page.width - 72) / CGFloat(cols)
@@ -148,7 +148,7 @@ public enum CharacterSheetPDF {
             drawKeyRow(ctx, y: &y, items: [
                 ("Physical", "\(report.derived.physicalLimit ?? 0)"),
                 ("Mental", "\(report.derived.mentalLimit ?? 0)"),
-                ("Social", "\(report.derived.socialLimit ?? 0)"),
+                ("Social", "\(report.derived.socialLimit ?? 0)")
             ], theme: theme)
             y -= 8
         }
@@ -363,10 +363,10 @@ public enum CharacterSheetPDF {
         var sheetTitle: String
         var editionBadge: String
 
-        static func theme(for edition: Edition) -> SheetTheme {
+        static func theme(for edition: Edition) -> Self {
             switch edition {
             case .sr4:
-                return SheetTheme(
+                return Self(
                     banner: NSColor(calibratedRed: 0.12, green: 0.28, blue: 0.18, alpha: 1),
                     bannerText: NSColor(calibratedRed: 0.75, green: 0.95, blue: 0.8, alpha: 1),
                     panel: NSColor(calibratedRed: 0.94, green: 0.96, blue: 0.93, alpha: 1),
@@ -379,7 +379,7 @@ public enum CharacterSheetPDF {
                     editionBadge: "SHADOWRUN 4TH EDITION"
                 )
             case .sr5:
-                return SheetTheme(
+                return Self(
                     banner: NSColor(calibratedRed: 0.08, green: 0.14, blue: 0.28, alpha: 1),
                     bannerText: NSColor(calibratedRed: 0.45, green: 0.9, blue: 1.0, alpha: 1),
                     panel: NSColor(calibratedRed: 0.93, green: 0.95, blue: 0.98, alpha: 1),
@@ -392,7 +392,7 @@ public enum CharacterSheetPDF {
                     editionBadge: "SHADOWRUN 5TH EDITION"
                 )
             case .sr6:
-                return SheetTheme(
+                return Self(
                     banner: NSColor(calibratedRed: 0.18, green: 0.06, blue: 0.22, alpha: 1),
                     bannerText: NSColor(calibratedRed: 0.95, green: 0.45, blue: 0.9, alpha: 1),
                     panel: NSColor(calibratedRed: 0.97, green: 0.93, blue: 0.98, alpha: 1),
@@ -471,8 +471,7 @@ public enum CharacterSheetPDF {
             // Default metatype art
             let name = "metatype_\(character.metatype.rawValue)"
             if let url = Bundle.main.url(forResource: name, withExtension: "jpg")
-                ?? Bundle.main.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
-            {
+                ?? Bundle.main.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt") {
                 return NSImage(contentsOf: url)
             }
             return nil
@@ -550,7 +549,7 @@ public enum CharacterSheetPDF {
     ) {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: color,
+            .foregroundColor: color
         ]
         let ns = NSAttributedString(string: text, attributes: attrs)
         let line = CTLineCreateWithAttributedString(ns)

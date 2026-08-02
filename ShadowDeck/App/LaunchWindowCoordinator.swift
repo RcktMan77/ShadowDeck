@@ -211,9 +211,13 @@ enum LaunchWindowCoordinator {
             object: nil,
             queue: .main
         ) { note in
-            guard didEndSplash, !isGuarding else { return }
-            guard let window = note.object as? NSWindow, !isRulesWindow(window) else { return }
-            persistMainWindowFrameIfPossible()
+            // NotificationCenter closures are nonisolated under Swift 6; hop to MainActor.
+            let window = note.object as? NSWindow
+            Task { @MainActor in
+                guard didEndSplash, !isGuarding else { return }
+                guard let window, !isRulesWindow(window) else { return }
+                persistMainWindowFrameIfPossible()
+            }
         }
 
         moveObserver = NotificationCenter.default.addObserver(
@@ -221,9 +225,12 @@ enum LaunchWindowCoordinator {
             object: nil,
             queue: .main
         ) { note in
-            guard didEndSplash, !isGuarding else { return }
-            guard let window = note.object as? NSWindow, !isRulesWindow(window) else { return }
-            schedulePersistDebounced()
+            let window = note.object as? NSWindow
+            Task { @MainActor in
+                guard didEndSplash, !isGuarding else { return }
+                guard let window, !isRulesWindow(window) else { return }
+                schedulePersistDebounced()
+            }
         }
     }
 
@@ -278,9 +285,12 @@ enum LaunchWindowCoordinator {
             object: nil,
             queue: .main
         ) { note in
-            guard isGuarding, !didEndSplash else { return }
-            guard let window = note.object as? NSWindow, !isRulesWindow(window) else { return }
-            applySplashWindowPresentation()
+            let window = note.object as? NSWindow
+            Task { @MainActor in
+                guard isGuarding, !didEndSplash else { return }
+                guard let window, !isRulesWindow(window) else { return }
+                applySplashWindowPresentation()
+            }
         }
     }
 
@@ -333,9 +343,9 @@ enum LaunchWindowCoordinator {
             if window.frame.width > 0, window.frame.width < 400 { return false }
             return true
         }
-        return candidates.max(by: {
+        return candidates.max {
             $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height
-        })
+        }
     }
 }
 

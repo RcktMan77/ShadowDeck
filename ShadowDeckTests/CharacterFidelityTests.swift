@@ -13,7 +13,6 @@ import SwiftData
 
 @MainActor
 final class CharacterFidelityTests: XCTestCase {
-
     // MARK: - Fixtures
 
     /// Character packed with post-v1 domain state that must survive `.shadowdeck` / library JSON.
