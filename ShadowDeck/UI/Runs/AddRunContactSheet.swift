@@ -5,6 +5,9 @@
 //  Pick one or more contacts from character lists and attach them to a run.
 //  Supports multi-select and staging across characters before a single Add.
 //
+//  Johnson / Fixer / Target / Other are **run roles** assigned when you stage a
+//  contact — not filters on the character’s contact list.
+//
 
 import SwiftUI
 
@@ -18,7 +21,8 @@ struct AddRunContactSheet: View {
     /// Called once with every staged link when the user confirms Add.
     var onAdd: ([RunContactLink]) -> Void
 
-    @State private var role: RunContactRole = .johnson
+    /// Role applied to the **next** contact(s) you check. Not a list filter.
+    @State private var nextRole: RunContactRole = .johnson
     @State private var selectedCharacterID: UUID?
     @State private var contacts: [Contact] = []
     /// Staged links (may come from several characters / roles).
@@ -34,7 +38,8 @@ struct AddRunContactSheet: View {
             header
             Divider()
             Form {
-                roleAndCharacter
+                characterPicker
+                nextRoleSection
                 contactChecklist
                 stagedSection
                 if let errorMessage {
@@ -45,7 +50,7 @@ struct AddRunContactSheet: View {
             .formStyle(.grouped)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 480, height: 520)
+        .frame(width: 500, height: 560)
         .onAppear {
             if selectedCharacterID == nil {
                 selectedCharacterID = characterSummaries.first?.id
@@ -71,20 +76,12 @@ struct AddRunContactSheet: View {
     }
 
     private var addButtonTitle: String {
-        staged.isEmpty ? "Add" : "Add \(staged.count)"
+        staged.isEmpty ? "Add to run" : "Add \(staged.count) to run"
     }
 
-    private var roleAndCharacter: some View {
-        Group {
-            Picker("Role on this run", selection: $role) {
-                ForEach(RunContactRole.allCases) { r in
-                    Text(r.displayName).tag(r)
-                }
-            }
-            .pickerStyle(.segmented)
-            .help("Applied to contacts you select next. Change role between picks if needed.")
-
-            Picker("Character", selection: $selectedCharacterID) {
+    private var characterPicker: some View {
+        Section {
+            Picker("Whose contacts", selection: $selectedCharacterID) {
                 Text("Select…").tag(Optional<UUID>.none)
                 ForEach(characterSummaries) { summary in
                     Text(summary.displayTitle).tag(Optional(summary.id))
@@ -93,11 +90,34 @@ struct AddRunContactSheet: View {
             .onChange(of: selectedCharacterID) { _, newID in
                 loadContacts(for: newID)
             }
-
-            Text("Select contacts below (role applies to new picks). Switch character to stage more, then Add once.")
+        } footer: {
+            Text("Shows that character’s full contact list. Switch characters to stage people from more than one runner.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var nextRoleSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Role for next picks")
+                    .font(.subheadline.weight(.semibold))
+                Text("Not a filter — this is the job role (Johnson / Fixer / Target / Other) stamped onto each contact you check below.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Picker("Role for next picks", selection: $nextRole) {
+                    ForEach(RunContactRole.allCases) { r in
+                        Text(r.displayName).tag(r)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help("Assigns this run role when you check a contact. Does not filter the list.")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } footer: {
+            Text("Multi-add: set Johnson → check your Johnson; set Fixer → check your fixer; then Add once. Fix mistakes with the role menu in Ready to add.")
+                .font(.caption)
         }
     }
 
@@ -105,13 +125,20 @@ struct AddRunContactSheet: View {
     private var contactChecklist: some View {
         if selectedCharacterID != nil {
             if contacts.isEmpty {
-                Text("This character has no contacts yet.")
-                    .foregroundStyle(.secondary)
-            } else {
                 Section("Contacts — \(selectedCharacterTitle)") {
+                    Text("This character has no contacts yet.")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Section {
                     ForEach(contacts) { contact in
                         contactToggleRow(contact)
                     }
+                } header: {
+                    Text("Contacts — \(selectedCharacterTitle)")
+                } footer: {
+                    Text("Check to stage with “\(nextRole.displayName)”. Uncheck to remove from the list below. Free-text under a name is their contact-sheet role, not the run role.")
+                        .font(.caption)
                 }
             }
         }
@@ -136,9 +163,9 @@ struct AddRunContactSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(contact.name)
                         .font(.body.weight(.medium))
-                    let roleText = contact.role.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !roleText.isEmpty {
-                        Text(roleText)
+                    let sheetRole = contact.role.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !sheetRole.isEmpty {
+                        Text("Contact: \(sheetRole)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -149,8 +176,9 @@ struct AddRunContactSheet: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 } else if isStaged, let stagedRole = stagedRole(for: contact.id) {
-                    Text(stagedRole.displayName)
+                    Text("→ \(stagedRole.displayName)")
                         .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tint)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.accentColor.opacity(0.15), in: Capsule())
@@ -158,40 +186,70 @@ struct AddRunContactSheet: View {
             }
         }
         .disabled(alreadyOnRun && !isStaged)
-        .help(alreadyOnRun && !isStaged ? "Already linked on this run" : "Toggle to stage with the selected role")
+        .help(
+            alreadyOnRun && !isStaged
+                ? "Already linked on this run"
+                : "Stage as \(nextRole.displayName) on this job"
+        )
     }
 
     @ViewBuilder
     private var stagedSection: some View {
         if !staged.isEmpty {
-            Section("Ready to add (\(staged.count))") {
-                ForEach(staged) { link in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(link.displayName)
-                                .font(.body.weight(.medium))
-                            Text(stagedSubtitle(link))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(link.role.displayName)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.12), in: Capsule())
-                        Button {
-                            staged.removeAll { $0.id == link.id }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Remove from staging")
-                    }
+            Section {
+                ForEach(Array(staged.indices), id: \.self) { index in
+                    stagedRow(index: index)
                 }
+            } header: {
+                Text("Ready to add (\(staged.count))")
+            } footer: {
+                Text("Each person gets their own run role. Adjust with the menu if you picked the wrong one.")
+                    .font(.caption)
             }
         }
+    }
+
+    private func stagedRow(index: Int) -> some View {
+        let link = staged[index]
+        return HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(link.displayName)
+                    .font(.body.weight(.medium))
+                Text(stagedSubtitle(link))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+            Picker("Run role", selection: roleBinding(at: index)) {
+                ForEach(RunContactRole.allCases) { r in
+                    Text(r.displayName).tag(r)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: 120)
+            .help("Role on this job")
+
+            Button {
+                staged.remove(at: index)
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Remove from staging")
+        }
+    }
+
+    private func roleBinding(at index: Int) -> Binding<RunContactRole> {
+        Binding(
+            get: {
+                staged.indices.contains(index) ? staged[index].role : .other
+            },
+            set: { newRole in
+                guard staged.indices.contains(index) else { return }
+                staged[index].role = newRole
+            }
+        )
     }
 
     // MARK: - Staging
@@ -217,12 +275,12 @@ struct AddRunContactSheet: View {
 
     private func stage(_ contact: Contact) {
         guard let characterID = selectedCharacterID else { return }
-        // Replace if re-staging the same contact (e.g. role change).
+        // Replace if re-staging the same contact (e.g. next-role change then re-check).
         staged.removeAll {
             $0.sourceCharacterID == characterID && $0.contactID == contact.id
         }
         let link = RunContactLink(
-            role: role,
+            role: nextRole,
             sourceCharacterID: characterID,
             contactID: contact.id,
             displayName: contact.name,
@@ -240,10 +298,15 @@ struct AddRunContactSheet: View {
 
     private func stagedSubtitle(_ link: RunContactLink) -> String {
         let source = characterSummaries.first { $0.id == link.sourceCharacterID }?.displayTitle
+        var parts: [String] = []
         if let source {
-            return "From \(source)"
+            parts.append("From \(source)")
         }
-        return "Linked contact"
+        let sheetRole = link.displayRoleLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !sheetRole.isEmpty {
+            parts.append("contact: \(sheetRole)")
+        }
+        return parts.isEmpty ? "Linked contact" : parts.joined(separator: " · ")
     }
 
     private func loadContacts(for characterID: UUID?) {
