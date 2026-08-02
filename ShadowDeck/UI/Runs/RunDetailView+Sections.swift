@@ -175,41 +175,7 @@ extension RunDetailView {
 
                 if let contacts = run?.contacts, !contacts.isEmpty {
                     ForEach(contacts) { link in
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(link.displayName)
-                                    .font(.body.weight(.medium))
-                                HStack(spacing: 6) {
-                                    Text(link.roleLabel)
-                                        .font(.caption)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.12), in: Capsule())
-                                    if link.isLinked {
-                                        Text("Linked contact")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Unlinked")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                            Spacer()
-                            Button {
-                                updateRun { r in
-                                    r.contacts.removeAll { $0.id == link.id }
-                                }
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(.red)
-                                    .frame(width: 28, height: 28)
-                            }
-                            .buttonStyle(.borderless)
-                            .help("Remove from this run")
-                        }
-                        .padding(.vertical, 2)
+                        contactLinkRow(link)
                     }
                 } else {
                     Text("No people linked yet.")
@@ -217,6 +183,58 @@ extension RunDetailView {
                 }
             }
         }
+    }
+
+    /// Row for a person on the job: run-role stamp + optional contact-sheet free-text.
+    private func contactLinkRow(_ link: RunContactLink) -> some View {
+        let sheetRole = link.displayRoleLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(link.displayName)
+                    .font(.body.weight(.medium))
+                HStack(spacing: 6) {
+                    // Always show the job stamp (Johnson / Fixer / Target / Other).
+                    Text(link.role.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.14), in: Capsule())
+                        .help("Role on this job")
+                    // Free-text from the character contact sheet, when present and distinct.
+                    if !sheetRole.isEmpty,
+                       sheetRole.caseInsensitiveCompare(link.role.displayName) != .orderedSame {
+                        Text(sheetRole)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12), in: Capsule())
+                            .help("Role on the character contact sheet")
+                    }
+                    if link.isLinked {
+                        Text("Linked contact")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Unlinked")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            Button {
+                updateRun { r in
+                    r.contacts.removeAll { $0.id == link.id }
+                }
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundStyle(.red)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .help("Remove from this run")
+        }
+        .padding(.vertical, 2)
     }
 
     var objectivesSection: some View {
