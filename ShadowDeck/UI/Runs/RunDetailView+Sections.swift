@@ -43,11 +43,7 @@ extension RunDetailView {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
 
-                LabeledContent("Client / Johnson") {
-                    TextField("Mr. Johnson…", text: binding(\.client))
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 360)
-                }
+                clientJohnsonRow
                 LabeledContent("Location") {
                     TextField("District, city…", text: binding(\.location))
                         .textFieldStyle(.roundedBorder)
@@ -99,6 +95,125 @@ extension RunDetailView {
                     height: 140
                 ) {
                     commitRichTextDrafts()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var clientJohnsonRow: some View {
+        if let johnson = run?.primaryJohnson {
+            VStack(alignment: .leading, spacing: 4) {
+                LabeledContent("Client / Johnson") {
+                    HStack(spacing: 8) {
+                        Text(johnson.displayName)
+                            .font(.body.weight(.medium))
+                        Text(johnson.roleLabel)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                        if johnson.isLinked {
+                            Text("Linked")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("Unlink") {
+                            updateRun { r in
+                                r.contacts.removeAll { $0.id == johnson.id }
+                            }
+                        }
+                        .controlSize(.small)
+                    }
+                }
+                Text("Linked Johnson is the primary client name. Free-text client is kept as fallback.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                if !(run?.client ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    LabeledContent("Client (fallback text)") {
+                        TextField("Optional override text…", text: binding(\.client))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 360)
+                    }
+                }
+            }
+        } else {
+            LabeledContent("Client / Johnson") {
+                TextField("Mr. Johnson…", text: binding(\.client))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 360)
+            }
+            Text("Or add a Johnson under People on this job.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    var contactsSection: some View {
+        RunSectionCard(title: "People on this job") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("\(run?.contacts.count ?? 0) person(s)")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Menu {
+                        Button("From character contacts…") {
+                            showAddContactSheet = true
+                        }
+                        Button("Unlinked person…") {
+                            showAddUnlinkedContact = true
+                        }
+                    } label: {
+                        Label("Add Person", systemImage: "plus.circle")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                Text("Johnson, fixer, target, or other. Links prefer a contact from a character’s list.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
+                if let contacts = run?.contacts, !contacts.isEmpty {
+                    ForEach(contacts) { link in
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(link.displayName)
+                                    .font(.body.weight(.medium))
+                                HStack(spacing: 6) {
+                                    Text(link.roleLabel)
+                                        .font(.caption)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.12), in: Capsule())
+                                    if link.isLinked {
+                                        Text("Linked contact")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Text("Unlinked")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                updateRun { r in
+                                    r.contacts.removeAll { $0.id == link.id }
+                                }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove from this run")
+                        }
+                        .padding(.vertical, 2)
+                    }
+                } else {
+                    Text("No people linked yet.")
+                        .foregroundStyle(.secondary)
                 }
             }
         }
