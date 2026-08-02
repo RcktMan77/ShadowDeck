@@ -32,7 +32,11 @@ struct LifestyleManagementView: View {
             title: "Lifestyle",
             subtitle: "Monthly costs, prepaid months, and a reserve buffer used first when you process rent.",
             onAdd: { showAdd = true },
-            addLabel: "Add Lifestyle"
+            addLabel: "Add Lifestyle",
+            onLookUp: {
+                RulesReferenceOpener.request(query: "lifestyle", character: character)
+            },
+            lookUpLabel: "Look up"
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 if let errorMessage {
@@ -48,7 +52,7 @@ struct LifestyleManagementView: View {
                     ManagementEmptyState(
                         title: "No Lifestyles",
                         systemImage: "house",
-                        message: "Add a safehouse or loft, or re-import from Chummer to pull lifestyle rows."
+                        message: "Add a safehouse or loft, or re-import from Chummer. Look up covers levels, Process Month, and reserve."
                     )
                 } else {
                     List {

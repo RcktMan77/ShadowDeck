@@ -56,14 +56,33 @@ struct ShadowDeckApp: App {
                         withTransaction(t) {
                             showSplash = false
                         }
+                        // Restore main library size (splash uses a fixed independent canvas).
+                        AppLaunchWindowPolicy.endColdLaunchGuard()
                     }
                     .zIndex(1)
+                    .onAppear {
+                        // Fixed splash size + keep the deck key over restored utilities.
+                        AppLaunchWindowPolicy.promoteMainWindowForSplash()
+                    }
                 }
             }
-            // Explicit min + ideal so the scene always has a concrete size.
-            // Avoid max-only / min-only frames that can collapse detail columns.
-            .frame(minWidth: 900, idealWidth: 1100, minHeight: 560, idealHeight: 720)
+            // During splash, pin SwiftUI's proposed size to the splash canvas so the
+            // scene does not open at ideal library size and then shrink.
+            // After dismiss, use the normal library min/ideal.
+            .frame(
+                minWidth: showSplash ? AppLaunchWindowPolicy.splashContentSize.width : 900,
+                idealWidth: showSplash
+                    ? AppLaunchWindowPolicy.splashContentSize.width
+                    : AppLaunchWindowPolicy.mainContentSize.width,
+                minHeight: showSplash ? AppLaunchWindowPolicy.splashContentSize.height : 560,
+                idealHeight: showSplash
+                    ? AppLaunchWindowPolicy.splashContentSize.height
+                    : AppLaunchWindowPolicy.mainContentSize.height
+            )
             .onAppear {
+                if showSplash {
+                    AppLaunchWindowPolicy.promoteMainWindowForSplash()
+                }
                 guard MarketingScreenshotExporter.isEnabled else { return }
                 Task { @MainActor in
                     await MarketingScreenshotExporter.runSequence()
@@ -79,19 +98,26 @@ struct ShadowDeckApp: App {
                     switch phase {
                     case .splash:
                         showSplash = true
+                        AppLaunchWindowPolicy.beginColdLaunchGuard()
                     case .library, .generationRole, .characterSheet, .diceRoller, .runLibrary,
                          .runGif, .advanceGif, .finished:
                         showSplash = false
+                        AppLaunchWindowPolicy.endColdLaunchGuard()
                     }
                 }
             }
         }
-        .defaultSize(width: 1100, height: 720)
+        // Open at splash size so the first painted frame is already correct
+        // (avoids a visible downsize from the library default into splash).
+        .defaultSize(
+            width: AppLaunchWindowPolicy.splashContentSize.width,
+            height: AppLaunchWindowPolicy.splashContentSize.height
+        )
         // Size from content minimum only — do not auto-resize the window when
         // switching Library / Import / Wizard ideal content sizes change.
         .windowResizability(.contentMinSize)
         // Hide native title bar so splash (and main UI) are not under a chrome strip.
-        // Traffic lights remain; in-app titles come from NavigationSplitView toolbars.
+        // Traffic lights remain after splash; in-app titles come from toolbars.
         .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -117,6 +143,11 @@ struct ShadowDeckApp: App {
                     NotificationCenter.default.post(name: AppCommand.openDiceRoller, object: nil)
                 }
                 .keyboardShortcut("d", modifiers: [.command])
+
+                Button("Rules Reference…") {
+                    NotificationCenter.default.post(name: AppCommand.openRulesReference, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: [.command])
             }
 
             // Standard format shortcuts. Target the focused NSTextView (NotesEditor, etc.).
@@ -139,9 +170,46 @@ struct ShadowDeckApp: App {
             }
         }
 
+        // Single reusable Rules Reference window (not a trailing inspector).
+        // Cold launch: AppLaunchWindowPolicy closes any restored instance so it
+        // cannot sit key/front over the splash (see AppDelegate).
+        Window("Rules Reference", id: RulesReferenceOpener.windowID) {
+            RulesReferenceWindowRoot()
+                .environment(libraryEnvironment)
+                .background(RulesWindowChromeConfigurer())
+        }
+        .defaultSize(width: 1100, height: 720)
+        .windowResizability(.contentMinSize)
+
         Settings {
             SettingsView()
                 .environment(libraryEnvironment)
+        }
+    }
+}
+
+// MARK: - Rules window chrome
+
+/// Tags the NSWindow and disables AppKit state restoration so a prior Rules
+/// session is less likely to resurrect in front of the cold-start splash.
+/// Closing of restored instances is handled by `AppLaunchWindowPolicy`.
+private struct RulesWindowChromeConfigurer: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.isHidden = true
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.identifier = NSUserInterfaceItemIdentifier(RulesReferenceOpener.windowID)
+            window.isRestorable = false
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            window.identifier = NSUserInterfaceItemIdentifier(RulesReferenceOpener.windowID)
+            window.isRestorable = false
         }
     }
 }
