@@ -10,8 +10,10 @@ import SwiftUI
 struct CampaignsListView: View {
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
 
-    /// When set, open this campaign detail immediately.
+    /// When set, open this campaign detail immediately (e.g. Create → New Campaign).
     var forcedOpenCampaignID: UUID?
+    /// Called after the forced open is applied so the parent can clear its token.
+    var onOpenedForcedCampaign: (() -> Void)?
 
     @State private var summaries: [CampaignSummary] = []
     @State private var runSummaries: [RunSummary] = []
@@ -62,10 +64,19 @@ struct CampaignsListView: View {
         }
         .onAppear {
             refresh()
-            if let forcedOpenCampaignID {
-                selectedCampaignID = forcedOpenCampaignID
-            }
+            applyForcedOpenIfNeeded()
         }
+        .onChange(of: forcedOpenCampaignID) { _, _ in
+            applyForcedOpenIfNeeded()
+        }
+    }
+
+    private func applyForcedOpenIfNeeded() {
+        guard let forcedOpenCampaignID else { return }
+        selectedCampaignID = forcedOpenCampaignID
+        openRunID = nil
+        refresh()
+        onOpenedForcedCampaign?()
     }
 
     private var listRoot: some View {
@@ -94,6 +105,9 @@ struct CampaignsListView: View {
             }
 
             if displayedCampaigns.isEmpty {
+                // Primary create path is Create → New Campaign (and the header button).
+                // Avoid a third redundant action on the empty canvas (unlike Characters/Runs,
+                // campaign creation is a single-purpose list with an always-visible toolbar).
                 ContentUnavailableView {
                     Label(
                         showArchived ? "No Campaigns" : "No Active Campaigns",
@@ -102,11 +116,9 @@ struct CampaignsListView: View {
                 } description: {
                     Text(
                         showArchived
-                            ? "Create a campaign to group missions for a table or ruleset."
-                            : "Create a campaign, or enable Show archived to see archived ones."
+                            ? "Use Create → New Campaign or the New Campaign button above."
+                            : "Use Create → New Campaign (or New Campaign above). Enable Show archived to see archived ones."
                     )
-                } actions: {
-                    Button("New Campaign") { createCampaign() }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
