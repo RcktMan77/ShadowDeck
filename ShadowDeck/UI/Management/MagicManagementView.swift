@@ -33,10 +33,13 @@ struct MagicManagementView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Look up", systemImage: "book.pages") {
+                    AppChromeButton.labeled(
+                        "Look up",
+                        systemImage: "book.pages",
+                        help: "Open Rules Reference for Drain, spirits, adepts, and astral topics"
+                    ) {
                         RulesReferenceOpener.request(query: "magic", character: character)
                     }
-                    .help("Open Rules Reference for Drain, spirits, adepts, and astral topics (⌘R)")
                 }
 
                 powersSection
@@ -192,8 +195,9 @@ struct MagicManagementView: View {
                 Text(title)
                     .font(.title3.weight(.semibold))
                 Spacer()
-                Button("Add", systemImage: "plus.circle", action: add)
-                    .controlSize(.small)
+                AppChromeButton.labeled("Add", systemImage: "plus.circle", help: "Add \(title.lowercased())") {
+                    add()
+                }
             }
             content()
                 .padding(12)
@@ -221,13 +225,19 @@ struct MagicManagementView: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel") {
+                AppChromeButton.title("Cancel", help: "Close without adding") {
                     draftName = ""
                     draftCategory = ""
                     isAddingSpell = false
                     isAddingForm = false
                 }
-                Button("Add") {
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add this item",
+                    style: .prominent,
+                    isEnabled: !draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    keyEquivalent: "\r"
+                ) {
                     let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else { return }
                     onAdd(name, draftCategory.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -236,8 +246,6 @@ struct MagicManagementView: View {
                     isAddingSpell = false
                     isAddingForm = false
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)
@@ -261,12 +269,18 @@ struct MagicManagementView: View {
             ModifierDraftEditor(modifiers: $draftModifiers)
             HStack {
                 Spacer()
-                Button("Cancel") {
+                AppChromeButton.title("Cancel", help: "Close without adding") {
                     isCustomPower = false
                     draftName = ""
                     draftModifiers = []
                 }
-                Button("Add") {
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add custom adept power",
+                    style: .prominent,
+                    isEnabled: !draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    keyEquivalent: "\r"
+                ) {
                     let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else { return }
                     let catalogMods = CatalogLookup.modifiers(named: name)
@@ -288,8 +302,6 @@ struct MagicManagementView: View {
                     draftModifiers = []
                     isCustomPower = false
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)

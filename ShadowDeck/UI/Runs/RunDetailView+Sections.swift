@@ -96,8 +96,56 @@ extension RunDetailView {
                 ) {
                     commitRichTextDrafts()
                 }
+
+                playerFacingCopyBlock
             }
         }
+    }
+
+    /// GM-editable player-safe blurb and risks for the briefing sheet (Phase 2E).
+    private var playerFacingCopyBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Player-facing copy")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("Shown on Player briefing and Copy Markdown. Keep spoilers in GM Notes / Opposition.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("What runners know")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Meet at Dante’s. Secure the package. Non-lethal preferred…",
+                    text: binding(\.playerFacingSummary),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...8)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Known risks (player-safe)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Light security after 22:00. Avoid garage cameras…",
+                    text: binding(\.knownRisks),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...6)
+            }
+
+            Button("Preview player briefing…") {
+                presentPlayerBriefing()
+            }
+            .controlSize(.small)
+            .help("Open the read-only player briefing sheet")
+        }
+        .padding(.top, 4)
     }
 
     @ViewBuilder
@@ -240,9 +288,7 @@ extension RunDetailView {
     var objectivesSection: some View {
         RunSectionCard(title: "Objectives") {
             VStack(alignment: .leading, spacing: 12) {
-                objectiveList(title: "Primary", primary: true)
-                objectiveList(title: "Secondary", primary: false)
-                Divider()
+                // Entry first (top-down flow), then existing lists.
                 HStack {
                     Picker("Kind", selection: $newObjectiveIsPrimary) {
                         Text("Primary").tag(true)
@@ -252,9 +298,17 @@ extension RunDetailView {
                     TextField("New objective…", text: $newObjectiveText)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { addObjective() }
-                    Button("Add") { addObjective() }
-                        .disabled(newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    AppChromeButton.title(
+                        "Add",
+                        help: "Add objective",
+                        isEnabled: !newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
+                        addObjective()
+                    }
                 }
+                Divider()
+                objectiveList(title: "Primary", primary: true)
+                objectiveList(title: "Secondary", primary: false)
             }
         }
     }
@@ -631,7 +685,14 @@ extension RunDetailView {
 
             teamReputationSnapshot
 
-            applyAwardsControls
+            applyAwardsHints
+
+            // Bottom of section, trailing — after awards list and reputation context.
+            HStack {
+                Spacer(minLength: 0)
+                applyAwardsButton
+            }
+            .padding(.top, 4)
         }
     }
 
@@ -681,21 +742,25 @@ extension RunDetailView {
         return (character.streetCred, character.notoriety, character.publicAwareness)
     }
 
-    var applyAwardsControls: some View {
-        let eligible = canOfferApplyAwards
-        return VStack(alignment: .leading, spacing: 6) {
-            Button("Apply Awards…") {
-                presentApplyAwardsSheet()
-            }
-            .disabled(!eligible)
-            .help(applyAwardsHelp)
+    private var applyAwardsButton: some View {
+        AppChromeButton.title(
+            "Apply Awards…",
+            help: applyAwardsHelp,
+            style: .prominent,
+            isEnabled: canOfferApplyAwards
+        ) {
+            presentApplyAwardsSheet()
+        }
+    }
 
+    private var applyAwardsHints: some View {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Apply Awards also sets per-runner reputation deltas (Street Cred, Notoriety, Public Awareness) and an optional heat note.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if !eligible, let hint = applyAwardsDisabledHint {
+            if !canOfferApplyAwards, let hint = applyAwardsDisabledHint {
                 Text(hint)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)

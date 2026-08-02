@@ -491,71 +491,77 @@ struct CharacterAtAGlanceView: View {
     // MARK: - Toolbar
 
     private func toolbar(_ c: Character) -> some View {
-        HStack(spacing: 12) {
-            Button {
+        HStack(spacing: 4) {
+            AppChromeButton.labeled("Library", systemImage: "chevron.left", help: "Back to Character Library") {
                 onBack()
-            } label: {
-                Label("Library", systemImage: "chevron.left")
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            Button {
-                if diceRoller.isPresented {
-                    diceRoller.dismiss()
-                } else {
-                    openDiceRollerManual()
-                }
-            } label: {
-                Label(
+            // Tight trailing cluster so Dice / Rules / Export / Delete read as one bar.
+            HStack(spacing: 4) {
+                AppChromeButton.labeled(
                     diceRoller.isPresented ? "Hide Dice" : "Dice",
-                    systemImage: "dice.fill"
-                )
-            }
-            .help("Open dice roller (⌘D)")
-            .keyboardShortcut("d", modifiers: [.command])
-            .accessibilityLabel(diceRoller.isPresented ? "Hide dice roller" : "Open dice roller")
-
-            Button {
-                openRulesReference()
-            } label: {
-                Label("Rules", systemImage: "book.pages.fill")
-            }
-            .help("Open Rules Reference window (⌘R)")
-            .accessibilityLabel("Open Rules Reference")
-            .keyboardShortcut("r", modifiers: [.command])
-
-            Button("Export…", systemImage: "square.and.arrow.up") {
-                showExportOptions = true
-            }
-            .help("Export package, PDF character sheet, or Chummer .chum5")
-            .confirmationDialog(
-                "Export \(c.displayTitle)",
-                isPresented: $showExportOptions,
-                titleVisibility: .visible
-            ) {
-                Button("ShadowDeck Package…") { exportPackage() }
-                Button("PDF Character Sheet…") { exportPDFSheet() }
-                Button("Chummer .chum5…") { exportChummer() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Choose a format for GMs, backups, or online hubs.")
-            }
-
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                confirmDeletePresented = true
-            }
-            .confirmationDialog(
-                "Delete this character?",
-                isPresented: $confirmDeletePresented,
-                titleVisibility: .visible
-            ) {
-                Button("Delete \(c.displayTitle)", role: .destructive) {
-                    deleteCharacter()
+                    systemImage: "dice.fill",
+                    help: "Open dice roller (⌘D)",
+                    keyEquivalent: "d",
+                    keyModifiers: .command
+                ) {
+                    if diceRoller.isPresented {
+                        diceRoller.dismiss()
+                    } else {
+                        openDiceRollerManual()
+                    }
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("“\(c.displayTitle)” will be removed from your library. This cannot be undone.")
+
+                AppChromeButton.labeled(
+                    "Rules",
+                    systemImage: "book.pages.fill",
+                    help: "Open Rules Reference window (⌘R)",
+                    keyEquivalent: "r",
+                    keyModifiers: .command
+                ) {
+                    openRulesReference()
+                }
+
+                AppChromeButton.icon(
+                    "square.and.arrow.up",
+                    help: "Export — package, PDF character sheet, or Chummer .chum5"
+                ) {
+                    showExportOptions = true
+                }
+                .confirmationDialog(
+                    "Export \(c.displayTitle)",
+                    isPresented: $showExportOptions,
+                    titleVisibility: .visible
+                ) {
+                    Button("ShadowDeck Package…") { exportPackage() }
+                    Button("PDF Character Sheet…") { exportPDFSheet() }
+                    Button("Chummer .chum5…") { exportChummer() }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Choose a format for GMs, backups, or online hubs.")
+                }
+
+                AppChromeButton.icon(
+                    "trash",
+                    help: "Delete this character",
+                    style: .destructive
+                ) {
+                    confirmDeletePresented = true
+                }
+                .confirmationDialog(
+                    "Delete this character?",
+                    isPresented: $confirmDeletePresented,
+                    titleVisibility: .visible
+                ) {
+                    Button("Delete \(c.displayTitle)", role: .destructive) {
+                        deleteCharacter()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("“\(c.displayTitle)” will be removed from your library. This cannot be undone.")
+                }
             }
         }
     }

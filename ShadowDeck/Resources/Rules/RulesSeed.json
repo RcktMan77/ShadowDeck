@@ -464,14 +464,17 @@
     },
     {
       "id": "dice-notoriety-public",
-      "title": "Public awareness and notoriety (pointer)",
+      "title": "Mission reputation (street cred, notoriety, PA)",
       "category": "dice",
       "tags": [
         "street cred",
         "notoriety",
-        "public awareness"
+        "public awareness",
+        "mission reputation",
+        "reputation",
+        "run award"
       ],
-      "summary": "Reputation tracks (street cred, notoriety, public awareness) modify social and legwork tests in some editions. ShadowDeck does not fully automate rep dice—use your book when a contact or Johnson cares who you are.",
+      "summary": "After a run, GMs often adjust Street Cred, Notoriety, and Public Awareness per runner (ShadowDeck’s Apply Awards sheet). These tracks can modify social and legwork tests in some editions. ShadowDeck stores the scores and apply-time deltas but does not fully automate rep dice—use your book when a contact or Johnson cares who you are.",
       "formula": null,
       "editions": [],
       "pageRefs": [

@@ -185,7 +185,10 @@ struct RunsListView: View {
             Text("Run Library")
                 .font(.title2.weight(.semibold))
             Spacer()
-            Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
+            AppChromeButton.labeled("Refresh", systemImage: "arrow.clockwise", help: "Reload runs") {
+                refresh()
+            }
+            // Menu keeps SwiftUI for the pull-down; chrome button is the visible face.
             Menu {
                 Button("New Run") { createRun() }
                     .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -193,6 +196,8 @@ struct RunsListView: View {
                     NotificationCenter.default.post(name: AppCommand.newRunFromTemplate, object: nil)
                 }
             } label: {
+                // Match AppChromeButton.toolbar bezel via empty chrome-looking Label;
+                // Menu cannot host NSButton as label easily — use bordered style.
                 Label("New Run", systemImage: "plus.circle")
             }
             .menuStyle(.borderlessButton)
