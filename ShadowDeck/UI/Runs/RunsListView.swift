@@ -121,12 +121,11 @@ struct RunsListView: View {
             }
 
             if summaries.isEmpty {
+                // Create via Create → New Run or the New Run toolbar button (no duplicate empty-state CTA).
                 ContentUnavailableView {
                     Label("No Runs Yet", systemImage: "list.clipboard")
                 } description: {
-                    Text("Plan jobs for your table — briefings, objectives, team, and session log.")
-                } actions: {
-                    Button("New Run") { createRun() }
+                    Text("Plan jobs for your table — briefings, objectives, team, and session log. Use Create → New Run or New Run above.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filtered.isEmpty {
