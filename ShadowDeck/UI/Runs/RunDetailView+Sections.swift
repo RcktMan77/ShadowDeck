@@ -96,8 +96,56 @@ extension RunDetailView {
                 ) {
                     commitRichTextDrafts()
                 }
+
+                playerFacingCopyBlock
             }
         }
+    }
+
+    /// GM-editable player-safe blurb and risks for the briefing sheet (Phase 2E).
+    private var playerFacingCopyBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Player-facing copy")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("Shown on Player briefing and Copy Markdown. Keep spoilers in GM Notes / Opposition.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("What runners know")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Meet at Dante’s. Secure the package. Non-lethal preferred…",
+                    text: binding(\.playerFacingSummary),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...8)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Known risks (player-safe)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Light security after 22:00. Avoid garage cameras…",
+                    text: binding(\.knownRisks),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...6)
+            }
+
+            Button("Preview player briefing…") {
+                presentPlayerBriefing()
+            }
+            .controlSize(.small)
+            .help("Open the read-only player briefing sheet")
+        }
+        .padding(.top, 4)
     }
 
     @ViewBuilder

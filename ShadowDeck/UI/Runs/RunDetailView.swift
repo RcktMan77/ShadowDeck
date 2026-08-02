@@ -40,6 +40,8 @@ struct RunDetailView: View {
     @State var marketingHighlight: String?
     /// Non-nil while Apply Awards sheet is open (`sheet(item:)` avoids blank empty sheets).
     @State var applyAwardsPresentation: ApplyAwardsPresentation?
+    /// Non-nil while player briefing sheet is open (Phase 2E).
+    @State var playerBriefingPresentation: PlayerBriefingPresentation?
     @State var showSaveAsTemplate = false
     @State var saveTemplateName = ""
     @State var showAddContactSheet = false
@@ -103,6 +105,12 @@ struct RunDetailView: View {
                 onConfirm: { shares, note, heatNote in
                     applyAwards(shares: shares, note: note, heatNote: heatNote)
                 }
+            )
+        }
+        .sheet(item: $playerBriefingPresentation) { presentation in
+            PlayerBriefingView(
+                run: presentation.run,
+                onDismiss: { playerBriefingPresentation = nil }
             )
         }
         .sheet(isPresented: $showSaveAsTemplate) {
@@ -329,6 +337,11 @@ struct RunDetailView: View {
             }
             .help("Open Rules Reference for awards, heat, and downtime topics")
 
+            Button("Player briefing", systemImage: "person.3.sequence") {
+                presentPlayerBriefing()
+            }
+            .help("Show a player-safe briefing and copy Markdown")
+
             Button("Save as Template…", systemImage: "list.bullet.rectangle") {
                 prepareSaveAsTemplate()
             }
@@ -338,6 +351,13 @@ struct RunDetailView: View {
                 confirmDelete = true
             }
         }
+    }
+
+    func presentPlayerBriefing() {
+        guard var current = run else { return }
+        commitRichTextDrafts(force: true)
+        current = run ?? current
+        playerBriefingPresentation = PlayerBriefingPresentation(run: current)
     }
 
     /// Scrolls with the form body — large editable title under sticky chrome.
