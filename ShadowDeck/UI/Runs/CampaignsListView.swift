@@ -571,23 +571,32 @@ struct CampaignDetailView: View {
     }
 
     private var houseRuleHintsBlock: some View {
+        // Same chrome pattern as the Runs section header: title/caption left, action menu right.
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("House-rule hints")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Choose from list…") {
-                    showHouseRuleHintsSheet = true
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("House-rule hints")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(
+                        "GM reminders for this table only — catalog picks and/or free text. Not applied to characters automatically."
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
-                .controlSize(.small)
+                Spacer(minLength: 12)
+                Menu {
+                    Button("Choose from supported rules…") {
+                        showHouseRuleHintsSheet = true
+                    }
+                } label: {
+                    Label("Add Rules", systemImage: "plus.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Pick from house rules ShadowDeck supports, then edit free text below")
             }
-            Text(
-                "Optional GM reminders for this table. Pick from rules ShadowDeck already supports, and/or add free-text notes. These do not auto-apply to characters — they are campaign sticky notes."
-            )
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            .fixedSize(horizontal: false, vertical: true)
 
             if !selectedHouseRuleLabels.isEmpty {
                 FlowHouseRuleChips(labels: selectedHouseRuleLabels) { label in
@@ -596,7 +605,7 @@ struct CampaignDetailView: View {
                 }
             }
 
-            TextField("Extra free-text notes (optional)…", text: $freeHouseRuleHints, axis: .vertical)
+            TextField("Free-text notes (optional)…", text: $freeHouseRuleHints, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...4)
                 .onSubmit { commitIdentity(forceNotes: true) }
