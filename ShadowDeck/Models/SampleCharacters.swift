@@ -32,9 +32,18 @@ public enum SampleCharacters {
 
     public static func sr4StreetSamurai() -> Character {
         var attributes = AttributeRatings(
-            body: 5, agility: 5, reaction: 5, strength: 4,
-            willpower: 3, logic: 3, intuition: 4, charisma: 2,
-            edge: 3, magic: 0, resonance: 0, essence: 6
+            body: 5,
+            agility: 5,
+            reaction: 5,
+            strength: 4,
+            willpower: 3,
+            logic: 3,
+            intuition: 4,
+            charisma: 2,
+            edge: 3,
+            magic: 0,
+            resonance: 0,
+            essence: 6
         )
         // Wired reflexes essence loss applied via augmentation list.
         let wired = Augmentation(
@@ -140,9 +149,18 @@ public enum SampleCharacters {
             ),
             houseRules: .coreBook,
             attributes: AttributeRatings(
-                body: 3, agility: 5, reaction: 4, strength: 2,
-                willpower: 5, logic: 5, intuition: 4, charisma: 5,
-                edge: 2, magic: 6, resonance: 0, essence: 6
+                body: 3,
+                agility: 5,
+                reaction: 4,
+                strength: 2,
+                willpower: 5,
+                logic: 5,
+                intuition: 4,
+                charisma: 5,
+                edge: 2,
+                magic: 6,
+                resonance: 0,
+                essence: 6
             ),
             skills: [
                 SkillRating(catalogKey: "spellcasting", displayName: "Spellcasting", category: .active, rating: 6, group: .sorcery),
@@ -221,9 +239,18 @@ public enum SampleCharacters {
             ),
             houseRules: house,
             attributes: AttributeRatings(
-                body: 3, agility: 4, reaction: 5, strength: 2,
-                willpower: 4, logic: 5, intuition: 5, charisma: 6,
-                edge: 5, magic: 0, resonance: 0, essence: 6
+                body: 3,
+                agility: 4,
+                reaction: 5,
+                strength: 2,
+                willpower: 4,
+                logic: 5,
+                intuition: 5,
+                charisma: 6,
+                edge: 5,
+                magic: 0,
+                resonance: 0,
+                essence: 6
             ),
             skills: [
                 SkillRating(catalogKey: "influence", displayName: "Influence", category: .active, rating: 6),

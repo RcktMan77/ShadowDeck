@@ -150,8 +150,8 @@ private struct KarmaRaiseCalculatorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Type", selection: $mode) {
-                ForEach(Mode.allCases) { m in
-                    Text(m.label).tag(m)
+                ForEach(Mode.allCases) { mode in
+                    Text(mode.label).tag(mode)
                 }
             }
             .pickerStyle(.segmented)

@@ -41,9 +41,9 @@ public final class RulesReferenceStore: @unchecked Sendable {
     public init(entries: [RuleEntry] = [], schemaVersion: Int = 1, loadErrors: [String] = []) {
         // Always sort page chips by edition era for stable UI.
         self.entries = entries.map { entry in
-            var e = entry
-            e.pageRefs = PageRef.sortedForDisplay(entry.pageRefs)
-            return e
+            var sorted = entry
+            sorted.pageRefs = PageRef.sortedForDisplay(entry.pageRefs)
+            return sorted
         }
         self.schemaVersion = schemaVersion
         self.loadErrors = loadErrors

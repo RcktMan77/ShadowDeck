@@ -317,12 +317,16 @@ private struct PDFThumbnailPane: NSViewRepresentable {
 
         func observe(_ driver: PDFView) {
             NotificationCenter.default.addObserver(
-                self, selector: #selector(changed),
-                name: .PDFViewPageChanged, object: driver
+                self,
+                selector: #selector(changed),
+                name: .PDFViewPageChanged,
+                object: driver
             )
         }
 
-        func teardown() { NotificationCenter.default.removeObserver(self) }
+        func teardown() {
+            // Observer removal only in deinit (SwiftLint notification_center_detachment).
+        }
         deinit { NotificationCenter.default.removeObserver(self) }
 
         func attach(session: SharedPDFDocumentSession) {
@@ -496,7 +500,7 @@ private final class PDFCanvasHostView: NSView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// Drawable canvas in window points. Independent of PDFKit magnification.
     /// Prefer the internal scroll view’s bounds (the real clip area); fall back
@@ -633,16 +637,18 @@ private struct PDFCanvasView: NSViewRepresentable {
 
         func observe(_ pdf: PDFView) {
             NotificationCenter.default.addObserver(
-                self, selector: #selector(pageChanged),
-                name: .PDFViewPageChanged, object: pdf
+                self,
+                selector: #selector(pageChanged),
+                name: .PDFViewPageChanged,
+                object: pdf
             )
         }
 
         func teardown() {
-            NotificationCenter.default.removeObserver(self)
             parent.searchBridge?.pdfView = nil
             host?.onLayoutZoom = nil
             host?.pdfView.onJumpToPage = nil
+            // Observer removal only in deinit (SwiftLint notification_center_detachment).
         }
 
         /// ←/→/Page Up/Down/Home/End from KeyboardPDFView — update binding + scroll.
@@ -731,13 +737,13 @@ private struct PDFCanvasView: NSViewRepresentable {
 
         private func pageSizePoints(_ page: PDFPage) -> CGSize {
             let media = page.bounds(for: .mediaBox)
-            var w = abs(media.width)
-            var h = abs(media.height)
+            var mediaWidth = abs(media.width)
+            var mediaHeight = abs(media.height)
             let rot = ((page.rotation % 360) + 360) % 360
             if rot == 90 || rot == 270 {
-                swap(&w, &h)
+                swap(&mediaWidth, &mediaHeight)
             }
-            return CGSize(width: w, height: h)
+            return CGSize(width: mediaWidth, height: mediaHeight)
         }
 
         func applyZoom(reason: String) {
@@ -830,8 +836,10 @@ private struct PDFCanvasView: NSViewRepresentable {
                 format: "[PDFZoom] %@ preset=%@ canvas=%.0f×%.0f page=%.0f×%.0f scale=%.4f sf=%.4f",
                 reason,
                 parent.zoomPreset.rawValue,
-                canvas.width, canvas.height,
-                pageSz.width, pageSz.height,
+                canvas.width,
+                canvas.height,
+                pageSz.width,
+                pageSz.height,
                 scale,
                 pdfView.scaleFactor
             ))

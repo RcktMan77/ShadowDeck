@@ -27,9 +27,17 @@ final class RunAwardApplicatorTests: XCTestCase {
             generation: GenerationProfile(system: .priority),
             houseRules: .coreBook,
             attributes: AttributeRatings(
-                body: 3, agility: 3, reaction: 3, strength: 3,
-                willpower: 3, logic: 3, intuition: 3, charisma: 3,
-                edge: 2, magic: 0, resonance: 0
+                body: 3,
+                agility: 3,
+                reaction: 3,
+                strength: 3,
+                willpower: 3,
+                logic: 3,
+                intuition: 3,
+                charisma: 3,
+                edge: 2,
+                magic: 0,
+                resonance: 0
             ),
             karmaTotal: karmaTotal,
             karmaAvailable: karmaAvailable,
@@ -200,7 +208,12 @@ final class RunAwardApplicatorTests: XCTestCase {
         )
 
         XCTAssertFalse(preview.canApply)
-        XCTAssertTrue(preview.blockReason.lowercased().contains("payout") || preview.blockReason.lowercased().contains("zero") || preview.blockReason.lowercased().contains("non-zero"))
+        let reason = preview.blockReason.lowercased()
+        XCTAssertTrue(
+            reason.contains("payout")
+                || reason.contains("zero")
+                || reason.contains("non-zero")
+        )
     }
 
     func testPreviewFailedStatusEligible() {
@@ -385,7 +398,7 @@ final class RunAwardApplicatorTests: XCTestCase {
     }
 
     func testLegacyRunJSONWithoutAwardsFieldsDecodes() throws {
-        let json = """
+        let json = Data("""
         {
           "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
           "schemaVersion": 1,
@@ -406,7 +419,7 @@ final class RunAwardApplicatorTests: XCTestCase {
           "createdAt": "2020-01-01T00:00:00Z",
           "modifiedAt": "2020-01-01T00:00:00Z"
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let run = try decoder.decode(Run.self, from: json)
@@ -433,7 +446,7 @@ final class RunAwardApplicatorTests: XCTestCase {
 
     func testLegacyLedgerEntryWithoutNuyenDeltaDecodes() throws {
         let id = UUID()
-        let json = """
+        let json = Data("""
         {
           "id": "\(id.uuidString)",
           "date": "2020-01-01T00:00:00Z",
@@ -442,7 +455,7 @@ final class RunAwardApplicatorTests: XCTestCase {
           "karmaSpent": 8,
           "targetKey": "pistols"
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let entry = try decoder.decode(AdvancementLedgerEntry.self, from: json)
