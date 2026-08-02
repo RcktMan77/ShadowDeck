@@ -14,9 +14,17 @@ final class AdvancementEngineTests: XCTestCase {
         metatype: MetatypeID = .human,
         awakened: AwakenedPath = .mundane,
         attributes: AttributeRatings = AttributeRatings(
-            body: 3, agility: 4, reaction: 3, strength: 3,
-            willpower: 3, logic: 3, intuition: 3, charisma: 3,
-            edge: 2, magic: 0, resonance: 0
+            body: 3,
+            agility: 4,
+            reaction: 3,
+            strength: 3,
+            willpower: 3,
+            logic: 3,
+            intuition: 3,
+            charisma: 3,
+            edge: 2,
+            magic: 0,
+            resonance: 0
         ),
         skills: [SkillRating] = [
             SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4),
@@ -112,8 +120,15 @@ final class AdvancementEngineTests: XCTestCase {
     func testAttributeMetatypeMaxBlocksRaise() {
         // Human agility max 6
         let attrs = AttributeRatings(
-            body: 3, agility: 6, reaction: 3, strength: 3,
-            willpower: 3, logic: 3, intuition: 3, charisma: 3, edge: 2
+            body: 3,
+            agility: 6,
+            reaction: 3,
+            strength: 3,
+            willpower: 3,
+            logic: 3,
+            intuition: 3,
+            charisma: 3,
+            edge: 2
         )
         let c = baseCharacter(attributes: attrs)
         let r = rules(for: .sr5)
@@ -123,8 +138,15 @@ final class AdvancementEngineTests: XCTestCase {
 
     func testTrollBodyMaxHigherThanHuman() {
         let attrs = AttributeRatings(
-            body: 9, agility: 3, reaction: 3, strength: 5,
-            willpower: 3, logic: 2, intuition: 2, charisma: 2, edge: 1
+            body: 9,
+            agility: 3,
+            reaction: 3,
+            strength: 5,
+            willpower: 3,
+            logic: 2,
+            intuition: 2,
+            charisma: 2,
+            edge: 1
         )
         let troll = baseCharacter(metatype: .troll, attributes: attrs)
         let human = baseCharacter(metatype: .human, attributes: attrs)
@@ -277,8 +299,15 @@ final class AdvancementEngineTests: XCTestCase {
 
     func testSuggestionsBiasTrollTowardBody() {
         let attrs = AttributeRatings(
-            body: 6, agility: 3, reaction: 3, strength: 6,
-            willpower: 3, logic: 2, intuition: 2, charisma: 2, edge: 1
+            body: 6,
+            agility: 3,
+            reaction: 3,
+            strength: 6,
+            willpower: 3,
+            logic: 2,
+            intuition: 2,
+            charisma: 2,
+            edge: 1
         )
         let c = baseCharacter(metatype: .troll, attributes: attrs, karmaAvailable: 40)
         let r = rules(for: .sr5)

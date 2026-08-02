@@ -582,17 +582,17 @@ final class RulesReferenceController: ObservableObject {
         guard !didRestoreState else { return }
         didRestoreState = true
         if let raw = AppPreferences.string(.rulesRefMode),
-           let m = RulesReferenceMode(rawValue: raw) {
-            mode = m
+           let modeValue = RulesReferenceMode(rawValue: raw) {
+            mode = modeValue
         }
         query = AppPreferences.string(.rulesRefQuery) ?? ""
         if let raw = AppPreferences.string(.rulesRefCategory),
-           let c = RuleCategory(rawValue: raw) {
-            selectedCategory = c
+           let category = RuleCategory(rawValue: raw) {
+            selectedCategory = category
         }
         if let raw = AppPreferences.string(.rulesRefEdition),
-           let e = Edition(rawValue: raw) {
-            editionFilter = e
+           let edition = Edition(rawValue: raw) {
+            editionFilter = edition
         }
         if let id = AppPreferences.string(.rulesRefSelectedID), store.entry(id: id) != nil {
             selectedID = id
