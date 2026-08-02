@@ -85,6 +85,12 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
     public var nuyenDelta: Int
     /// Soft link to the run that produced a run award, when known.
     public var relatedRunID: UUID?
+    /// Street Cred delta from a run award (Phase 2D). Defaults to 0 for older entries.
+    public var streetCredDelta: Int
+    /// Notoriety delta from a run award (Phase 2D). Defaults to 0 for older entries.
+    public var notorietyDelta: Int
+    /// Public Awareness delta from a run award (Phase 2D). Defaults to 0 for older entries.
+    public var publicAwarenessDelta: Int
 
     public init(
         id: UUID = UUID(),
@@ -94,7 +100,10 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
         karmaSpent: Int,
         targetKey: String? = nil,
         nuyenDelta: Int = 0,
-        relatedRunID: UUID? = nil
+        relatedRunID: UUID? = nil,
+        streetCredDelta: Int = 0,
+        notorietyDelta: Int = 0,
+        publicAwarenessDelta: Int = 0
     ) {
         self.id = id
         self.date = date
@@ -104,10 +113,14 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
         self.targetKey = targetKey
         self.nuyenDelta = nuyenDelta
         self.relatedRunID = relatedRunID
+        self.streetCredDelta = streetCredDelta
+        self.notorietyDelta = notorietyDelta
+        self.publicAwarenessDelta = publicAwarenessDelta
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, date, kind, summary, karmaSpent, targetKey, nuyenDelta, relatedRunID
+        case streetCredDelta, notorietyDelta, publicAwarenessDelta
     }
 
     public init(from decoder: Decoder) throws {
@@ -120,6 +133,9 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
         targetKey = try c.decodeIfPresent(String.self, forKey: .targetKey)
         nuyenDelta = try c.decodeIfPresent(Int.self, forKey: .nuyenDelta) ?? 0
         relatedRunID = try c.decodeIfPresent(UUID.self, forKey: .relatedRunID)
+        streetCredDelta = try c.decodeIfPresent(Int.self, forKey: .streetCredDelta) ?? 0
+        notorietyDelta = try c.decodeIfPresent(Int.self, forKey: .notorietyDelta) ?? 0
+        publicAwarenessDelta = try c.decodeIfPresent(Int.self, forKey: .publicAwarenessDelta) ?? 0
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -134,5 +150,14 @@ public struct AdvancementLedgerEntry: Codable, Sendable, Hashable, Identifiable 
             try c.encode(nuyenDelta, forKey: .nuyenDelta)
         }
         try c.encodeIfPresent(relatedRunID, forKey: .relatedRunID)
+        if streetCredDelta != 0 {
+            try c.encode(streetCredDelta, forKey: .streetCredDelta)
+        }
+        if notorietyDelta != 0 {
+            try c.encode(notorietyDelta, forKey: .notorietyDelta)
+        }
+        if publicAwarenessDelta != 0 {
+            try c.encode(publicAwarenessDelta, forKey: .publicAwarenessDelta)
+        }
     }
 }

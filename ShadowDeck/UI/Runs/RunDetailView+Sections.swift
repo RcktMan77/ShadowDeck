@@ -175,41 +175,7 @@ extension RunDetailView {
 
                 if let contacts = run?.contacts, !contacts.isEmpty {
                     ForEach(contacts) { link in
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(link.displayName)
-                                    .font(.body.weight(.medium))
-                                HStack(spacing: 6) {
-                                    Text(link.roleLabel)
-                                        .font(.caption)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.12), in: Capsule())
-                                    if link.isLinked {
-                                        Text("Linked contact")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Unlinked")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                            Spacer()
-                            Button {
-                                updateRun { r in
-                                    r.contacts.removeAll { $0.id == link.id }
-                                }
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(.red)
-                                    .frame(width: 28, height: 28)
-                            }
-                            .buttonStyle(.borderless)
-                            .help("Remove from this run")
-                        }
-                        .padding(.vertical, 2)
+                        contactLinkRow(link)
                     }
                 } else {
                     Text("No people linked yet.")
@@ -217,6 +183,58 @@ extension RunDetailView {
                 }
             }
         }
+    }
+
+    /// Row for a person on the job: run-role stamp + optional contact-sheet free-text.
+    private func contactLinkRow(_ link: RunContactLink) -> some View {
+        let sheetRole = link.displayRoleLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(link.displayName)
+                    .font(.body.weight(.medium))
+                HStack(spacing: 6) {
+                    // Always show the job stamp (Johnson / Fixer / Target / Other).
+                    Text(link.role.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.14), in: Capsule())
+                        .help("Role on this job")
+                    // Free-text from the character contact sheet, when present and distinct.
+                    if !sheetRole.isEmpty,
+                       sheetRole.caseInsensitiveCompare(link.role.displayName) != .orderedSame {
+                        Text(sheetRole)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12), in: Capsule())
+                            .help("Role on the character contact sheet")
+                    }
+                    if link.isLinked {
+                        Text("Linked contact")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Unlinked")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            Button {
+                updateRun { r in
+                    r.contacts.removeAll { $0.id == link.id }
+                }
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundStyle(.red)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .help("Remove from this run")
+        }
+        .padding(.vertical, 2)
     }
 
     var objectivesSection: some View {
@@ -354,7 +372,7 @@ extension RunDetailView {
                     Text("")
                 }
             }
-            Text("Leave actual blank until the run resolves. Heat is a simple integer for now (campaign heat ledger later).")
+            Text("Leave actual blank until the run resolves. Heat Δ is run-level only — add a heat narrative when applying awards.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -582,7 +600,7 @@ extension RunDetailView {
         VStack(alignment: .leading, spacing: 8) {
             Text("Suggested awards")
                 .font(.subheadline.weight(.semibold))
-            Text("Suggestions only — does not change character karma/nuyen until you apply.")
+            Text("Suggestions only — does not change character karma, nuyen, or reputation until you apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -611,8 +629,56 @@ extension RunDetailView {
                     .foregroundStyle(.tertiary)
             }
 
+            teamReputationSnapshot
+
             applyAwardsControls
         }
+    }
+
+    /// Current Street Cred / Notoriety / Public Awareness for linked team members.
+    @ViewBuilder
+    var teamReputationSnapshot: some View {
+        let ids = run?.participantCharacterIDs ?? []
+        if !ids.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Team reputation (current)")
+                    .font(.subheadline.weight(.semibold))
+                Text("Set SC / Not / PA deltas when you Apply Awards. Heat Δ is on Payout & Heat; optional heat note is on the awards sheet.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(ids, id: \.self) { id in
+                    let rep = teamReputation(for: id)
+                    HStack(spacing: 10) {
+                        Text(characterTitle(id))
+                            .font(.callout.weight(.medium))
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        repChip("SC", rep.streetCred)
+                        repChip("Not", rep.notoriety)
+                        repChip("PA", rep.publicAwareness)
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func repChip(_ label: String, _ value: Int) -> some View {
+        Text("\(label) \(value)")
+            .font(.caption.monospacedDigit().weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.1), in: Capsule())
+            .help("\(label == "SC" ? "Street Cred" : label == "Not" ? "Notoriety" : "Public Awareness"): \(value)")
+    }
+
+    private func teamReputation(for characterID: UUID) -> (streetCred: Int, notoriety: Int, publicAwareness: Int) {
+        guard let character = try? libraryEnvironment.library.fetch(id: characterID) else {
+            return (0, 0, 0)
+        }
+        return (character.streetCred, character.notoriety, character.publicAwareness)
     }
 
     var applyAwardsControls: some View {
@@ -623,6 +689,11 @@ extension RunDetailView {
             }
             .disabled(!eligible)
             .help(applyAwardsHelp)
+
+            Text("Apply Awards also sets per-runner reputation deltas (Street Cred, Notoriety, Public Awareness) and an optional heat note.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if !eligible, let hint = applyAwardsDisabledHint {
                 Text(hint)
@@ -644,7 +715,7 @@ extension RunDetailView {
 
     var applyAwardsHelp: String {
         if canOfferApplyAwards {
-            return "Credit equal-split nuyen and karma to linked runners"
+            return "Credit nuyen, karma, and optional reputation deltas to linked runners"
         }
         return applyAwardsDisabledHint ?? "Apply awards when the run is finished"
     }
@@ -653,7 +724,7 @@ extension RunDetailView {
         guard let run else { return nil }
         if run.awardsAppliedAt != nil { return nil }
         if !run.status.isTerminal {
-            return "Mark the run Completed or Failed to apply awards."
+            return "Mark the run Completed or Failed to apply awards (and set reputation)."
         }
         if run.participantCharacterIDs.isEmpty {
             return "Link at least one runner on the team."
