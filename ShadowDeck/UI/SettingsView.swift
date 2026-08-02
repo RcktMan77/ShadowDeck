@@ -69,7 +69,7 @@ struct SettingsView: View {
                             .foregroundStyle(.red)
                     }
 
-                    Button("Reload Catalog") {
+                    AppChromeButton.title("Reload Catalog", help: "Reload the gear/quality catalog") {
                         catalog.reload()
                         status = "Reloaded \(catalog.result.entries.count) entries."
                     }
@@ -90,8 +90,14 @@ struct SettingsView: View {
                         TextField("Path to Chummer data/", text: $externalPath)
                             .textFieldStyle(.roundedBorder)
                         HStack {
-                            Button("Choose Folder…") { chooseFolder() }
-                            Button("Apply") {
+                            AppChromeButton.title("Choose Folder…", help: "Choose a Chummer data folder") {
+                                chooseFolder()
+                            }
+                            AppChromeButton.title(
+                                "Apply",
+                                help: "Load catalog from the external folder",
+                                style: .prominent
+                            ) {
                                 CatalogSettings.chummerDataPath = externalPath.trimmingCharacters(in: .whitespacesAndNewlines)
                                 CatalogSettings.preferExternalCatalog = true
                                 preferExternal = true

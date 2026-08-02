@@ -46,6 +46,8 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
     public var karmaTotal: Int
     public var karmaAvailable: Int
     public var nuyen: Int
+    /// Street Cred / Notoriety / Public Awareness (Phase 2D). Nil in legacy payloads = all zero.
+    public var reputation: CharacterReputation?
     /// Buffer spent first when processing monthly lifestyle costs.
     public var lifestyleNuyenReserve: Int
     /// Last successful “Process Month” (any number of months).
@@ -99,6 +101,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         karmaTotal: Int = 0,
         karmaAvailable: Int = 0,
         nuyen: Int = 0,
+        reputation: CharacterReputation? = nil,
         lifestyleNuyenReserve: Int = 0,
         lifestyleLastProcessedAt: Date? = nil,
         lifestyleLedger: [LifestyleLedgerEntry]? = nil,
@@ -136,6 +139,7 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         self.karmaTotal = karmaTotal
         self.karmaAvailable = karmaAvailable
         self.nuyen = nuyen
+        self.reputation = reputation
         self.lifestyleNuyenReserve = lifestyleNuyenReserve
         self.lifestyleLastProcessedAt = lifestyleLastProcessedAt
         self.lifestyleLedger = lifestyleLedger
@@ -208,8 +212,85 @@ public struct Character: Codable, Sendable, Hashable, Identifiable {
         return "\(name) “\(streetName)”"
     }
 
+    /// Street Cred (legacy-safe; missing reputation decodes as 0).
+    public var streetCred: Int {
+        get { reputation?.streetCred ?? 0 }
+        set {
+            var scores = reputation ?? .zero
+            scores.streetCred = newValue
+            reputation = scores
+        }
+    }
+
+    /// Notoriety (legacy-safe; missing reputation decodes as 0).
+    public var notoriety: Int {
+        get { reputation?.notoriety ?? 0 }
+        set {
+            var scores = reputation ?? .zero
+            scores.notoriety = newValue
+            reputation = scores
+        }
+    }
+
+    /// Public Awareness (legacy-safe; missing reputation decodes as 0).
+    public var publicAwareness: Int {
+        get { reputation?.publicAwareness ?? 0 }
+        set {
+            var scores = reputation ?? .zero
+            scores.publicAwareness = newValue
+            reputation = scores
+        }
+    }
+
+    /// Apply reputation deltas (any may be negative). Leaves scores as-is when all deltas are 0.
+    public mutating func applyReputationDeltas(
+        streetCred deltaSC: Int = 0,
+        notoriety deltaNot: Int = 0,
+        publicAwareness deltaPA: Int = 0
+    ) {
+        guard deltaSC != 0 || deltaNot != 0 || deltaPA != 0 else { return }
+        streetCred += deltaSC
+        notoriety += deltaNot
+        publicAwareness += deltaPA
+    }
+
     public mutating func touch() {
         modifiedAt = Date()
+    }
+}
+
+// MARK: - Reputation (Phase 2D)
+
+/// Minimal SR reputation scores tracked on a character.
+public struct CharacterReputation: Codable, Sendable, Hashable {
+    public var streetCred: Int
+    public var notoriety: Int
+    public var publicAwareness: Int
+
+    public static let zero = Self(streetCred: 0, notoriety: 0, publicAwareness: 0)
+
+    public init(streetCred: Int = 0, notoriety: Int = 0, publicAwareness: Int = 0) {
+        self.streetCred = streetCred
+        self.notoriety = notoriety
+        self.publicAwareness = publicAwareness
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case streetCred, notoriety, publicAwareness
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        streetCred = try c.decodeIfPresent(Int.self, forKey: .streetCred) ?? 0
+        notoriety = try c.decodeIfPresent(Int.self, forKey: .notoriety) ?? 0
+        publicAwareness = try c.decodeIfPresent(Int.self, forKey: .publicAwareness) ?? 0
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(streetCred, forKey: .streetCred)
+        try c.encode(notoriety, forKey: .notoriety)
+        try c.encode(publicAwareness, forKey: .publicAwareness)
     }
 }
 

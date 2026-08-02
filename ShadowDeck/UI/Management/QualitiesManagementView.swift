@@ -123,8 +123,13 @@ struct QualitiesManagementView: View {
             ModifierDraftEditor(modifiers: $draftModifiers)
             HStack {
                 Spacer()
-                Button("Cancel") { isCustom = false }
-                Button("Add") {
+                AppChromeButton.title("Cancel", help: "Close without adding") { isCustom = false }
+                AppChromeButton.title(
+                    "Add",
+                    help: "Add custom entry",
+                    style: .prominent,
+                    keyEquivalent: "\r"
+                ) {
                     let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !name.isEmpty else { return }
                     character.qualities.append(
@@ -143,8 +148,6 @@ struct QualitiesManagementView: View {
                     draftModifiers = []
                     isCustom = false
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)

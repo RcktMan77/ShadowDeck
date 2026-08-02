@@ -45,18 +45,29 @@ struct HouseRulesBrowserView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Look up", systemImage: "book.pages") {
+                AppChromeButton.labeled(
+                    "Look up",
+                    systemImage: "book.pages",
+                    help: "Open Rules Reference for dice house rules and table variants"
+                ) {
                     RulesReferenceOpener.request(query: "house rules")
                 }
-                .help("Open Rules Reference for dice house rules and table variants")
-                Button("Cancel", action: onCancel)
+                AppChromeButton.title("Cancel", help: "Close without applying") {
+                    onCancel()
+                }
             }
 
             // Presets
             HStack(spacing: 8) {
-                presetButton("Core Book", rules: .coreBook)
-                presetButton("Popular Table", rules: .popularTable)
-                presetButton("Prime Runner", rules: .primeRunner)
+                AppChromeButton.title("Core Book", help: "Core book defaults only") {
+                    houseRules = .coreBook
+                }
+                AppChromeButton.title("Popular Table", help: "Common table conveniences") {
+                    houseRules = .popularTable
+                }
+                AppChromeButton.title("Prime Runner", help: "Prime runner package preset") {
+                    houseRules = .primeRunner
+                }
                 Spacer()
                 Text("\(houseRules.enabled.count) active")
                     .font(.caption.monospacedDigit())
@@ -165,10 +176,14 @@ struct HouseRulesBrowserView: View {
 
             HStack {
                 Spacer()
-                Button("Apply House Rules") {
+                AppChromeButton.title(
+                    "Apply House Rules",
+                    help: "Apply the selected house rules to this character",
+                    style: .prominent,
+                    keyEquivalent: "\r"
+                ) {
                     onApply()
                 }
-                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(20)
@@ -182,14 +197,6 @@ struct HouseRulesBrowserView: View {
             || houseRules.isEnabled(.expandedContacts)
             || houseRules.isEnabled(.qualityBudgetAdjustment)
             || houseRules.isEnabled(.karmaGeneration)
-    }
-
-    private func presetButton(_ title: String, rules: HouseRules) -> some View {
-        Button(title) {
-            houseRules = rules
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
     }
 
     @ViewBuilder
@@ -287,10 +294,12 @@ struct HouseRulesBrowserView: View {
             }
             .toggleStyle(.checkbox)
 
-            Button("Reset dice rules to core book") {
+            AppChromeButton.title(
+                "Reset dice rules to core book",
+                help: "Restore edition default dice rules"
+            ) {
                 houseRules.dice = .coreBook
             }
-            .controlSize(.small)
         }
         .padding(.vertical, 4)
     }

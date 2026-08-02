@@ -11,9 +11,12 @@ import UniformTypeIdentifiers
 
 enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     case characters
+    case campaigns
     case runs
     case newCharacter
+    case newCampaign
     case newRun
+    case newRunFromTemplate
     case importCharacter
 
     var id: String { rawValue }
@@ -21,20 +24,36 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
     var title: String {
         switch self {
         case .characters: "Characters"
+        case .campaigns: "Campaigns"
         case .runs: "Runs"
         case .newCharacter: "New Character"
+        case .newCampaign: "New Campaign"
         case .newRun: "New Run"
+        case .newRunFromTemplate: "New Run from Template"
         case .importCharacter: "Import New Character"
         }
     }
 
+    /// Base glyph (Create run/campaign get a shared top-trailing `+` overlay in the sidebar).
     var systemImage: String {
         switch self {
         case .characters: "person.3.fill"
+        case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
-        case .newCharacter: "plus.circle.fill"
-        case .newRun: "plus.rectangle.on.folder.fill"
+        // Single person + shared + badge (Library Characters uses person.3.fill).
+        case .newCharacter: "person.fill"
+        case .newCampaign: "folder.fill"
+        case .newRun: "list.clipboard.fill"
+        case .newRunFromTemplate: "list.bullet.rectangle"
         case .importCharacter: "square.and.arrow.down.fill"
+        }
+    }
+
+    /// When true, sidebar draws a consistent top-trailing plus badge (system `.badge.plus` glyphs place + differently).
+    var showsCreatePlusBadge: Bool {
+        switch self {
+        case .newCharacter, .newRun, .newRunFromTemplate, .newCampaign: true
+        default: false
         }
     }
 
@@ -42,12 +61,18 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         switch self {
         case .importCharacter:
             return "Import a new character from Chummer (.json / .chum5) or a .shadowdeck package"
+        case .newCampaign:
+            return "Create a campaign to group missions for a table or ruleset"
         case .newRun:
             return "Create a new mission / job in the Runs library"
+        case .newRunFromTemplate:
+            return "Start a job from a built-in or saved run template"
         case .newCharacter:
             return "Start the character generation wizard"
         case .characters:
             return "Browse characters in your library"
+        case .campaigns:
+            return "Group missions under campaigns for a table or ruleset"
         case .runs:
             return "Browse missions and jobs"
         }
@@ -66,6 +91,11 @@ struct ContentView: View {
     @State private var libraryLayout: CharacterLibraryLayout = .gallery
     @State private var isLibraryDropTargeted = false
     @State private var newRunDetailID: UUID?
+    /// Open this campaign detail after Create → New Campaign (or toolbar create).
+    @State private var openCampaignID: UUID?
+    @State private var showNewRunFromTemplate = false
+    @State private var showDraftRunFromPDF = false
+    @State private var templatePreferredCampaignID: UUID?
     @State var marketingOpenRunID: UUID?
     @State var marketingForceRunListOnly = false
     @Environment(\.openWindow) var openWindow
@@ -75,10 +105,24 @@ struct ContentView: View {
             MainSidebarView(
                 selection: $selection,
                 characterCount: summaries.count,
-                runCount: libraryEnvironment.runCount
-            ) {
-                requestNewRun()
-            }
+                campaignCount: libraryEnvironment.campaignCount,
+                runCount: libraryEnvironment.runCount,
+                onNewCampaign: { requestNewCampaign() },
+                onNewCharacter: {
+                    selectedCharacterID = nil
+                    selection = .newCharacter
+                },
+                onImportCharacter: {
+                    selectedCharacterID = nil
+                    selection = .importCharacter
+                },
+                onNewRun: { requestNewRun() },
+                onNewRunFromTemplate: { showNewRunFromTemplate = true },
+                onNewRunFromPDF: { showDraftRunFromPDF = true },
+                onOpenPDFShelf: {
+                    RulesReferenceOpener.requestPDFLibrary()
+                }
+            )
         } detail: {
             NavigationStack {
                 detail
@@ -111,6 +155,49 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRun)) { _ in
             requestNewRun()
         }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromTemplate)) { note in
+            templatePreferredCampaignID = note.userInfo?["campaignID"] as? UUID
+            showNewRunFromTemplate = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.newRunFromPDF)) { _ in
+            showDraftRunFromPDF = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppCommand.openRunDetail)) { note in
+            guard let runID = note.userInfo?["runID"] as? UUID else { return }
+            newRunDetailID = runID
+            selection = .newRun
+            libraryEnvironment.refreshRunCount()
+        }
+        .sheet(isPresented: $showNewRunFromTemplate) {
+            NewRunFromTemplateSheet(
+                preferredCampaignID: templatePreferredCampaignID,
+                onCancel: {
+                    showNewRunFromTemplate = false
+                    templatePreferredCampaignID = nil
+                },
+                onCreated: { runID in
+                    showNewRunFromTemplate = false
+                    templatePreferredCampaignID = nil
+                    newRunDetailID = runID
+                    selection = .newRun
+                    libraryEnvironment.refreshRunCount()
+                }
+            )
+            .environment(libraryEnvironment)
+        }
+        .sheet(isPresented: $showDraftRunFromPDF) {
+            DraftRunFromPDFSheet(
+                preferredCampaignID: templatePreferredCampaignID,
+                onCancel: { showDraftRunFromPDF = false },
+                onCreated: { runID in
+                    showDraftRunFromPDF = false
+                    newRunDetailID = runID
+                    selection = .newRun
+                    libraryEnvironment.refreshRunCount()
+                }
+            )
+            .environment(libraryEnvironment)
+        }
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.importCharacter)) { _ in
             selection = .importCharacter
             selectedCharacterID = nil
@@ -141,10 +228,13 @@ struct ContentView: View {
             let query = note.userInfo?["query"] as? String
             let edition = note.userInfo?["edition"] as? Edition
             let calc = note.userInfo?["calcContext"] as? RulesCalcContext
+            let modeRaw = note.userInfo?["mode"] as? String
+            let mode = modeRaw.flatMap(RulesReferenceMode.init(rawValue:)) ?? .reference
             RulesReferenceSession.shared.prepare(
                 query: query,
                 edition: edition ?? calc?.edition,
-                calcContext: calc
+                calcContext: calc,
+                mode: mode
             )
             openWindow(id: RulesReferenceOpener.windowID)
         }
@@ -174,6 +264,19 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         switch selection {
+        case .campaigns:
+            CampaignsListView(
+                forcedOpenCampaignID: openCampaignID,
+                onOpenedForcedCampaign: { openCampaignID = nil }
+            )
+        case .newCampaign:
+            // Create action routes through requestNewCampaign → .campaigns + detail.
+            ProgressView("Creating campaign…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .newRunFromTemplate:
+            // Sheet-only create path (opened from New Run menu); stay on a neutral placeholder.
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .runs:
             RunsListView(
                 forcedOpenRunID: marketingForceRunListOnly ? nil : marketingOpenRunID,
@@ -201,9 +304,16 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case .importCharacter:
-            ImportView { importedID in
-                finishImport(importedID: importedID)
-            }
+            ImportView(
+                onFinished: { importedID in
+                    finishImport(importedID: importedID)
+                },
+                onCancel: {
+                    selection = .characters
+                    selectedCharacterID = nil
+                    refresh()
+                }
+            )
             .onDisappear { refresh() }
         case .newCharacter:
             GenerationWizardView(
@@ -239,8 +349,6 @@ struct ContentView: View {
                     libraryError: libraryEnvironment.lastErrorMessage,
                     onRefresh: { refresh() },
                     onLoadSamples: { seedSamplesIfEmpty() },
-                    onNewCharacter: { selection = .newCharacter },
-                    onImport: { selection = .importCharacter },
                     onOpen: { openCharacterSheet($0) },
                     onExportPackage: { exportCharacter($0) },
                     onExportPDF: { exportPDFSheet($0) },
@@ -341,6 +449,27 @@ struct ContentView: View {
         selectedCharacterID = nil
         beginNewRun()
         selection = .newRun
+    }
+
+    /// Create → New Campaign (re-click always mints another campaign, like New Run).
+    private func requestNewCampaign() {
+        selectedCharacterID = nil
+        var campaign = Campaign.makeDraft(name: "New Campaign")
+        let count = (try? libraryEnvironment.campaignLibrary.count(includeArchived: true)) ?? 0
+        if count > 0 {
+            campaign.name = "New Campaign \(count + 1)"
+        }
+        do {
+            try libraryEnvironment.campaignLibrary.save(campaign)
+            libraryEnvironment.refreshCampaignCount()
+            openCampaignID = campaign.id
+            selection = .campaigns
+            statusMessage = nil
+        } catch {
+            openCampaignID = nil
+            statusMessage = "Could not create campaign: \(error.localizedDescription)"
+            selection = .campaigns
+        }
     }
 
     private func beginNewRun() {

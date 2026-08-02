@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.0.0-0A7EA4?style=flat-square" alt="Version 1.0.0" /></a>
+  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.1.0-0A7EA4?style=flat-square" alt="Version 1.1.0" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
   <img src="https://img.shields.io/badge/platform-Mac-lightgrey?style=flat-square" alt="Mac" />
@@ -62,7 +62,7 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
     </td>
     <td width="25%" align="center" valign="top">
       <strong>Runs</strong><br />
-      <sub>Mission library, briefing, team, session log, awards</sub>
+      <sub>Campaigns, templates, contacts, reputation, briefing, awards</sub>
     </td>
     <td width="25%" align="center" valign="top">
       <strong>Dice</strong><br />
@@ -192,10 +192,16 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
     <td width="58%" valign="top">
 
 - **Run Library** — filter by status, character, and **ruleset**
-- Briefing: client, location, tags, objectives, opposition, complications
+- **Campaigns** — group jobs, notes, house-rule hints; open a campaign’s run list
+- **Templates** — mint a planning run from a built-in or custom template
+- Briefing: client, location, tags, objectives, **player-facing summary** &amp; known risks (GM spoilers stay separate)
+- **Player briefing** — copy Markdown or export PDF for the table (no opposition / GM notes)
+- **Contacts on the run** — Johnson / fixer / target / other, multi-select from character contact books, role stamps
+- **Reputation &amp; heat** — Street Cred / Notoriety / Public Awareness on Apply Awards; heat at run level
 - **Team** limited to library characters that match the run’s ruleset
-- Session log, payout &amp; heat, outcome notes, suggested equal-split awards
-- **Apply Awards…** — explicit commit of nuyen + karma to linked runners (never automatic)
+- Session log, payout, outcome notes, suggested equal-split awards
+- **Apply Awards…** — explicit commit of nuyen, karma, and optional reputation deltas (never automatic)
+- **Draft run from PDF… (Experimental)** — Missions &amp; Adventures shelf PDF → page range → AI or heuristic draft → review → planning run
 
     </td>
     <td width="42%" valign="top" align="center">
@@ -231,7 +237,7 @@ A dedicated window (⌘R) with two modes — mechanical cards for the table, and
 | Mode | What you get |
 |------|----------------|
 | **Reference** | Searchable **mechanical cards** (dice, karma, lifestyle, combat, magic, matrix, …) with short original summaries, formulas, edition notes, and compact calculators (Drain, Overwatch, glitch threshold, lifestyle burn, …) |
-| **Library** | Your **personal PDF shelf** — add rulebooks you own (drag-drop or Add PDF…), gallery/list by section, covers, continuous reader, find-in-document, thumbnails, and per-book **page offset** for front matter |
+| **Library** | Your **personal PDF shelf** — add rulebooks you own (drag-drop or Add PDF…), gallery/list by section (core / missions / sourcebooks / other), covers, continuous reader, find-in-document, thumbnails, per-book **page offset**, and (for **Missions &amp; Adventures**) experimental **draft run** entry points |
 
 **Page chips** on cards (e.g. “SR5 CRB p. 44”) open the bound PDF at the correct page when you assign a **book key** in Book settings. No rulebook PDFs are bundled or redistributed — only local files you add.
 
@@ -260,8 +266,8 @@ A dedicated window (⌘R) with two modes — mechanical cards for the table, and
 
 | Section | Items |
 |---------|--------|
-| **Library** | Characters · Runs |
-| **Create** | New Character · New Run · Import Character… |
+| **Library** | Characters · Campaigns · Runs · PDF Shelf (opens Rules → Library) |
+| **Create** | New Character (wizard or import) · New Run (blank, from template, or experimental PDF draft) · New Campaign |
 
 ### Requirements
 
@@ -290,9 +296,10 @@ Guiding principle: **deepen existing campaign tools** and high-frequency play ai
 | Priority | Feature | Why | Effort |
 |----------|---------|-----|--------|
 | **Done** | **Rules Reference** | Mechanical cards, calculators, personal PDF shelf, page-chip deep links (⌘R) | — |
-| **1** | **Run Tracker Phase 2** | Templates, stronger contact links from runs, outcome flow, open threads; custom award shares | Medium |
-| **2** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
-| **3** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
+| **Done** | **Run Tracker Phase 2** | Campaigns, templates, run contacts, reputation/heat, player briefing export, experimental PDF draft | — |
+| **1** | **Multi-domain initiative / combat tracker** | Major GM aid; better after the core loop is polished | Larger |
+| **2** | **Shared Hub (multi-user)** | Most ambitious; after the single-user experience is solid | Large |
+| **3** | **PDF draft polish** | Stronger on-device AI drafting; heuristic remains a fallback | Medium |
 
 ---
 
@@ -314,8 +321,10 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
   -destination 'platform=macOS' test
 
-# Unsigned Release app → build/Release/ShadowDeck.app
-Scripts/release_build.sh
+# Release app → build/Release/ShadowDeck.app (optional --zip, --sign, --notarize)
+Scripts/release_build.sh --zip
+# Developer ID sign + notarize (requires notarytool keychain profile):
+#   Scripts/release_build.sh --zip --sign --notarize
 
 # Refresh README marquees (stills, GIFs, posters → Screenshots/)
 Scripts/capture_readme_screenshots.sh

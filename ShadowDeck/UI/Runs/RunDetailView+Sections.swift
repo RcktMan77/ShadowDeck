@@ -13,6 +13,21 @@ extension RunDetailView {
     var overviewSection: some View {
         RunSectionCard(title: "Overview") {
             VStack(alignment: .leading, spacing: 10) {
+                LabeledContent("Campaign") {
+                    Picker("Campaign", selection: campaignBinding) {
+                        Text("Unassigned").tag(Optional<UUID>.none)
+                        ForEach(campaignOptions) { summary in
+                            Text(summary.isArchived ? "\(summary.name) (archived)" : summary.name)
+                                .tag(Optional(summary.id))
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 360)
+                }
+                Text("Optional folder for this job. Deleting a campaign leaves runs Unassigned.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
                 LabeledContent("Ruleset") {
                     Picker("Ruleset", selection: editionBinding) {
                         ForEach(Edition.allCases) { edition in
@@ -28,11 +43,7 @@ extension RunDetailView {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
 
-                LabeledContent("Client / Johnson") {
-                    TextField("Mr. Johnson…", text: binding(\.client))
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 360)
-                }
+                clientJohnsonRow
                 LabeledContent("Location") {
                     TextField("District, city…", text: binding(\.location))
                         .textFieldStyle(.roundedBorder)
@@ -85,16 +96,199 @@ extension RunDetailView {
                 ) {
                     commitRichTextDrafts()
                 }
+
+                playerFacingCopyBlock
             }
         }
+    }
+
+    /// GM-editable player-safe blurb and risks for the briefing sheet (Phase 2E).
+    private var playerFacingCopyBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Player-facing copy")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("Shown on Player briefing and Copy Markdown. Keep spoilers in GM Notes / Opposition.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("What runners know")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Meet at Dante’s. Secure the package. Non-lethal preferred…",
+                    text: binding(\.playerFacingSummary),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...8)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Known risks (player-safe)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "Light security after 22:00. Avoid garage cameras…",
+                    text: binding(\.knownRisks),
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...6)
+            }
+
+            Button("Preview player briefing…") {
+                presentPlayerBriefing()
+            }
+            .controlSize(.small)
+            .help("Open the read-only player briefing sheet")
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var clientJohnsonRow: some View {
+        if let johnson = run?.primaryJohnson {
+            VStack(alignment: .leading, spacing: 4) {
+                LabeledContent("Client / Johnson") {
+                    HStack(spacing: 8) {
+                        Text(johnson.displayName)
+                            .font(.body.weight(.medium))
+                        Text(johnson.roleLabel)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                        if johnson.isLinked {
+                            Text("Linked")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("Unlink") {
+                            updateRun { r in
+                                r.contacts.removeAll { $0.id == johnson.id }
+                            }
+                        }
+                        .controlSize(.small)
+                    }
+                }
+                Text("Linked Johnson is the primary client name. Free-text client is kept as fallback.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                if !(run?.client ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    LabeledContent("Client (fallback text)") {
+                        TextField("Optional override text…", text: binding(\.client))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 360)
+                    }
+                }
+            }
+        } else {
+            LabeledContent("Client / Johnson") {
+                TextField("Mr. Johnson…", text: binding(\.client))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 360)
+            }
+            Text("Or add a Johnson under People on this job.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    var contactsSection: some View {
+        RunSectionCard(title: "People on this job") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("\(run?.contacts.count ?? 0) person(s)")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Menu {
+                        Button("From character contacts…") {
+                            showAddContactSheet = true
+                        }
+                        Button("Unlinked person…") {
+                            showAddUnlinkedContact = true
+                        }
+                    } label: {
+                        Label("Add Person", systemImage: "plus.circle")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                Text("Johnson, fixer, target, or other. Links prefer a contact from a character’s list.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
+                if let contacts = run?.contacts, !contacts.isEmpty {
+                    ForEach(contacts) { link in
+                        contactLinkRow(link)
+                    }
+                } else {
+                    Text("No people linked yet.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    /// Row for a person on the job: run-role stamp + optional contact-sheet free-text.
+    private func contactLinkRow(_ link: RunContactLink) -> some View {
+        let sheetRole = link.displayRoleLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(link.displayName)
+                    .font(.body.weight(.medium))
+                HStack(spacing: 6) {
+                    // Always show the job stamp (Johnson / Fixer / Target / Other).
+                    Text(link.role.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.14), in: Capsule())
+                        .help("Role on this job")
+                    // Free-text from the character contact sheet, when present and distinct.
+                    if !sheetRole.isEmpty,
+                       sheetRole.caseInsensitiveCompare(link.role.displayName) != .orderedSame {
+                        Text(sheetRole)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12), in: Capsule())
+                            .help("Role on the character contact sheet")
+                    }
+                    if link.isLinked {
+                        Text("Linked contact")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Unlinked")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            Button {
+                updateRun { r in
+                    r.contacts.removeAll { $0.id == link.id }
+                }
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundStyle(.red)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .help("Remove from this run")
+        }
+        .padding(.vertical, 2)
     }
 
     var objectivesSection: some View {
         RunSectionCard(title: "Objectives") {
             VStack(alignment: .leading, spacing: 12) {
-                objectiveList(title: "Primary", primary: true)
-                objectiveList(title: "Secondary", primary: false)
-                Divider()
+                // Entry first (top-down flow), then existing lists.
                 HStack {
                     Picker("Kind", selection: $newObjectiveIsPrimary) {
                         Text("Primary").tag(true)
@@ -104,9 +298,17 @@ extension RunDetailView {
                     TextField("New objective…", text: $newObjectiveText)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { addObjective() }
-                    Button("Add") { addObjective() }
-                        .disabled(newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    AppChromeButton.title(
+                        "Add",
+                        help: "Add objective",
+                        isEnabled: !newObjectiveText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
+                        addObjective()
+                    }
                 }
+                Divider()
+                objectiveList(title: "Primary", primary: true)
+                objectiveList(title: "Secondary", primary: false)
             }
         }
     }
@@ -224,7 +426,7 @@ extension RunDetailView {
                     Text("")
                 }
             }
-            Text("Leave actual blank until the run resolves. Heat is a simple integer for now (campaign heat ledger later).")
+            Text("Leave actual blank until the run resolves. Heat Δ is run-level only — add a heat narrative when applying awards.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -452,7 +654,7 @@ extension RunDetailView {
         VStack(alignment: .leading, spacing: 8) {
             Text("Suggested awards")
                 .font(.subheadline.weight(.semibold))
-            Text("Suggestions only — does not change character karma/nuyen until you apply.")
+            Text("Suggestions only — does not change character karma, nuyen, or reputation until you apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -481,20 +683,84 @@ extension RunDetailView {
                     .foregroundStyle(.tertiary)
             }
 
-            applyAwardsControls
+            teamReputationSnapshot
+
+            applyAwardsHints
+
+            // Bottom of section, trailing — after awards list and reputation context.
+            HStack {
+                Spacer(minLength: 0)
+                applyAwardsButton
+            }
+            .padding(.top, 4)
         }
     }
 
-    var applyAwardsControls: some View {
-        let eligible = canOfferApplyAwards
-        return VStack(alignment: .leading, spacing: 6) {
-            Button("Apply Awards…") {
-                presentApplyAwardsSheet()
-            }
-            .disabled(!eligible)
-            .help(applyAwardsHelp)
+    /// Current Street Cred / Notoriety / Public Awareness for linked team members.
+    @ViewBuilder
+    var teamReputationSnapshot: some View {
+        let ids = run?.participantCharacterIDs ?? []
+        if !ids.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Team reputation (current)")
+                    .font(.subheadline.weight(.semibold))
+                Text("Set SC / Not / PA deltas when you Apply Awards. Heat Δ is on Payout & Heat; optional heat note is on the awards sheet.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            if !eligible, let hint = applyAwardsDisabledHint {
+                ForEach(ids, id: \.self) { id in
+                    let rep = teamReputation(for: id)
+                    HStack(spacing: 10) {
+                        Text(characterTitle(id))
+                            .font(.callout.weight(.medium))
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        repChip("SC", rep.streetCred)
+                        repChip("Not", rep.notoriety)
+                        repChip("PA", rep.publicAwareness)
+                    }
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func repChip(_ label: String, _ value: Int) -> some View {
+        Text("\(label) \(value)")
+            .font(.caption.monospacedDigit().weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.secondary.opacity(0.1), in: Capsule())
+            .help("\(label == "SC" ? "Street Cred" : label == "Not" ? "Notoriety" : "Public Awareness"): \(value)")
+    }
+
+    private func teamReputation(for characterID: UUID) -> (streetCred: Int, notoriety: Int, publicAwareness: Int) {
+        guard let character = try? libraryEnvironment.library.fetch(id: characterID) else {
+            return (0, 0, 0)
+        }
+        return (character.streetCred, character.notoriety, character.publicAwareness)
+    }
+
+    private var applyAwardsButton: some View {
+        AppChromeButton.title(
+            "Apply Awards…",
+            help: applyAwardsHelp,
+            style: .prominent,
+            isEnabled: canOfferApplyAwards
+        ) {
+            presentApplyAwardsSheet()
+        }
+    }
+
+    private var applyAwardsHints: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Apply Awards also sets per-runner reputation deltas (Street Cred, Notoriety, Public Awareness) and an optional heat note.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !canOfferApplyAwards, let hint = applyAwardsDisabledHint {
                 Text(hint)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -514,7 +780,7 @@ extension RunDetailView {
 
     var applyAwardsHelp: String {
         if canOfferApplyAwards {
-            return "Credit equal-split nuyen and karma to linked runners"
+            return "Credit nuyen, karma, and optional reputation deltas to linked runners"
         }
         return applyAwardsDisabledHint ?? "Apply awards when the run is finished"
     }
@@ -523,7 +789,7 @@ extension RunDetailView {
         guard let run else { return nil }
         if run.awardsAppliedAt != nil { return nil }
         if !run.status.isTerminal {
-            return "Mark the run Completed or Failed to apply awards."
+            return "Mark the run Completed or Failed to apply awards (and set reputation)."
         }
         if run.participantCharacterIDs.isEmpty {
             return "Link at least one runner on the team."

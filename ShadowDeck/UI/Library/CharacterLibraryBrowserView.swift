@@ -19,8 +19,6 @@ struct CharacterLibraryBrowserView: View {
     var libraryError: String?
     var onRefresh: () -> Void
     var onLoadSamples: () -> Void
-    var onNewCharacter: () -> Void
-    var onImport: () -> Void
     var onOpen: (UUID) -> Void
     var onExportPackage: (CharacterSummary) -> Void
     var onExportPDF: (CharacterSummary) -> Void
@@ -97,10 +95,20 @@ struct CharacterLibraryBrowserView: View {
             .help("List or Gallery view")
             .accessibilityLabel("Library layout")
 
-            Button("Refresh", systemImage: "arrow.clockwise", action: onRefresh)
-                .help("Reload the library list from disk (useful after external changes).")
-            Button("Load Samples", systemImage: "tray.and.arrow.down", action: onLoadSamples)
-                .help("If the library is empty, add one sample runner for each edition (SR4 / SR5 / SR6). Does nothing when characters already exist.")
+            AppChromeButton.labeled(
+                "Refresh",
+                systemImage: "arrow.clockwise",
+                help: "Reload the library list from disk (useful after external changes)."
+            ) {
+                onRefresh()
+            }
+            AppChromeButton.labeled(
+                "Load Samples",
+                systemImage: "tray.and.arrow.down",
+                help: "If the library is empty, add one sample runner for each edition (SR4 / SR5 / SR6). Does nothing when characters already exist."
+            ) {
+                onLoadSamples()
+            }
         }
     }
 
@@ -132,14 +140,11 @@ struct CharacterLibraryBrowserView: View {
     @ViewBuilder
     private var libraryBody: some View {
         if summaries.isEmpty {
+            // Create/import via Create sidebar or Load Samples in the header (no duplicate empty-state CTAs).
             ContentUnavailableView {
                 Label("No Characters Yet", systemImage: "person.crop.rectangle.stack")
             } description: {
-                Text("Create a runner with the generation wizard, import Chummer or a .shadowdeck package, or load samples.")
-            } actions: {
-                Button("New Character", action: onNewCharacter)
-                Button("Import…", action: onImport)
-                Button("Load Samples", action: onLoadSamples)
+                Text("Use Create → New Character or Import Character…, or Load Samples above, to add runners.")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredSummaries.isEmpty {

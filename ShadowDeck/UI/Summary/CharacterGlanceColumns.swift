@@ -205,6 +205,12 @@ struct CharacterGlanceMonitorRow: View {
     var onSelect: (Int) -> Void
     var onClear: () -> Void
 
+    /// Shared label width so Physical / Stun box rows start on the same x.
+    private static let titleColumnWidth: CGFloat = 64
+    private static let boxWidth: CGFloat = 16
+    private static let boxHeight: CGFloat = 20
+    private static let boxSpacing: CGFloat = 3
+
     var body: some View {
         let remaining = max(0, boxes - damage)
         let status: String = {
@@ -214,47 +220,58 @@ struct CharacterGlanceMonitorRow: View {
             return "\(remaining) open"
         }()
         return VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            HStack(spacing: 8) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                Spacer()
+                    .frame(width: Self.titleColumnWidth, alignment: .leading)
                 Text("\(damage) damage / \(boxes) boxes · \(status)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(damage > 0 ? color : .secondary)
+                Spacer(minLength: 0)
                 Button("Clear") { onClear() }
                     .controlSize(.mini)
                     .buttonStyle(.borderless)
                     .accessibilityLabel("Clear \(title.lowercased()) damage")
             }
-            let columns = Array(repeating: GridItem(.fixed(16), spacing: 3), count: min(max(boxes, 1), 18))
-            LazyVGrid(columns: columns, spacing: 3) {
-                ForEach(0..<max(boxes, 0), id: \.self) { i in
-                    let filled = i < damage
-                    Button {
-                        if damage == i + 1 {
-                            if i == 0 {
-                                onClear()
-                            } else {
-                                onSelect(i - 1)
-                            }
-                        } else {
-                            onSelect(i)
-                        }
-                    } label: {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(filled ? color.opacity(0.9) : Color.secondary.opacity(0.15))
-                            .frame(width: 16, height: 20)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
-                            }
+            // Fixed-size boxes in a leading HStack so every track shares the same origin
+            // and column pitch (Stun has fewer boxes; empties simply stop earlier).
+            HStack(alignment: .center, spacing: 0) {
+                Color.clear
+                    .frame(width: Self.titleColumnWidth)
+                HStack(spacing: Self.boxSpacing) {
+                    ForEach(0..<max(boxes, 0), id: \.self) { i in
+                        monitorBox(index: i)
                     }
-                    .buttonStyle(.plain)
-                    .help("Set damage through box \(i + 1)")
-                    .accessibilityLabel("\(title) box \(i + 1)\(filled ? ", filled" : "")")
                 }
+                Spacer(minLength: 0)
             }
         }
+    }
+
+    private func monitorBox(index i: Int) -> some View {
+        let filled = i < damage
+        return Button {
+            if damage == i + 1 {
+                if i == 0 {
+                    onClear()
+                } else {
+                    onSelect(i - 1)
+                }
+            } else {
+                onSelect(i)
+            }
+        } label: {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(filled ? color.opacity(0.9) : Color.secondary.opacity(0.15))
+                .frame(width: Self.boxWidth, height: Self.boxHeight)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
+                }
+        }
+        .buttonStyle(.plain)
+        .help("Set damage through box \(i + 1)")
+        .accessibilityLabel("\(title) box \(i + 1)\(filled ? ", filled" : "")")
     }
 }
 

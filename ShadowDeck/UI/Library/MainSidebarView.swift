@@ -10,21 +10,33 @@ import SwiftUI
 struct MainSidebarView: View {
     @Binding var selection: SidebarItem?
     var characterCount: Int
+    var campaignCount: Int
     var runCount: Int
+    var onNewCampaign: () -> Void
+    var onNewCharacter: () -> Void
+    var onImportCharacter: () -> Void
     var onNewRun: () -> Void
+    var onNewRunFromTemplate: () -> Void
+    var onNewRunFromPDF: () -> Void = {}
+    /// Opens Rules Reference already on the PDF shelf (separate window).
+    var onOpenPDFShelf: () -> Void = {}
 
     var body: some View {
         // No `List(selection:)` — system selection greys out when the list is
         // not first responder (common right after splash / detail focus).
         List {
+            // Hierarchy: characters → runs → campaigns (campaigns group runs).
             Section("Library") {
                 sidebarItem(.characters, badge: characterCount)
                 sidebarItem(.runs, badge: runCount)
+                sidebarItem(.campaigns, badge: campaignCount)
+                pdfShelfRow
             }
+            // Create: character menu, run menu, campaign.
             Section("Create") {
-                sidebarItem(.newCharacter)
-                sidebarItem(.importCharacter)
-                sidebarItem(.newRun)
+                newCharacterMenuRow
+                newRunMenuRow
+                sidebarItem(.newCampaign)
             }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 240)
@@ -32,13 +44,113 @@ struct MainSidebarView: View {
         .environment(\.defaultMinListRowHeight, 28)
     }
 
+    /// PDF shelf lives in the Rules Reference window — open it there in Library mode.
+    private var pdfShelfRow: some View {
+        Button {
+            onOpenPDFShelf()
+        } label: {
+            HStack(spacing: 0) {
+                Label {
+                    Text("PDF Shelf")
+                        .font(.body.weight(.regular))
+                } icon: {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 26, height: 22, alignment: .center)
+                }
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(Color.primary)
+                Spacer(minLength: 8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .help("Open your PDF rulebook shelf (Rules Reference → Library)")
+        .accessibilityLabel("PDF Shelf")
+    }
+
+    /// New Character as a menu (wizard + import) — one Create row.
+    private var newCharacterMenuRow: some View {
+        let isSelected = selection == .newCharacter || selection == .importCharacter
+        return createMenuRow(
+            title: SidebarItem.newCharacter.title,
+            systemImage: SidebarItem.newCharacter.systemImage,
+            showPlusBadge: true,
+            isSelected: isSelected,
+            help: "Start the generation wizard or import Chummer / .shadowdeck"
+        ) {
+            Button("New Character") { onNewCharacter() }
+            Button("Import Character…") { onImportCharacter() }
+        }
+    }
+
+    /// New Run as a menu (blank run + from template).
+    private var newRunMenuRow: some View {
+        let isSelected = selection == .newRun
+        return createMenuRow(
+            title: SidebarItem.newRun.title,
+            systemImage: SidebarItem.newRun.systemImage,
+            showPlusBadge: true,
+            isSelected: isSelected,
+            help: "Create a blank mission or start from a template"
+        ) {
+            Button("New Run") { onNewRun() }
+            Button("New Run from Template…") { onNewRunFromTemplate() }
+            Button("Draft Run from PDF… (Experimental)") { onNewRunFromPDF() }
+        }
+    }
+
+    private func createMenuRow<Content: View>(
+        title: String,
+        systemImage: String,
+        showPlusBadge: Bool,
+        isSelected: Bool,
+        help: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Menu {
+            content()
+        } label: {
+            HStack(spacing: 0) {
+                createSidebarIcon(
+                    systemImage: systemImage,
+                    showPlusBadge: showPlusBadge,
+                    isSelected: isSelected
+                )
+                Text(title)
+                    .font(.body.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(Color.primary)
+                    .padding(.leading, 8)
+                Spacer(minLength: 8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(sidebarRowBackground(isSelected: isSelected))
+        .help(help)
+    }
+
     private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
         let isSelected = selection == item
         return Button {
-            if item == .newRun {
-                // Re-clicking New Run while already selected still mints a fresh job.
+            switch item {
+            case .newRun:
                 onNewRun()
-            } else {
+            case .newRunFromTemplate:
+                onNewRunFromTemplate()
+            case .newCampaign:
+                onNewCampaign()
+            case .newCharacter:
+                onNewCharacter()
+            case .importCharacter:
+                onImportCharacter()
+            default:
                 selection = item
             }
         } label: {
@@ -66,14 +178,38 @@ struct MainSidebarView: View {
             Text(item.title)
                 .font(.body.weight(isSelected ? .semibold : .regular))
         } icon: {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                .frame(width: 24, height: 20, alignment: .center)
+            createSidebarIcon(
+                systemImage: item.systemImage,
+                showPlusBadge: item.showsCreatePlusBadge,
+                isSelected: isSelected
+            )
         }
         .labelStyle(.titleAndIcon)
         .foregroundStyle(Color.primary)
+    }
+
+    /// Shared icon metrics so Library and Create create-actions align, including + badge.
+    private func createSidebarIcon(
+        systemImage: String,
+        showPlusBadge: Bool,
+        isSelected: Bool
+    ) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            if showPlusBadge {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, isSelected ? Color.accentColor : Color.primary)
+                    .offset(x: 5, y: -4)
+            }
+        }
+        // Extra room so Menu / List do not clip the top-trailing badge.
+        .frame(width: 26, height: 22, alignment: .center)
+        .padding(.trailing, 2)
     }
 
     private func sidebarRowBackground(isSelected: Bool) -> some View {
