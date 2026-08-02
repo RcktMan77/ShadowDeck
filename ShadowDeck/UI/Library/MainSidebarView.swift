@@ -19,16 +19,18 @@ struct MainSidebarView: View {
         // No `List(selection:)` — system selection greys out when the list is
         // not first responder (common right after splash / detail focus).
         List {
+            // Hierarchy: characters → runs → campaigns (campaigns group runs).
             Section("Library") {
                 sidebarItem(.characters, badge: characterCount)
-                sidebarItem(.campaigns, badge: campaignCount)
                 sidebarItem(.runs, badge: runCount)
+                sidebarItem(.campaigns, badge: campaignCount)
             }
+            // Create mirrors that order: character (+ import), then run, then campaign.
             Section("Create") {
                 sidebarItem(.newCharacter)
                 sidebarItem(.importCharacter)
-                sidebarItem(.newCampaign)
                 sidebarItem(.newRun)
+                sidebarItem(.newCampaign)
             }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 240)
