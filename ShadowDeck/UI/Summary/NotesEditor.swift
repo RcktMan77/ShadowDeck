@@ -447,18 +447,18 @@ final class NotesTextBridge: ObservableObject {
         static func stripAnyMarker(from body: String) -> String {
             let ns = body as NSString
             let full = NSRange(location: 0, length: ns.length)
-            if let m = bulletRegex.firstMatch(in: body, options: [], range: full) {
-                return ns.substring(from: m.range.length)
+            if let match = bulletRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: match.range.length)
             }
-            if let m = numberRegex.firstMatch(in: body, options: [], range: full) {
-                return ns.substring(from: m.range.length)
+            if let match = numberRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: match.range.length)
             }
             // Also strip legacy tab-based markers from earlier attempts.
-            if let m = legacyTabBulletRegex.firstMatch(in: body, options: [], range: full) {
-                return ns.substring(from: m.range.length)
+            if let match = legacyTabBulletRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: match.range.length)
             }
-            if let m = legacyTabNumberRegex.firstMatch(in: body, options: [], range: full) {
-                return ns.substring(from: m.range.length)
+            if let match = legacyTabNumberRegex.firstMatch(in: body, options: [], range: full) {
+                return ns.substring(from: match.range.length)
             }
             return body
         }

@@ -50,7 +50,7 @@ public enum ChummerJSONParser {
     // MARK: - Map
 
     private static func mapDictionary(_ c: [String: Any]) -> ChummerNormalizedCharacter {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
 
         var skills = mapSkills(c["skills"])
         let skillGroups = mapSkillGroups(c["skills"])
@@ -65,33 +65,33 @@ public enum ChummerJSONParser {
         let bio = mapAugmentations(c["biowares"] ?? c["bioware"], bioware: true)
 
         var character = ChummerNormalizedCharacter(
-            name: H.stringValue(c["name"]) ?? "",
-            alias: H.stringValue(c["alias"]) ?? "",
-            metatype: H.stringValue(c["metatype"]) ?? "Human",
-            gameEdition: H.stringValue(c["gameedition"]) ?? "SR5",
-            buildMethod: H.stringValue(c["buildmethod"]) ?? "",
-            playerName: H.stringValue(c["playername"]) ?? "",
-            concept: H.stripHTML(H.stringValue(c["concept"])),
-            description: H.stripHTML(H.stringValue(c["description"])),
-            background: H.stripHTML(H.stringValue(c["background"])),
+            name: helpers.stringValue(c["name"]) ?? "",
+            alias: helpers.stringValue(c["alias"]) ?? "",
+            metatype: helpers.stringValue(c["metatype"]) ?? "Human",
+            gameEdition: helpers.stringValue(c["gameedition"]) ?? "SR5",
+            buildMethod: helpers.stringValue(c["buildmethod"]) ?? "",
+            playerName: helpers.stringValue(c["playername"]) ?? "",
+            concept: helpers.stripHTML(helpers.stringValue(c["concept"])),
+            description: helpers.stripHTML(helpers.stringValue(c["description"])),
+            background: helpers.stripHTML(helpers.stringValue(c["background"])),
             notes: mergeNotes(
-                H.stripHTML(H.stringValue(c["notes"])),
-                H.stripHTML(H.stringValue(c["gamenotes"]))
+                helpers.stripHTML(helpers.stringValue(c["notes"])),
+                helpers.stripHTML(helpers.stringValue(c["gamenotes"]))
             ),
-            gender: H.stringValue(c["gender"]) ?? "",
-            age: H.stringValue(c["age"]) ?? "",
-            nuyen: H.decimalValue(c["nuyen"]),
-            karmaAvailable: H.intValue(c["karma"]),
-            karmaTotal: H.intValue(c["totalkarma"], default: H.intValue(c["karma"])),
-            priorityMetatype: H.stringValue(c["prioritymetatype"]),
-            priorityAttributes: H.stringValue(c["priorityattributes"]),
-            prioritySpecial: H.stringValue(c["priorityspecial"]),
+            gender: helpers.stringValue(c["gender"]) ?? "",
+            age: helpers.stringValue(c["age"]) ?? "",
+            nuyen: helpers.decimalValue(c["nuyen"]),
+            karmaAvailable: helpers.intValue(c["karma"]),
+            karmaTotal: helpers.intValue(c["totalkarma"], default: helpers.intValue(c["karma"])),
+            priorityMetatype: helpers.stringValue(c["prioritymetatype"]),
+            priorityAttributes: helpers.stringValue(c["priorityattributes"]),
+            prioritySpecial: helpers.stringValue(c["priorityspecial"]),
             prioritySkills: firstPriorityLetter(c["priorityskills"]),
-            priorityResources: H.stringValue(c["priorityresources"]),
-            isAdept: H.boolValue(c["adept"]),
-            isMagician: H.boolValue(c["magician"]),
-            isTechnomancer: H.boolValue(c["technomancer"]),
-            isMysticAdept: H.boolValue(c["mysticadept"]),
+            priorityResources: helpers.stringValue(c["priorityresources"]),
+            isAdept: helpers.boolValue(c["adept"]),
+            isMagician: helpers.boolValue(c["magician"]),
+            isTechnomancer: helpers.boolValue(c["technomancer"]),
+            isMysticAdept: helpers.boolValue(c["mysticadept"]),
             attributes: mapAttributes(c["attributes"]),
             essenceTotal: essence(from: c),
             skills: skills,
@@ -107,8 +107,8 @@ public enum ChummerJSONParser {
             complexForms: mapNamed(c["complexforms"] ?? c["complexform"], nameKeys: ["name", "name_english"]),
             contacts: mapContacts(c["contacts"] ?? c["contact"]),
             lifestyles: mapLifestyles(c["lifestyles"] ?? c["lifestyle"]),
-            physicalDamage: H.intValue(c["physicalcmfilled"]),
-            stunDamage: H.intValue(c["stuncmfilled"])
+            physicalDamage: helpers.intValue(c["physicalcmfilled"]),
+            stunDamage: helpers.intValue(c["stuncmfilled"])
         )
 
         // Infer adept from qualities if flags missing.
@@ -125,12 +125,10 @@ public enum ChummerJSONParser {
     }
 
     private static func essence(from c: [String: Any]) -> Decimal? {
-        let H = ChummerParsingHelpers.self
-        for key in ["totaless", "essence", "ess"] {
-            if c[key] != nil {
-                let value = H.decimalValue(c[key])
-                if value > 0 { return value }
-            }
+        let helpers = ChummerParsingHelpers.self
+        for key in ["totaless", "essence", "ess"] where c[key] != nil {
+            let value = helpers.decimalValue(c[key])
+            if value > 0 { return value }
         }
         return nil
     }
@@ -150,19 +148,19 @@ public enum ChummerJSONParser {
     }
 
     private static func mapAttributes(_ node: Any?) -> [ChummerNormalizedAttribute] {
-        let H = ChummerParsingHelpers.self
-        return H.attributeDictionaries(from: node).compactMap { dict in
-            guard let name = H.stringValue(dict["name"]) ?? H.stringValue(dict["name_english"]) else {
+        let helpers = ChummerParsingHelpers.self
+        return helpers.attributeDictionaries(from: node).compactMap { dict in
+            guard let name = helpers.stringValue(dict["name"]) ?? helpers.stringValue(dict["name_english"]) else {
                 return nil
             }
-            let total = H.intValue(dict["total"] ?? dict["totalvalue"], default: H.intValue(dict["base"]))
-            let base = H.intValue(dict["base"], default: total)
+            let total = helpers.intValue(dict["total"] ?? dict["totalvalue"], default: helpers.intValue(dict["base"]))
+            let base = helpers.intValue(dict["base"], default: total)
             return ChummerNormalizedAttribute(
                 name: name,
                 base: base,
                 total: total,
-                metatypeMin: dict["min"] != nil ? H.intValue(dict["min"]) : (dict["metatypemin"] != nil ? H.intValue(dict["metatypemin"]) : nil),
-                metatypeMax: dict["max"] != nil ? H.intValue(dict["max"]) : (dict["metatypemax"] != nil ? H.intValue(dict["metatypemax"]) : nil)
+                metatypeMin: dict["min"] != nil ? helpers.intValue(dict["min"]) : (dict["metatypemin"] != nil ? helpers.intValue(dict["metatypemin"]) : nil),
+                metatypeMax: dict["max"] != nil ? helpers.intValue(dict["max"]) : (dict["metatypemax"] != nil ? helpers.intValue(dict["metatypemax"]) : nil)
             )
         }
     }
@@ -176,97 +174,97 @@ public enum ChummerJSONParser {
     }
 
     private static func mapSkillGroups(_ node: Any?) -> [ChummerNormalizedSkillGroup] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         guard let dict = node as? [String: Any] else { return [] }
-        return H.arrayOfDictionaries(dict["skillgroup"]).compactMap { g in
-            guard let name = H.stringValue(g["name"]) ?? H.stringValue(g["name_english"]) else { return nil }
-            let rating = H.intValue(g["rating"] ?? g["base"] ?? g["total"])
+        return helpers.arrayOfDictionaries(dict["skillgroup"]).compactMap { g in
+            guard let name = helpers.stringValue(g["name"]) ?? helpers.stringValue(g["name_english"]) else { return nil }
+            let rating = helpers.intValue(g["rating"] ?? g["base"] ?? g["total"])
             guard rating > 0 else { return nil }
             return ChummerNormalizedSkillGroup(name: name, rating: rating)
         }
     }
 
     private static func mapSkillList(_ node: Any?, forceKnowledge: Bool = false) -> [ChummerNormalizedSkill] {
-        let H = ChummerParsingHelpers.self
-        return H.arrayOfDictionaries(node).compactMap { s in
-            guard let name = H.stringValue(s["name"]) ?? H.stringValue(s["name_english"]) else { return nil }
-            let isKnowledge = forceKnowledge || H.boolValue(s["knowledge"])
-            let category = H.stringValue(s["skillcategory"]) ?? H.stringValue(s["skillcategory_english"]) ?? ""
+        let helpers = ChummerParsingHelpers.self
+        return helpers.arrayOfDictionaries(node).compactMap { s in
+            guard let name = helpers.stringValue(s["name"]) ?? helpers.stringValue(s["name_english"]) else { return nil }
+            let isKnowledge = forceKnowledge || helpers.boolValue(s["knowledge"])
+            let category = helpers.stringValue(s["skillcategory"]) ?? helpers.stringValue(s["skillcategory_english"]) ?? ""
             let isLanguage = category.localizedCaseInsensitiveContains("language")
                 || name.localizedCaseInsensitiveContains("language")
 
             // Skill rank is `rating` (or base+karma), NOT `total` (dice pool).
-            let rating = H.intValue(s["rating"], default: H.intValue(s["base"]) + H.intValue(s["karma"]))
+            let rating = helpers.intValue(s["rating"], default: helpers.intValue(s["base"]) + helpers.intValue(s["karma"]))
             // Skip untrained / native-language infinite placeholders with 0 rating.
             if rating <= 0 { return nil }
             // Guard against Chummer's Int32.Max native language total leaking into rating.
             if rating > 13 { return nil }
 
-            let spec = H.stringValue(s["spec"]) ?? H.stringValue(s["specialty"])
+            let spec = helpers.stringValue(s["spec"]) ?? helpers.stringValue(s["specialty"])
             return ChummerNormalizedSkill(
                 name: name,
                 rating: rating,
                 specialized: spec,
                 isKnowledge: isKnowledge,
                 isLanguage: isLanguage,
-                skillGroup: H.stringValue(s["skillgroup"]) ?? H.stringValue(s["skillgroup_english"]),
+                skillGroup: helpers.stringValue(s["skillgroup"]) ?? helpers.stringValue(s["skillgroup_english"]),
                 category: category,
-                attribute: H.stringValue(s["attribute"]) ?? H.stringValue(s["displayattribute"])
+                attribute: helpers.stringValue(s["attribute"]) ?? helpers.stringValue(s["displayattribute"])
             )
         }
     }
 
     private static func mapQualities(_ node: Any?) -> [ChummerNormalizedQuality] {
-        let H = ChummerParsingHelpers.self
-        let items = H.arrayOfDictionaries(node, childKey: "quality")
+        let helpers = ChummerParsingHelpers.self
+        let items = helpers.arrayOfDictionaries(node, childKey: "quality")
         return items.compactMap { q in
-            guard let name = H.stringValue(q["name"]) ?? H.stringValue(q["name_english"]) else { return nil }
-            let type = (H.stringValue(q["qualitytype"]) ?? H.stringValue(q["type"]) ?? "Positive")
+            guard let name = helpers.stringValue(q["name"]) ?? helpers.stringValue(q["name_english"]) else { return nil }
+            let type = (helpers.stringValue(q["qualitytype"]) ?? helpers.stringValue(q["type"]) ?? "Positive")
             let isPositive = type.lowercased().contains("positive")
-            var karma = H.intValue(q["karma"] ?? q["bp"] ?? q["cost"])
+            var karma = helpers.intValue(q["karma"] ?? q["bp"] ?? q["cost"])
             // Some exports omit karma on built-in qualities.
-            if karma == 0, let contrib = H.stringValue(q["contribution"]) {
-                karma = H.intValue(contrib)
+            if karma == 0, let contrib = helpers.stringValue(q["contribution"]) {
+                karma = helpers.intValue(contrib)
             }
             return ChummerNormalizedQuality(
                 name: name,
                 karma: abs(karma),
                 isPositive: isPositive,
-                source: H.stringValue(q["source"])
+                source: helpers.stringValue(q["source"])
             )
         }
     }
 
     private static func mapAugmentations(_ node: Any?, bioware: Bool) -> [ChummerNormalizedAugmentation] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         let key = bioware ? "bioware" : "cyberware"
-        let items = H.arrayOfDictionaries(node, childKey: key)
+        let items = helpers.arrayOfDictionaries(node, childKey: key)
         return items.compactMap { a in
-            guard let name = H.stringValue(a["name"]) ?? H.stringValue(a["name_english"]) else { return nil }
-            let ess = H.decimalValue(a["ess"] ?? a["essence"] ?? a["calculatedess"])
-            let rating = H.intValue(a["rating"])
+            guard let name = helpers.stringValue(a["name"]) ?? helpers.stringValue(a["name_english"]) else { return nil }
+            let ess = helpers.decimalValue(a["ess"] ?? a["essence"] ?? a["calculatedess"])
+            let rating = helpers.intValue(a["rating"])
             return ChummerNormalizedAugmentation(
                 name: name,
                 essence: ess,
-                grade: H.stringValue(a["grade"]) ?? "Standard",
+                grade: helpers.stringValue(a["grade"]) ?? "Standard",
                 rating: rating > 0 ? rating : nil,
                 isBioware: bioware,
-                notes: H.stripHTML(H.stringValue(a["notes"]))
+                notes: helpers.stripHTML(helpers.stringValue(a["notes"]))
             )
         }
     }
 
     private static func mapGear(_ node: Any?, category: String) -> [ChummerNormalizedGear] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         let child = category == "weapon" ? "weapon" : "gear"
-        let items = H.arrayOfDictionaries(node, childKey: child)
+        let items = helpers.arrayOfDictionaries(node, childKey: child)
         return items.compactMap { g in
-            guard let name = H.stringValue(g["name"]) ?? H.stringValue(g["name_english"]) else { return nil }
+            guard let name = helpers.stringValue(g["name"]) ?? helpers.stringValue(g["name_english"]) else { return nil }
             // Skip abstract unarmed attack rows.
             if name.localizedCaseInsensitiveContains("Unarmed Attack") { return nil }
-            let qty = max(1, H.intValue(g["qty"] ?? g["quantity"] ?? g["count"], default: 1))
-            let cost = H.intValue(g["cost"] ?? g["totalcost"] ?? g["stcost"])
-            let damage = H.stringValue(g["damage"])
+            let qty = max(1, helpers.intValue(g["qty"] ?? g["quantity"] ?? g["count"], default: 1))
+            let cost = helpers.intValue(g["cost"] ?? g["totalcost"] ?? g["stcost"])
+            let damage = helpers.stringValue(g["damage"])
             return ChummerNormalizedGear(
                 name: name,
                 quantity: qty,
@@ -274,25 +272,25 @@ public enum ChummerJSONParser {
                 category: category,
                 armorRating: nil,
                 damageCode: damage,
-                equipped: H.boolValue(g["equipped"]) || category == "weapon",
-                notes: H.stripHTML(H.stringValue(g["notes"]))
+                equipped: helpers.boolValue(g["equipped"]) || category == "weapon",
+                notes: helpers.stripHTML(helpers.stringValue(g["notes"]))
             )
         }
     }
 
     private static func mapArmor(_ node: Any?) -> [ChummerNormalizedGear] {
-        let H = ChummerParsingHelpers.self
-        return H.arrayOfDictionaries(node, childKey: "armor").compactMap { a in
-            guard let name = H.stringValue(a["name"]) ?? H.stringValue(a["name_english"]) else { return nil }
-            let armor = H.intValue(a["armor"] ?? a["totalarmor"] ?? a["armorvalue"])
+        let helpers = ChummerParsingHelpers.self
+        return helpers.arrayOfDictionaries(node, childKey: "armor").compactMap { a in
+            guard let name = helpers.stringValue(a["name"]) ?? helpers.stringValue(a["name_english"]) else { return nil }
+            let armor = helpers.intValue(a["armor"] ?? a["totalarmor"] ?? a["armorvalue"])
             return ChummerNormalizedGear(
                 name: name,
                 quantity: 1,
-                cost: H.intValue(a["cost"] ?? a["totalcost"]),
+                cost: helpers.intValue(a["cost"] ?? a["totalcost"]),
                 category: "armor",
                 armorRating: armor > 0 ? armor : nil,
-                equipped: H.boolValue(a["equipped"]) || true,
-                notes: H.stripHTML(H.stringValue(a["notes"]))
+                equipped: helpers.boolValue(a["equipped"]) || true,
+                notes: helpers.stripHTML(helpers.stringValue(a["notes"]))
             )
         }
     }
@@ -303,64 +301,72 @@ public enum ChummerJSONParser {
     }
 
     private static func mapPowers(_ node: Any?) -> [ChummerNormalizedPower] {
-        let H = ChummerParsingHelpers.self
-        return H.arrayOfDictionaries(node, childKey: "power").compactMap { p in
-            guard let name = H.stringValue(p["name"]) ?? H.stringValue(p["name_english"]) else { return nil }
-            let rating = max(1, H.intValue(p["rating"] ?? p["total"], default: 1))
-            let points = H.decimalValue(p["totalpoints"] ?? p["extrapointcost"] ?? p["pointsperlevel"])
+        let helpers = ChummerParsingHelpers.self
+        return helpers.arrayOfDictionaries(node, childKey: "power").compactMap { p in
+            guard let name = helpers.stringValue(p["name"]) ?? helpers.stringValue(p["name_english"]) else { return nil }
+            let rating = max(1, helpers.intValue(p["rating"] ?? p["total"], default: 1))
+            let points = helpers.decimalValue(p["totalpoints"] ?? p["extrapointcost"] ?? p["pointsperlevel"])
             return ChummerNormalizedPower(name: name, rating: rating, pointCost: points)
         }
     }
 
     private static func mapNamed(_ node: Any?, nameKeys: [String]) -> [ChummerNormalizedNamedItem] {
-        let H = ChummerParsingHelpers.self
+        let helpers = ChummerParsingHelpers.self
         // Try common wrappers.
-        let items = H.arrayOfDictionaries(node)
-            + H.arrayOfDictionaries(node, childKey: "spell")
-            + H.arrayOfDictionaries(node, childKey: "complexform")
+        let items = helpers.arrayOfDictionaries(node)
+            + helpers.arrayOfDictionaries(node, childKey: "spell")
+            + helpers.arrayOfDictionaries(node, childKey: "complexform")
         var seen = Set<String>()
         var result: [ChummerNormalizedNamedItem] = []
         for item in items {
-            let name = nameKeys.compactMap { H.stringValue(item[$0]) }.first
+            let name = nameKeys.compactMap { helpers.stringValue(item[$0]) }.first
             guard let name, seen.insert(name).inserted else { continue }
-            let category = H.stringValue(item["category"]) ?? H.stringValue(item["category_english"]) ?? ""
+            let category = helpers.stringValue(item["category"]) ?? helpers.stringValue(item["category_english"]) ?? ""
             result.append(ChummerNormalizedNamedItem(name: name, category: category))
         }
         return result
     }
 
     private static func mapContacts(_ node: Any?) -> [ChummerNormalizedContact] {
-        let H = ChummerParsingHelpers.self
-        return H.arrayOfDictionaries(node, childKey: "contact").compactMap { c in
-            guard let name = H.stringValue(c["name"]) else { return nil }
+        let helpers = ChummerParsingHelpers.self
+        return helpers.arrayOfDictionaries(node, childKey: "contact").compactMap { c in
+            guard let name = helpers.stringValue(c["name"]) else { return nil }
             return ChummerNormalizedContact(
                 name: name,
-                role: H.stringValue(c["role"]) ?? H.stringValue(c["job"]) ?? "",
-                loyalty: H.intValue(c["loyalty"], default: 1),
-                connection: H.intValue(c["connection"], default: 1),
-                notes: H.stripHTML(H.stringValue(c["notes"])),
-                contactType: H.stringValue(c["type"]) ?? H.stringValue(c["contacttype"]) ?? "",
-                metatype: H.stringValue(c["metatype"]) ?? "",
-                gender: H.stringValue(c["gender"]) ?? "",
-                age: H.stringValue(c["age"]) ?? "",
-                location: H.stringValue(c["location"]) ?? "",
-                preferredPayment: H.stringValue(c["preferredpayment"]) ?? "",
-                hobbiesVice: H.stringValue(c["hobbiesvice"]) ?? "",
-                personalLife: H.stringValue(c["personallife"]) ?? ""
+                role: helpers.stringValue(c["role"]) ?? helpers.stringValue(c["job"]) ?? "",
+                loyalty: helpers.intValue(c["loyalty"], default: 1),
+                connection: helpers.intValue(c["connection"], default: 1),
+                notes: helpers.stripHTML(helpers.stringValue(c["notes"])),
+                contactType: helpers.stringValue(c["type"]) ?? helpers.stringValue(c["contacttype"]) ?? "",
+                metatype: helpers.stringValue(c["metatype"]) ?? "",
+                gender: helpers.stringValue(c["gender"]) ?? "",
+                age: helpers.stringValue(c["age"]) ?? "",
+                location: helpers.stringValue(c["location"]) ?? "",
+                preferredPayment: helpers.stringValue(c["preferredpayment"]) ?? "",
+                hobbiesVice: helpers.stringValue(c["hobbiesvice"]) ?? "",
+                personalLife: helpers.stringValue(c["personallife"]) ?? ""
             )
         }
     }
 
     private static func mapLifestyles(_ node: Any?) -> [ChummerNormalizedLifestyle] {
-        let H = ChummerParsingHelpers.self
-        return H.arrayOfDictionaries(node, childKey: "lifestyle").compactMap { l in
-            let name = H.stringValue(l["name"]) ?? "Lifestyle"
-            let level = H.stringValue(l["baselifestyle"])
-                ?? H.stringValue(l["lifestyle"])
-                ?? H.stringValue(l["lifestylename"])
+        let helpers = ChummerParsingHelpers.self
+        return helpers.arrayOfDictionaries(node, childKey: "lifestyle").compactMap { lifestyle in
+            let name = helpers.stringValue(lifestyle["name"]) ?? "Lifestyle"
+            let level = helpers.stringValue(lifestyle["baselifestyle"])
+                ?? helpers.stringValue(lifestyle["lifestyle"])
+                ?? helpers.stringValue(lifestyle["lifestylename"])
                 ?? "Low"
-            let cost = H.intValue(l["totalmonthlycost"] ?? l["cost"] ?? l["totalcost"])
-            let months = max(1, H.intValue(l["months"] ?? l["purchasedmonths"] ?? l["increment"], default: 1))
+            let cost = helpers.intValue(
+                lifestyle["totalmonthlycost"] ?? lifestyle["cost"] ?? lifestyle["totalcost"]
+            )
+            let months = max(
+                1,
+                helpers.intValue(
+                    lifestyle["months"] ?? lifestyle["purchasedmonths"] ?? lifestyle["increment"],
+                    default: 1
+                )
+            )
             return ChummerNormalizedLifestyle(name: name, level: level, monthlyCost: cost, monthsPrepaid: months)
         }
     }

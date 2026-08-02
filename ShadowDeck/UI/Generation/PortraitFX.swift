@@ -17,7 +17,7 @@ struct NormRect: Sendable {
     var x: CGFloat
     var y: CGFloat
     var w: CGFloat
-    var h: CGFloat
+    var height: CGFloat
 }
 
 enum PortraitLayout {
@@ -43,7 +43,7 @@ enum PortraitLayout {
             x: imageRect.minX + n.x * imageRect.width,
             y: imageRect.minY + n.y * imageRect.height,
             width: n.w * imageRect.width,
-            height: n.h * imageRect.height
+            height: n.height * imageRect.height
         )
     }
 }
@@ -66,7 +66,7 @@ enum PortraitFX {
         .init(x: 0.78, y: 0.64)
     ]
 
-    private static let technoLiquid = NormRect(x: 0.845, y: 0.68, w: 0.045, h: 0.09)
+    private static let technoLiquid = NormRect(x: 0.845, y: 0.68, w: 0.045, height: 0.09)
 
     static func drawArchetype(
         _ archetype: RunnerArchetype,

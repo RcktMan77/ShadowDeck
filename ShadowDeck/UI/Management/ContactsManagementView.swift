@@ -145,10 +145,8 @@ struct ContactsManagementView: View {
         }
         .onAppear {
             reloadRunSummaries()
-            for c in character.contacts {
-                if notesDrafts[c.id] == nil {
-                    notesDrafts[c.id] = c.notes
-                }
+            for c in character.contacts where notesDrafts[c.id] == nil {
+                notesDrafts[c.id] = c.notes
             }
         }
     }

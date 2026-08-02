@@ -20,7 +20,7 @@ public enum AdvancementError: Error, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .insufficientKarma(let needed, let available):
+        case let .insufficientKarma(needed, available):
             return "Need \(needed) karma but only \(available) available."
         case .atMaximum:
             return "Already at maximum rating."
@@ -28,11 +28,11 @@ public enum AdvancementError: Error, LocalizedError, Equatable {
             return "That skill was not found on the character."
         case .attributeNotRaiseable:
             return "That attribute cannot be raised further."
-        case .staleFromRating(let expected, let actual):
+        case let .staleFromRating(expected, actual):
             return "Plan is out of date (expected rating \(expected), found \(actual)). Refresh the plan."
         case .invalidRaise:
             return "Invalid raise (to-rating must be from-rating + 1)."
-        case .costMismatch(let expected, let actual):
+        case let .costMismatch(expected, actual):
             return "Karma cost changed (plan had \(expected), current cost is \(actual)). Refresh the plan."
         }
     }
@@ -316,10 +316,8 @@ public enum AdvancementEngine {
             (["gunslinger", "shootist"], ["pistols", "automatics", "longarms", "perception"])
         ]
         var keys: [String] = []
-        for row in table {
-            if row.tokens.contains(where: { c.contains($0) }) {
-                keys.append(contentsOf: row.keys)
-            }
+        for row in table where row.tokens.contains(where: { c.contains($0) }) {
+            keys.append(contentsOf: row.keys)
         }
         return keys
     }
