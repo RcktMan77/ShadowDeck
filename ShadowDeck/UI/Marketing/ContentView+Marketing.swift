@@ -51,6 +51,17 @@ extension ContentView {
             marketingOpenRunID = nil
             selection = .runs
             refresh()
+        case .rulesReference:
+            marketingOpenRunID = nil
+            selectedCharacterID = nil
+            RulesReferenceSession.shared.prepareMarketingReferenceShowcase()
+            openWindow(id: RulesReferenceOpener.windowID)
+        case .pdfLibrary:
+            marketingOpenRunID = nil
+            selectedCharacterID = nil
+            // Library mode on the dedicated Rules window (sample shelf only).
+            RulesReferenceSession.shared.prepareMarketingLibraryShowcase()
+            openWindow(id: RulesReferenceOpener.windowID)
         case .runGif:
             applyRunGifStoryboard(step: step ?? 0)
         case .advanceGif:

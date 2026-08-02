@@ -35,9 +35,7 @@ struct LaunchSplashView: View {
     private static let introDelay: Double = 0.55
 
     var body: some View {
-        // Solid black stays fully opaque for the whole lifetime of this view so the
-        // main window (sidebar accent separator, toolbars) never peeks through during
-        // intro/dismiss fades — that flash looked like a green “menu separator” bar.
+        // Opaque black for the full lifetime so intro fades never reveal the deck underneath.
         ZStack {
             Color.black
 
@@ -164,11 +162,9 @@ struct LaunchSplashView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
         .ignoresSafeArea(.all)
-        // Keyboard skip without becoming first-responder focusable — `.focusable()`
-        // draws a system accent focus ring on click (reads as a green edge/line).
+        // Key skip via local monitor (not `.focusable()` — that draws a system focus ring).
         .onAppear {
             BrandFonts.registerIfNeeded()
-            // Intro fade is local only; dismiss never relies on reversing it.
             withAnimation(.easeOut(duration: 0.55)) {
                 opacity = 1
                 titleScale = 1
@@ -237,8 +233,7 @@ struct LaunchSplashView: View {
         didDismiss = true
         quipTask?.cancel()
         removeKeyMonitor()
-        // Hand off to the app-level black veil immediately. Do not animate this view
-        // away — the parent keeps an opaque cover while window chrome / size settle.
+        // Immediate hand-off to the app veil; parent keeps cover while chrome/size settle.
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) {
