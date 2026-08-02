@@ -58,7 +58,9 @@ extension RunDetailView {
                     Text("Tags / job type")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    RunTagChips(tags: run?.tags ?? [])
+                    RunTagChips(tags: run?.tags ?? []) { tag in
+                        updateRun { $0.tags.removeAll { $0 == tag } }
+                    }
                     HStack {
                         TextField("Add tag (e.g. Extraction)", text: $newTag)
                             .textFieldStyle(.roundedBorder)
@@ -67,24 +69,11 @@ extension RunDetailView {
                         Button("Add") { addTag() }
                             .disabled(newTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         if let tags = run?.tags, !tags.isEmpty {
-                            Button("Clear tags", role: .destructive) {
+                            Button("Clear all", role: .destructive) {
                                 updateRun { $0.tags = [] }
                             }
                             .controlSize(.small)
-                        }
-                    }
-                    if let tags = run?.tags, !tags.isEmpty {
-                        ForEach(tags, id: \.self) { tag in
-                            HStack {
-                                Text(tag)
-                                Button(role: .destructive) {
-                                    updateRun { $0.tags.removeAll { $0 == tag } }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                }
-                                .buttonStyle(.borderless)
-                            }
-                            .font(.caption)
+                            .help("Remove every tag from this run")
                         }
                     }
                 }
