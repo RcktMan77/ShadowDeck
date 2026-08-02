@@ -525,10 +525,13 @@ struct CharacterAtAGlanceView: View {
             .accessibilityLabel("Open Rules Reference")
             .keyboardShortcut("r", modifiers: [.command])
 
-            Button("Export…", systemImage: "square.and.arrow.up") {
+            // Icon-only Export / Delete (Dice + Rules keep text labels).
+            IconToolbarButton(
+                title: "Export — package, PDF character sheet, or Chummer .chum5",
+                systemImage: "square.and.arrow.up"
+            ) {
                 showExportOptions = true
             }
-            .help("Export package, PDF character sheet, or Chummer .chum5")
             .confirmationDialog(
                 "Export \(c.displayTitle)",
                 isPresented: $showExportOptions,
@@ -542,7 +545,11 @@ struct CharacterAtAGlanceView: View {
                 Text("Choose a format for GMs, backups, or online hubs.")
             }
 
-            Button("Delete", systemImage: "trash", role: .destructive) {
+            IconToolbarButton(
+                title: "Delete this character",
+                systemImage: "trash",
+                role: .destructive
+            ) {
                 confirmDeletePresented = true
             }
             .confirmationDialog(

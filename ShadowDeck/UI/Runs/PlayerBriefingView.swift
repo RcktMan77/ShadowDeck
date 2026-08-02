@@ -119,13 +119,13 @@ struct PlayerBriefingView: View {
                     .transition(.opacity)
             }
             Spacer()
-            Button("Done", action: onDismiss)
-                .keyboardShortcut(.cancelAction)
             Button("Copy Markdown") {
                 copyMarkdown()
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .help("Copy the player-safe briefing as Markdown")
+            Button("Done", action: onDismiss)
+                .keyboardShortcut(.cancelAction)
         }
     }
 
