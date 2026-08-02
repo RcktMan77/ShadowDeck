@@ -111,7 +111,7 @@ ShadowDeck is in solid shape for a solo-maintained macOS campaign app: pure doma
 | **Catalog JSON** | ~1.2 MB `sr5_catalog.json` decoded on first `CatalogStore` access (currently at app feature touch via shared singleton init). Prefer lazy load. |
 | **Rules seed** | ~90 KB JSON — fine at Rules window open; avoid re-decoding (store already holds entries). |
 | **Character sheet** | Large view tree + management tabs; equipping gear re-resolves effects — OK if engines stay pure and UI invalidates narrowly. |
-| **PDF open** | Full document in PDFKit continuous mode + second document for thumbnails. Large CRBs are memory-heavy. |
+| **PDF open** | Continuous reader + thumbnail strip share one `PDFDocument` via `SharedPDFDocumentSession` (thumbnail still uses a hidden driver `PDFView`). Large CRBs remain heavy but no longer double-decode. |
 | **PDF shelf search** | Parallel full-document `findString` per book; improved ranking but still O(books × pages × tokens). Cap concurrency; show progress (done). |
 | **Library list** | Character/run lists appear fine; watch `PersistenceTests.testPerformanceDozensOfCharacters` (~1.2s) if library grows a lot. |
 | **Import Ghostwire** | Tests show multi-second chum5 import — acceptable offline; keep off UI thread if not already (importer is `@MainActor` — **watch** for large file UI stalls). |
