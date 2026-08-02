@@ -19,8 +19,6 @@ struct CharacterLibraryBrowserView: View {
     var libraryError: String?
     var onRefresh: () -> Void
     var onLoadSamples: () -> Void
-    var onNewCharacter: () -> Void
-    var onImport: () -> Void
     var onOpen: (UUID) -> Void
     var onExportPackage: (CharacterSummary) -> Void
     var onExportPDF: (CharacterSummary) -> Void
