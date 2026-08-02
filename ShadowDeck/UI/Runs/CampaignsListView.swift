@@ -339,139 +339,159 @@ struct CampaignDetailView: View {
     @State private var showAddRunsSheet = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
-                    Button("Back", systemImage: "chevron.left") {
-                        commitIdentity(forceNotes: true)
-                        onBack()
-                    }
-                    Spacer()
-                    if let campaign {
-                        if campaign.isArchived {
-                            Button("Unarchive") { setArchived(false) }
-                        } else {
-                            Button("Archive") { setArchived(true) }
-                        }
-                        Button("Delete…", role: .destructive) { confirmDelete = true }
-                    }
-                }
+        VStack(spacing: 0) {
+            stickyToolbar
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
 
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                }
-                if let statusMessage {
-                    Text(statusMessage)
-                        .foregroundStyle(.secondary)
-                }
-
-                if campaign != nil {
-                    RunSectionCard(title: "Campaign") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            LabeledContent("Name") {
-                                TextField("Campaign name", text: $nameDraft)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(maxWidth: 360)
-                                    .onSubmit { commitIdentity(forceNotes: true) }
-                            }
-                            LabeledContent("Ruleset") {
-                                Picker("Ruleset", selection: editionBinding) {
-                                    ForEach(Edition.allCases) { edition in
-                                        Text(edition.shortName).tag(edition)
-                                    }
-                                }
-                                .labelsHidden()
-                                .pickerStyle(.segmented)
-                                .frame(maxWidth: 280)
-                            }
-                            Text("New runs created here default to this ruleset.")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-
-                            summaryChips
-
-                            notesEditorBlock
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("House-rule hints")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                TextField("Table defaults (free text)…", text: $hintsDraft, axis: .vertical)
-                                    .textFieldStyle(.roundedBorder)
-                                    .lineLimit(2...4)
-                                    .onSubmit { commitIdentity(forceNotes: true) }
-                            }
-
-                            HStack {
-                                Button("Save") { commitIdentity(forceNotes: true) }
-                                    .keyboardShortcut("s", modifiers: [.command])
-                            }
-                        }
-                    }
-
-                    RunSectionCard(title: "Runs") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("\(runs.count) run(s)")
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Menu {
-                                    Button("Create New Run") {
-                                        createRunInCampaign()
-                                    }
-                                    Button("Add from Run Library…") {
-                                        showAddRunsSheet = true
-                                    }
-                                } label: {
-                                    Label("Add Run", systemImage: "plus.circle")
-                                }
-                                .menuStyle(.borderlessButton)
-                                .fixedSize()
-                            }
-                            if runs.isEmpty {
-                                Text("No runs assigned yet. Add jobs from your Run Library or create a new one.")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(runs) { summary in
-                                    HStack(spacing: 8) {
-                                        Button {
-                                            commitIdentity(forceNotes: true)
-                                            onOpenRun(summary.id)
-                                        } label: {
-                                            HStack {
-                                                Text(summary.title)
-                                                    .foregroundStyle(.primary)
-                                                Spacer()
-                                                RunStatusBadge(status: summary.status)
-                                                RunEditionBadge(edition: summary.edition)
-                                            }
-                                        }
-                                        .buttonStyle(.plain)
-
-                                        Button {
-                                            unassignRun(summary.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle")
-                                                .foregroundStyle(.secondary)
-                                                .frame(width: 28, height: 28)
-                                        }
-                                        .buttonStyle(.borderless)
-                                        .help("Remove from campaign (keeps the run as Unassigned)")
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    ProgressView("Loading…")
-                }
+            if let statusMessage {
+                Text(statusMessage)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 4)
             }
-            .padding(24)
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 4)
+            }
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if campaign != nil {
+                        RunSectionCard(title: "Campaign") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                LabeledContent("Name") {
+                                    TextField("Campaign name", text: $nameDraft)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(maxWidth: 360)
+                                        .onSubmit { commitIdentity(forceNotes: true) }
+                                }
+                                LabeledContent("Ruleset") {
+                                    Picker("Ruleset", selection: editionBinding) {
+                                        ForEach(Edition.allCases) { edition in
+                                            Text(edition.shortName).tag(edition)
+                                        }
+                                    }
+                                    .labelsHidden()
+                                    .pickerStyle(.segmented)
+                                    .frame(maxWidth: 280)
+                                }
+                                Text("New runs created here default to this ruleset.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+
+                                summaryChips
+
+                                notesEditorBlock
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("House-rule hints")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    Text(
+                                        "Optional GM reminders for this table only (e.g. glitch house rules, free knowledge). Not the full character House Rules system — just sticky notes for the campaign."
+                                    )
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    TextField("e.g. Sum-to-Ten chargen · hits on 4+ …", text: $hintsDraft, axis: .vertical)
+                                        .textFieldStyle(.roundedBorder)
+                                        .lineLimit(2...4)
+                                        .onSubmit { commitIdentity(forceNotes: true) }
+                                }
+                            }
+                        }
+
+                        RunSectionCard(title: "Runs") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("\(runs.count) run(s)")
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Menu {
+                                        Button("Create New Run") {
+                                            createRunInCampaign()
+                                        }
+                                        Button("Add from Run Library…") {
+                                            showAddRunsSheet = true
+                                        }
+                                    } label: {
+                                        Label("Add Run", systemImage: "plus.circle")
+                                    }
+                                    .menuStyle(.borderlessButton)
+                                    .fixedSize()
+                                }
+                                if runs.isEmpty {
+                                    Text("No runs assigned yet. Add jobs from your Run Library or create a new one.")
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(runs) { summary in
+                                        HStack(spacing: 8) {
+                                            Button {
+                                                commitIdentity(forceNotes: true)
+                                                onOpenRun(summary.id)
+                                            } label: {
+                                                HStack {
+                                                    Text(summary.title)
+                                                        .foregroundStyle(.primary)
+                                                    Spacer()
+                                                    RunStatusBadge(status: summary.status)
+                                                    RunEditionBadge(edition: summary.edition)
+                                                }
+                                            }
+                                            .buttonStyle(.plain)
+
+                                            Button {
+                                                unassignRun(summary.id)
+                                            } label: {
+                                                Image(systemName: "xmark.circle")
+                                                    .foregroundStyle(.secondary)
+                                                    .frame(width: 28, height: 28)
+                                            }
+                                            .buttonStyle(.borderless)
+                                            .help("Remove from campaign (keeps the run as Unassigned)")
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        ProgressView("Loading…")
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: 960, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            Divider()
+
+            // Bottom-right save: flush drafts and return to Campaigns library.
+            HStack {
+                Spacer()
+                Button("Save") {
+                    saveAndReturn()
+                }
+                .keyboardShortcut("s", modifiers: [.command])
+                .buttonStyle(.borderedProminent)
+                .disabled(campaign == nil)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { load() }
         .onDisappear { commitIdentity(forceNotes: true) }
         .sheet(isPresented: $showAddRunsSheet) {
@@ -502,6 +522,35 @@ struct CampaignDetailView: View {
         }
     }
 
+    private var stickyToolbar: some View {
+        HStack(spacing: 12) {
+            Button {
+                commitIdentity(forceNotes: true)
+                onBack()
+            } label: {
+                Label("Campaigns", systemImage: "chevron.left")
+            }
+
+            Text(nameDraft.isEmpty ? "Untitled Campaign" : nameDraft)
+                .font(.headline)
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            if let campaign {
+                if campaign.isArchived {
+                    Button("Unarchive") { setArchived(false) }
+                } else {
+                    Button("Archive") { setArchived(true) }
+                }
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    confirmDelete = true
+                }
+            }
+        }
+    }
+
     private var notesEditorBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -520,6 +569,11 @@ struct CampaignDetailView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 160)
         }
+    }
+
+    private func saveAndReturn() {
+        commitIdentity(forceNotes: true)
+        onBack()
     }
 
     private var summaryChips: some View {
