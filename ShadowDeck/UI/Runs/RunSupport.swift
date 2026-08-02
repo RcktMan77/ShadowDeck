@@ -84,7 +84,7 @@ struct RunSectionCard<Content: View>: View {
 struct RunTagChips: View {
     let tags: [String]
     /// When set, each chip shows a remove control (Run Detail editor).
-    var onRemove: ((String) -> Void)? = nil
+    var onRemove: ((String) -> Void)?
 
     var body: some View {
         if tags.isEmpty {
