@@ -16,6 +16,7 @@ struct RunDetailView: View {
 
     @State var run: Run?
     @State var characterSummaries: [CharacterSummary] = []
+    @State var campaignOptions: [CampaignSummary] = []
     @State var statusMessage: String?
     @State var errorMessage: String?
     @State var confirmDelete = false
@@ -166,9 +167,29 @@ struct RunDetailView: View {
                     }
                 }
             }
+
+            Divider()
+
+            // Bottom-right save: flush rich-text drafts and return to Run Library.
+            // Edits still auto-save while working; this is explicit confirmation + leave.
+            HStack {
+                Spacer()
+                Button("Save") {
+                    saveAndReturn()
+                }
+                .keyboardShortcut("s", modifiers: [.command])
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func saveAndReturn() {
+        commitRichTextDrafts(force: true)
+        goBack()
     }
 
     // MARK: - Sticky toolbar
@@ -357,6 +378,15 @@ struct RunDetailView: View {
                     )
                     r.pruneIneligibleParticipants(characterEditions: map)
                 }
+            }
+        )
+    }
+
+    var campaignBinding: Binding<UUID?> {
+        Binding(
+            get: { run?.campaignID },
+            set: { newID in
+                updateRun { $0.campaignID = newID }
             }
         )
     }
@@ -591,6 +621,7 @@ struct RunDetailView: View {
             run = loaded
             loadRichTextDrafts(from: loaded)
             characterSummaries = try libraryEnvironment.library.listSummaries()
+            campaignOptions = try libraryEnvironment.campaignLibrary.listSummaries(includeArchived: true)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
