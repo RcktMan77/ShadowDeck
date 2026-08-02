@@ -32,16 +32,24 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         }
     }
 
+    /// Base glyph (Create run/campaign get a shared top-trailing `+` overlay in the sidebar).
     var systemImage: String {
         switch self {
         case .characters: "person.3.fill"
         case .campaigns: "folder.fill"
         case .runs: "list.clipboard.fill"
         case .newCharacter: "plus.circle.fill"
-        case .newCampaign: "folder.badge.plus"
-        // Sheet with + (macOS 14–safe); pairs with Library → Runs `list.clipboard.fill`.
-        case .newRun: "doc.badge.plus"
+        case .newCampaign: "folder.fill"
+        case .newRun: "list.clipboard.fill"
         case .importCharacter: "square.and.arrow.down.fill"
+        }
+    }
+
+    /// When true, sidebar draws a consistent top-trailing plus badge (system `.badge.plus` glyphs place + differently).
+    var showsCreatePlusBadge: Bool {
+        switch self {
+        case .newRun, .newCampaign: true
+        default: false
         }
     }
 
