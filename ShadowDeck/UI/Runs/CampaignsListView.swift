@@ -549,15 +549,6 @@ struct CampaignDetailView: View {
             Spacer(minLength: 8)
 
             if let campaign {
-                // Look up is useful for house rules / table defaults on the campaign card
-                // (less mission-specific than the run toolbar’s awards/heat focus).
-                IconToolbarButton(
-                    title: "Look up — Rules Reference for house rules and table topics",
-                    systemImage: "book.pages"
-                ) {
-                    RulesReferenceOpener.request(query: "house rules")
-                }
-
                 if campaign.isArchived {
                     IconToolbarButton(
                         title: "Unarchive this campaign",
