@@ -10,6 +10,7 @@ import SwiftUI
 struct MainSidebarView: View {
     @Binding var selection: SidebarItem?
     var characterCount: Int
+    var campaignCount: Int
     var runCount: Int
     var onNewRun: () -> Void
 
@@ -19,6 +20,7 @@ struct MainSidebarView: View {
         List {
             Section("Library") {
                 sidebarItem(.characters, badge: characterCount)
+                sidebarItem(.campaigns, badge: campaignCount)
                 sidebarItem(.runs, badge: runCount)
             }
             Section("Create") {

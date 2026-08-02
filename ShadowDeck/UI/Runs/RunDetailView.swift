@@ -16,6 +16,7 @@ struct RunDetailView: View {
 
     @State var run: Run?
     @State var characterSummaries: [CharacterSummary] = []
+    @State var campaignOptions: [CampaignSummary] = []
     @State var statusMessage: String?
     @State var errorMessage: String?
     @State var confirmDelete = false
@@ -361,6 +362,15 @@ struct RunDetailView: View {
         )
     }
 
+    var campaignBinding: Binding<UUID?> {
+        Binding(
+            get: { run?.campaignID },
+            set: { newID in
+                updateRun { $0.campaignID = newID }
+            }
+        )
+    }
+
     func participantToggle(_ id: UUID, enabled: Bool = true) -> Binding<Bool> {
         Binding(
             get: { run?.participantCharacterIDs.contains(id) == true },
@@ -591,6 +601,7 @@ struct RunDetailView: View {
             run = loaded
             loadRichTextDrafts(from: loaded)
             characterSummaries = try libraryEnvironment.library.listSummaries()
+            campaignOptions = try libraryEnvironment.campaignLibrary.listSummaries(includeArchived: true)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
