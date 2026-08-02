@@ -10,21 +10,27 @@ import SwiftUI
 struct MainSidebarView: View {
     @Binding var selection: SidebarItem?
     var characterCount: Int
+    var campaignCount: Int
     var runCount: Int
+    var onNewCampaign: () -> Void
     var onNewRun: () -> Void
 
     var body: some View {
         // No `List(selection:)` — system selection greys out when the list is
         // not first responder (common right after splash / detail focus).
         List {
+            // Hierarchy: characters → runs → campaigns (campaigns group runs).
             Section("Library") {
                 sidebarItem(.characters, badge: characterCount)
                 sidebarItem(.runs, badge: runCount)
+                sidebarItem(.campaigns, badge: campaignCount)
             }
+            // Create mirrors that order: character (+ import), then run, then campaign.
             Section("Create") {
                 sidebarItem(.newCharacter)
                 sidebarItem(.importCharacter)
                 sidebarItem(.newRun)
+                sidebarItem(.newCampaign)
             }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 240)
@@ -35,10 +41,14 @@ struct MainSidebarView: View {
     private func sidebarItem(_ item: SidebarItem, badge: Int? = nil) -> some View {
         let isSelected = selection == item
         return Button {
-            if item == .newRun {
+            switch item {
+            case .newRun:
                 // Re-clicking New Run while already selected still mints a fresh job.
                 onNewRun()
-            } else {
+            case .newCampaign:
+                // Same pattern: always mint a campaign and open its detail.
+                onNewCampaign()
+            default:
                 selection = item
             }
         } label: {
@@ -66,11 +76,22 @@ struct MainSidebarView: View {
             Text(item.title)
                 .font(.body.weight(isSelected ? .semibold : .regular))
         } icon: {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                .frame(width: 24, height: 20, alignment: .center)
+            // Base icon; optional shared + badge so Create Run / Create Campaign align
+            // (system `doc.badge.plus` vs `folder.badge.plus` place the + in different corners).
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                if item.showsCreatePlusBadge {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, isSelected ? Color.accentColor : Color.primary)
+                        .offset(x: 5, y: -4)
+                }
+            }
+            .frame(width: 24, height: 20, alignment: .center)
         }
         .labelStyle(.titleAndIcon)
         .foregroundStyle(Color.primary)

@@ -192,7 +192,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
 
     /// Soft links into `CharacterLibrary` (tolerate missing IDs after character delete).
     public var participantCharacterIDs: [UUID]
-    /// Reserved for multi-campaign grouping; nil in v1.
+    /// Soft link into `CampaignLibrary` (`nil` = Unassigned).
     public var campaignID: UUID?
 
     public var sessionLog: [RunLogEntry]
@@ -446,8 +446,12 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
 
 public extension Run {
     /// New planning run with a placeholder title the GM should replace.
-    static func makeDraft(title: String = "New Run", edition: Edition = .sr5) -> Run {
-        Run(title: title, status: .planning, edition: edition)
+    static func makeDraft(
+        title: String = "New Run",
+        edition: Edition = .sr5,
+        campaignID: UUID? = nil
+    ) -> Run {
+        Run(title: title, status: .planning, edition: edition, campaignID: campaignID)
     }
 
     /// Whether a library character may join this run’s team (edition match).

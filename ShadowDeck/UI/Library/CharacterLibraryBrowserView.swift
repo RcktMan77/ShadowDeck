@@ -19,8 +19,6 @@ struct CharacterLibraryBrowserView: View {
     var libraryError: String?
     var onRefresh: () -> Void
     var onLoadSamples: () -> Void
-    var onNewCharacter: () -> Void
-    var onImport: () -> Void
     var onOpen: (UUID) -> Void
     var onExportPackage: (CharacterSummary) -> Void
     var onExportPDF: (CharacterSummary) -> Void
@@ -132,14 +130,11 @@ struct CharacterLibraryBrowserView: View {
     @ViewBuilder
     private var libraryBody: some View {
         if summaries.isEmpty {
+            // Create/import via Create sidebar or Load Samples in the header (no duplicate empty-state CTAs).
             ContentUnavailableView {
                 Label("No Characters Yet", systemImage: "person.crop.rectangle.stack")
             } description: {
-                Text("Create a runner with the generation wizard, import Chummer or a .shadowdeck package, or load samples.")
-            } actions: {
-                Button("New Character", action: onNewCharacter)
-                Button("Import…", action: onImport)
-                Button("Load Samples", action: onLoadSamples)
+                Text("Use Create → New Character or Import Character…, or Load Samples above, to add runners.")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredSummaries.isEmpty {
