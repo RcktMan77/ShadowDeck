@@ -15,6 +15,8 @@ import SwiftUI
 // MARK: - Primary API
 
 /// Toolbar / chrome control backed by `NSButton` (native tooltips + matching chrome).
+///
+/// Always **hugs content** (never expands to fill an `HStack` / `Spacer` region).
 struct AppChromeButton: View {
     enum Kind: Equatable {
         /// Symbol only (export, delete, look up, …).
@@ -128,16 +130,11 @@ struct AppChromeButton: View {
             keyModifiers: keyModifiers,
             action: action
         )
-        .frame(minHeight: 28)
-        .fixedSize(horizontal: kindIsIconOnly, vertical: false)
-        .frame(width: kindIsIconOnly ? 32 : nil, height: kindIsIconOnly ? 28 : nil)
+        // Critical: hug content so labeled buttons never stretch across an HStack.
+        .fixedSize(horizontal: true, vertical: true)
+        .layoutPriority(1)
         .accessibilityLabel(resolvedHelp)
         .opacity(isEnabled ? 1 : 0.45)
-    }
-
-    private var kindIsIconOnly: Bool {
-        if case .icon = kind { return true }
-        return false
     }
 
     private var resolvedHelp: String {
@@ -187,12 +184,19 @@ private struct ChromeNSButton: NSViewRepresentable {
 
     func makeNSView(context: Context) -> IntrinsicSizingButton {
         let button = IntrinsicSizingButton(frame: .zero)
-        button.bezelStyle = .toolbar
+        // Rounded bezel: clearer edge on light backgrounds than flat `.toolbar`.
+        button.bezelStyle = .rounded
         button.isBordered = true
+        button.controlSize = .regular
         button.setButtonType(.momentaryPushIn)
         button.target = context.coordinator
         button.action = #selector(Coordinator.clicked)
         button.imageScaling = .scaleProportionallyDown
+        // Refuse to stretch when SwiftUI proposes a huge width.
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        button.setContentHuggingPriority(.required, for: .vertical)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.setContentCompressionResistancePriority(.required, for: .vertical)
         apply(button)
         return button
     }
@@ -201,6 +205,7 @@ private struct ChromeNSButton: NSViewRepresentable {
         context.coordinator.action = action
         apply(button)
         button.invalidateIntrinsicContentSize()
+        button.needsLayout = true
     }
 
     private func apply(_ button: IntrinsicSizingButton) {
@@ -210,7 +215,7 @@ private struct ChromeNSButton: NSViewRepresentable {
         button.keyEquivalentModifierMask = keyModifiers
         button.setAccessibilityLabel(help)
 
-        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
 
         switch kind {
         case .icon(let systemImage):
@@ -257,17 +262,30 @@ private struct ChromeNSButton: NSViewRepresentable {
     }
 }
 
-/// Reports a sensible intrinsic size so SwiftUI `fixedSize()` lays out text buttons correctly.
+/// Intrinsic size from the bezel + label so SwiftUI `fixedSize()` gets a real width.
 private final class IntrinsicSizingButton: NSButton {
     override var intrinsicContentSize: NSSize {
-        var size = super.intrinsicContentSize
-        // Toolbar bezel can report a tiny height when title is empty (icon-only).
+        // Measure fitting size for current title/image rather than relying on
+        // super (toolbar/rounded can report NSView.noIntrinsicMetric).
+        sizeToFit()
+        var size = bounds.size
+        if size.width < 1 || size.height < 1 {
+            size = super.intrinsicContentSize
+        }
         size.height = max(size.height, 28)
         if imagePosition == .imageOnly {
-            size.width = max(size.width, 28)
-        } else {
-            size.width = max(size.width, 44)
+            // Square-ish icon control.
+            let side = max(size.height, 28)
+            return NSSize(width: side + 6, height: side)
         }
+        // Padding for labeled / title buttons.
+        size.width = max(size.width + 8, 56)
         return size
+    }
+
+    override func layout() {
+        super.layout()
+        // After Auto Layout, keep hugging so we don't fill parent.
+        setContentHuggingPriority(.required, for: .horizontal)
     }
 }
