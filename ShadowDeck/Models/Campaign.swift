@@ -55,8 +55,8 @@ public struct Campaign: Codable, Sendable, Hashable, Identifiable {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    public static func makeDraft(name: String = "New Campaign", edition: Edition = .sr5) -> Campaign {
-        Campaign(name: name, edition: edition)
+    public static func makeDraft(name: String = "New Campaign", edition: Edition = .sr5) -> Self {
+        Self(name: name, edition: edition)
     }
 
     // MARK: Codable
