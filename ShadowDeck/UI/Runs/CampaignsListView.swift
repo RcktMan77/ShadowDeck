@@ -166,6 +166,7 @@ struct CampaignsListView: View {
 
     private func campaignRow(_ summary: CampaignSummary) -> some View {
         HStack(alignment: .top, spacing: 12) {
+            // Primary open target — leading content opens the editor.
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(summary.name)
@@ -206,14 +207,32 @@ struct CampaignsListView: View {
             .contentShape(Rectangle())
             .onTapGesture { selectedCampaignID = summary.id }
 
-            Button {
-                selectedCampaignID = summary.id
-            } label: {
-                Image(systemName: "square.and.pencil")
-                    .frame(width: 28, height: 28)
+            // Explicit actions (same pattern as Run Library rows).
+            HStack(spacing: 4) {
+                Button {
+                    selectedCampaignID = summary.id
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.body)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .help("Edit campaign")
+
+                Button {
+                    campaignPendingDelete = summary
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.body)
+                        .foregroundStyle(.red)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .help("Delete campaign")
             }
-            .buttonStyle(.borderless)
-            .help("Open campaign")
+            .fixedSize()
         }
         .padding(.vertical, 4)
     }
