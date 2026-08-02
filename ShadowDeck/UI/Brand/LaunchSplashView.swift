@@ -215,7 +215,7 @@ struct LaunchSplashView: View {
         didDismiss = true
         quipTask?.cancel()
         // Hand off to the app-level black veil immediately. Do not animate this view
-        // away — the parent removes us under a separate always-opaque cover.
+        // away — the parent keeps an opaque cover while window chrome / size settle.
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) {
