@@ -115,8 +115,8 @@ public struct PageRef: Codable, Sendable, Hashable, Identifiable {
     /// Display order for page chips.
     /// - Parameter preferEdition: when set (e.g. open character), that edition’s core
     ///   book is listed first; remaining cores stay SR4 → SR5 → SR6; then other keys.
-    public static func sortedForDisplay(_ refs: [PageRef], preferEdition: Edition? = nil) -> [PageRef] {
-        func rank(_ ref: PageRef) -> (Int, Int, String, Int, String) {
+    public static func sortedForDisplay(_ refs: [Self], preferEdition: Edition? = nil) -> [Self] {
+        func rank(_ ref: Self) -> (Int, Int, String, Int, String) {
             let base = ref.editionSortIndex
             let preferred: Int
             if let preferEdition, ref.coreEdition == preferEdition {

@@ -34,13 +34,12 @@ public enum GearCategory: String, Codable, Sendable, CaseIterable, Hashable {
     }
 
     /// Map free-text (Chummer category / user label) into a ShadowDeck bucket.
-    public static func infer(from raw: String) -> GearCategory {
+    public static func infer(from raw: String) -> Self {
         let t = raw.lowercased()
         if t.contains("weapon") || t.contains("firearm") || t.contains("blade")
             || t.contains("club") || t.contains("cannon") || t.contains("rifle")
             || t.contains("pistol") || t.contains("shotgun") || t.contains("launcher")
-            || t.contains("melee") || t.contains("throwing")
-        {
+            || t.contains("melee") || t.contains("throwing") {
             return .weapon
         }
         if t.contains("armor") || t.contains("shield") { return .armor }
@@ -48,44 +47,37 @@ public enum GearCategory: String, Codable, Sendable, CaseIterable, Hashable {
         if t.contains("ammo") || t.contains("ammunition") || t.contains("grenade") { return .ammo }
         if t.contains("cyberdeck") || t.contains("rigger command") { return .cyberdeck }
         if t.contains("program") || t.contains("autosoft") || t.contains("soft")
-            || t.contains("app") || t.contains("agent")
-        {
+            || t.contains("app") || t.contains("agent") {
             return .software
         }
         if t.contains("drone") { return .drone }
         if t.contains("vehicle") || t.contains("bike") || t.contains("car")
-            || t.contains("aircraft") || t.contains("watercraft")
-        {
+            || t.contains("aircraft") || t.contains("watercraft") {
             return .vehicle
         }
         if t.contains("drug") || t.contains("chemical") || t.contains("toxin")
-            || t.contains("btl") || t.contains("compound")
-        {
+            || t.contains("btl") || t.contains("compound") {
             return .chemical
         }
         if t.contains("biotech") || t.contains("medkit") || t.contains("docwagon") { return .biotech }
         if t.contains("magic") || t.contains("focus") || t.contains("reagent")
-            || t.contains("alchemical") || t.contains("spell formula") || t.contains("fetish")
-        {
+            || t.contains("alchemical") || t.contains("spell formula") || t.contains("fetish") {
             return .magic
         }
         if t.contains("security") || t.contains("breaking and entering")
-            || t.contains("lock") || t.contains("restraint")
-        {
+            || t.contains("lock") || t.contains("restraint") {
             return .security
         }
         if t.contains("survival") || t.contains("camping") || t.contains("climbing") { return .survival }
         if t.contains("tool") || t.contains("kit") { return .tool }
         if t.contains("sin") || t.contains("license") || t.contains("identity")
-            || t.contains("credstick") || t.contains("fake")
-        {
+            || t.contains("credstick") || t.contains("fake") {
             return .identity
         }
         if t.contains("entertainment") || t.contains("music") { return .entertainment }
         if t.contains("electronic") || t.contains("commlink") || t.contains("sensor")
             || t.contains("audio") || t.contains("visual") || t.contains("rfid")
-            || t.contains("communication")
-        {
+            || t.contains("communication") {
             return .electronics
         }
         return .other

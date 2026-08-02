@@ -28,7 +28,7 @@ public enum PriorityLetter: String, Codable, Sendable, CaseIterable, Hashable, C
     /// Point value used by the Sum-to-Ten house rule (A=4 … E=0).
     public var sumToTenValue: Int { rankValue }
 
-    public static func < (lhs: PriorityLetter, rhs: PriorityLetter) -> Bool {
+    public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.rankValue < rhs.rankValue
     }
 }

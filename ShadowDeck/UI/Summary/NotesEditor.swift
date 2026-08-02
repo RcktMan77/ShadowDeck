@@ -312,7 +312,7 @@ final class NotesTextBridge: ObservableObject {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: color,
-                .paragraphStyle: listStyle,
+                .paragraphStyle: listStyle
             ]
             storage.setAttributedString(NSAttributedString(string: marker, attributes: attrs))
             textView.typingAttributes = attrs
@@ -386,7 +386,7 @@ final class NotesTextBridge: ObservableObject {
             var attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: color,
-                .paragraphStyle: style,
+                .paragraphStyle: style
             ]
             if storage.length > 0 {
                 let sampleLoc = min(cover.location, storage.length - 1)
@@ -430,13 +430,13 @@ final class NotesTextBridge: ObservableObject {
         func matchesMarker(in body: String) -> Bool {
             switch self {
             case .bullet:
-                return NotesListKind.bulletRegex.firstMatch(
+                return Self.bulletRegex.firstMatch(
                     in: body,
                     options: [],
                     range: NSRange(location: 0, length: (body as NSString).length)
                 ) != nil
             case .numbered:
-                return NotesListKind.numberRegex.firstMatch(
+                return Self.numberRegex.firstMatch(
                     in: body,
                     options: [],
                     range: NSRange(location: 0, length: (body as NSString).length)
@@ -704,7 +704,7 @@ private struct NotesTextView: NSViewRepresentable {
         textView.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         textView.typingAttributes = [
             .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
-            .foregroundColor: NSColor.textColor,
+            .foregroundColor: NSColor.textColor
         ]
         textView.textContainerInset = NSSize(width: 10, height: 10)
         textView.isVerticallyResizable = true
@@ -815,7 +815,7 @@ private struct NotesTextView: NSViewRepresentable {
             textView.string = value
             textView.typingAttributes = [
                 .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
-                .foregroundColor: NSColor.textColor,
+                .foregroundColor: NSColor.textColor
             ]
         }
 
@@ -824,8 +824,7 @@ private struct NotesTextView: NSViewRepresentable {
             if full.length > 0,
                let rtfData = textView.rtf(from: full),
                let rtf = String(data: rtfData, encoding: .utf8),
-               !rtf.isEmpty
-            {
+               !rtf.isEmpty {
                 return rtf
             }
             return textView.string

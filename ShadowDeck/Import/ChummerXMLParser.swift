@@ -39,8 +39,7 @@ public enum ChummerXMLParser {
         if root.name == "character" {
             characterElement = root
         } else if root.name == "characters",
-                  let first = root.elements(forName: "character").first
-        {
+                  let first = root.elements(forName: "character").first {
             characterElement = first
         } else if let nested = root.elements(forName: "character").first {
             characterElement = nested

@@ -22,7 +22,7 @@ public enum GenerationStep: Int, CaseIterable, Identifiable, Comparable, Sendabl
 
     public var id: Int { rawValue }
 
-    public static func < (lhs: GenerationStep, rhs: GenerationStep) -> Bool {
+    public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
 
@@ -71,8 +71,8 @@ public final class GenerationDraft {
     public var metatype: MetatypeID = .human
     public var awakened: AwakenedPath = .mundane
     public var generationSystem: GenerationSystem = .priority
-    public var priority: PriorityAssignment = PriorityAssignment()
-    public var attributes: AttributeRatings = AttributeRatings()
+    public var priority = PriorityAssignment()
+    public var attributes = AttributeRatings()
     public var skills: [SkillRating] = []
     public var qualities: [QualityInstance] = []
     public var nuyen: Int = 0
@@ -84,7 +84,7 @@ public final class GenerationDraft {
     public var specialPurchases: [AttributeID: Int] = [:]
     public var skillRanks: [String: Int] = [:]
 
-    public var budget: GenerationBudget = GenerationBudget()
+    public var budget = GenerationBudget()
 
     /// Free knowledge ranks from house rules (auto or fixed).
     public private(set) var freeKnowledgePool: Int = 0
@@ -263,8 +263,7 @@ public final class GenerationDraft {
         }
 
         if let metaLetter = priority[.metatype],
-           let special = r.specialAttributePoints(for: metaLetter, metatype: metatype)
-        {
+           let special = r.specialAttributePoints(for: metaLetter, metatype: metatype) {
             budget.resetSpecial(total: special)
         } else {
             budget.resetSpecial(total: 0)
@@ -531,6 +530,6 @@ public enum ChargenSkillCatalog {
         ("piloting", "Piloting"),
         ("spellcasting", "Spellcasting"),
         ("summoning", "Summoning"),
-        ("first_aid", "First Aid / Biotech"),
+        ("first_aid", "First Aid / Biotech")
     ]
 }

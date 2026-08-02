@@ -42,7 +42,7 @@ struct CharacterLibraryGalleryView: View {
     @State private var flippedIDs: Set<UUID> = []
 
     private let columns = [
-        GridItem(.adaptive(minimum: 200, maximum: 260), spacing: 16, alignment: .top),
+        GridItem(.adaptive(minimum: 200, maximum: 260), spacing: 16, alignment: .top)
     ]
 
     var body: some View {
@@ -292,8 +292,7 @@ private struct CharacterLibraryCard: View {
                     .resizable()
                     .scaledToFill()
             } else if let metatype = summary.metatype,
-                      let image = ChargenArtLoader.metatypeNSImage(for: metatype)
-            {
+                      let image = ChargenArtLoader.metatypeNSImage(for: metatype) {
                 // Default: painted metatype art when no custom portrait is set.
                 Image(nsImage: image)
                     .resizable()
@@ -303,7 +302,7 @@ private struct CharacterLibraryCard: View {
                     LinearGradient(
                         colors: [
                             Color.secondary.opacity(0.22),
-                            Color.secondary.opacity(0.08),
+                            Color.secondary.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

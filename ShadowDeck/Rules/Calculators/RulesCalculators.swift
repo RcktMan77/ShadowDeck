@@ -109,14 +109,12 @@ public enum GlitchThresholdCalculator {
         // Sanity: first ones that isGlitch is true
         var verified = ones
         while verified > 0,
-              !DiceRollerEngine.isGlitch(ones: verified, diceCount: p, edition: edition, diceRules: diceRules)
-        {
+              !DiceRollerEngine.isGlitch(ones: verified, diceCount: p, edition: edition, diceRules: diceRules) {
             verified += 1
             if verified > p { break }
         }
         while verified > 1,
-              DiceRollerEngine.isGlitch(ones: verified - 1, diceCount: p, edition: edition, diceRules: diceRules)
-        {
+              DiceRollerEngine.isGlitch(ones: verified - 1, diceCount: p, edition: edition, diceRules: diceRules) {
             verified -= 1
         }
         return Result(

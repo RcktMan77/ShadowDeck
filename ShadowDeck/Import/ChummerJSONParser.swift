@@ -32,8 +32,7 @@ public enum ChummerJSONParser {
                     return character
                 }
                 if let list = characters["character"] as? [Any],
-                   let first = list.first as? [String: Any]
-                {
+                   let first = list.first as? [String: Any] {
                     return first
                 }
             }

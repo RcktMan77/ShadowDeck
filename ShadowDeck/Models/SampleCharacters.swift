@@ -82,23 +82,23 @@ public enum SampleCharacters {
                 SkillRating(catalogKey: "dodge", displayName: "Dodge", category: .active, rating: 4),
                 SkillRating(catalogKey: "perception", displayName: "Perception", category: .active, rating: 3),
                 SkillRating(catalogKey: "infiltration", displayName: "Infiltration", category: .active, rating: 3),
-                SkillRating(catalogKey: "shadow_lore", displayName: "Shadow Lore", category: .knowledge, rating: 3, knowledgeType: "Street"),
+                SkillRating(catalogKey: "shadow_lore", displayName: "Shadow Lore", category: .knowledge, rating: 3, knowledgeType: "Street")
             ],
             qualities: [
                 QualityInstance(catalogKey: "toughness", name: "Toughness", kind: .positive, karmaValue: 10),
                 QualityInstance(catalogKey: "guts", name: "Guts", kind: .positive, karmaValue: 10),
-                QualityInstance(catalogKey: "distinctive_style", name: "Distinctive Style", kind: .negative, karmaValue: 5),
+                QualityInstance(catalogKey: "distinctive_style", name: "Distinctive Style", kind: .negative, karmaValue: 5)
             ],
             gear: [
                 GearItem(catalogKey: "katana", name: "Katana", category: .weapon, nuyenCost: 1_000, equipped: true, damageCode: "(STR+3)P"),
                 GearItem(catalogKey: "armor_jacket", name: "Armor Jacket", category: .armor, nuyenCost: 900, equipped: true, armorRating: 8),
-                GearItem(catalogKey: "ares_predator", name: "Ares Predator", category: .weapon, nuyenCost: 350, equipped: true, damageCode: "5P"),
+                GearItem(catalogKey: "ares_predator", name: "Ares Predator", category: .weapon, nuyenCost: 350, equipped: true, damageCode: "5P")
             ],
             augmentations: [wired, dermal],
             lifestyles: [Lifestyle(name: "Safehouse", level: .low, monthlyCost: 2_000, monthsPrepaid: 3)],
             contacts: [
                 Contact(name: "Doc Wagon Tech", role: "Street Doc", loyalty: 3, connection: 2),
-                Contact(name: "Fixer Jax", role: "Fixer", loyalty: 2, connection: 4),
+                Contact(name: "Fixer Jax", role: "Fixer", loyalty: 2, connection: 4)
             ],
             karmaTotal: 0,
             karmaAvailable: 0,
@@ -126,7 +126,7 @@ public enum SampleCharacters {
                     .attributes: .b,
                     .skills: .c,
                     .metatype: .d,
-                    .resources: .e,
+                    .resources: .e
                 ]),
                 karmaBudget: 25,
                 karmaSpent: 20,
@@ -150,30 +150,30 @@ public enum SampleCharacters {
                 SkillRating(catalogKey: "summoning", displayName: "Summoning", category: .active, rating: 4, group: .conjuring),
                 SkillRating(catalogKey: "assensing", displayName: "Assensing", category: .active, rating: 4),
                 SkillRating(catalogKey: "perception", displayName: "Perception", category: .active, rating: 3),
-                SkillRating(catalogKey: "arcana", displayName: "Arcana", category: .knowledge, rating: 4, knowledgeType: "Academic"),
+                SkillRating(catalogKey: "arcana", displayName: "Arcana", category: .knowledge, rating: 4, knowledgeType: "Academic")
             ],
             skillGroups: [
-                SkillGroupRating(group: .sorcery, rating: 0), // individual skills rated above
+                SkillGroupRating(group: .sorcery, rating: 0) // individual skills rated above
             ],
             qualities: [
                 QualityInstance(catalogKey: "focused_concentration_1", name: "Focused Concentration I", kind: .positive, karmaValue: 4),
                 QualityInstance(catalogKey: "mentor_spirit", name: "Mentor Spirit", kind: .positive, karmaValue: 5),
-                QualityInstance(catalogKey: "sinner", name: "SINner (National)", kind: .negative, karmaValue: 5),
+                QualityInstance(catalogKey: "sinner", name: "SINner (National)", kind: .negative, karmaValue: 5)
             ],
             gear: [
                 GearItem(catalogKey: "mage_armor", name: "Actioneer Business Clothes", category: .armor, nuyenCost: 1_500, equipped: true, armorRating: 8),
-                GearItem(catalogKey: "mage_staff", name: "Weapon Focus (Staff)", category: .weapon, nuyenCost: 2_000, equipped: true),
+                GearItem(catalogKey: "mage_staff", name: "Weapon Focus (Staff)", category: .weapon, nuyenCost: 2_000, equipped: true)
             ],
             spells: [
                 SpellInstance(catalogKey: "manabolt", name: "Manabolt", category: "Combat"),
                 SpellInstance(catalogKey: "armor", name: "Armor", category: "Health"),
                 SpellInstance(catalogKey: "heal", name: "Heal", category: "Health"),
                 SpellInstance(catalogKey: "improved_invisibility", name: "Improved Invisibility", category: "Illusion"),
-                SpellInstance(catalogKey: "stunball", name: "Stunball", category: "Combat"),
+                SpellInstance(catalogKey: "stunball", name: "Stunball", category: "Combat")
             ],
             lifestyles: [Lifestyle(level: .middle, monthlyCost: 5_000, monthsPrepaid: 1)],
             contacts: [
-                Contact(name: "Talismonger Wren", role: "Talismonger", loyalty: 3, connection: 3),
+                Contact(name: "Talismonger Wren", role: "Talismonger", loyalty: 3, connection: 3)
             ],
             karmaTotal: 5,
             karmaAvailable: 5,
@@ -231,17 +231,17 @@ public enum SampleCharacters {
                 SkillRating(catalogKey: "cracking", displayName: "Cracking", category: .active, rating: 5),
                 SkillRating(catalogKey: "stealth", displayName: "Stealth", category: .active, rating: 3),
                 SkillRating(catalogKey: "perception", displayName: "Perception", category: .active, rating: 4),
-                SkillRating(catalogKey: "corp_tacs", displayName: "Corporate Tactics", category: .knowledge, rating: 3),
+                SkillRating(catalogKey: "corp_tacs", displayName: "Corporate Tactics", category: .knowledge, rating: 3)
             ],
             qualities: [
                 QualityInstance(catalogKey: "first_impression", name: "First Impression", kind: .positive, karmaValue: 12),
                 QualityInstance(catalogKey: "analytical_mind", name: "Analytical Mind", kind: .positive, karmaValue: 3),
-                QualityInstance(catalogKey: "social_stress", name: "Social Stress", kind: .negative, karmaValue: 8),
+                QualityInstance(catalogKey: "social_stress", name: "Social Stress", kind: .negative, karmaValue: 8)
             ],
             gear: [
                 GearItem(catalogKey: "cyberdeck", name: "Spinrad Falcon", category: .cyberdeck, nuyenCost: 28_000, equipped: true),
                 GearItem(catalogKey: "armor_clothing", name: "Armor Clothing", category: .armor, nuyenCost: 450, equipped: true, armorRating: 4),
-                GearItem(catalogKey: " commlink", name: "Transys Avalon", category: .electronics, nuyenCost: 5_000, equipped: true),
+                GearItem(catalogKey: " commlink", name: "Transys Avalon", category: .electronics, nuyenCost: 5_000, equipped: true)
             ],
             augmentations: [
                 Augmentation(
@@ -258,13 +258,13 @@ public enum SampleCharacters {
                     rating: 1,
                     essenceCost: Decimal(string: "0.2") ?? 0.2,
                     nuyenCost: 31_500
-                ),
+                )
             ],
             lifestyles: [Lifestyle(level: .middle, monthlyCost: 5_000, monthsPrepaid: 2)],
             contacts: [
                 Contact(name: "Mr. Johnson (Ares)", role: "Johnson", loyalty: 2, connection: 5),
                 Contact(name: "Glitch", role: "Decker", loyalty: 4, connection: 4),
-                Contact(name: "Rosa", role: "Bartender", loyalty: 3, connection: 2),
+                Contact(name: "Rosa", role: "Bartender", loyalty: 3, connection: 2)
             ],
             karmaTotal: 45,
             karmaAvailable: 20,

@@ -22,8 +22,7 @@ public enum ChummerCatalogLoader {
     /// explicitly enables an external Chummer data folder override.
     public static func load() -> CatalogLoadResult {
         if CatalogSettings.preferExternalCatalog,
-           let dir = resolvedExternalDataDirectory()
-        {
+           let dir = resolvedExternalDataDirectory() {
             let external = loadFromChummerXML(directory: dir)
             if !external.entries.isEmpty {
                 return external
@@ -42,7 +41,7 @@ public enum ChummerCatalogLoader {
             URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent() // Catalog/
                 .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Catalog/sr5_catalog.json"),
+                .appendingPathComponent("Resources/Catalog/sr5_catalog.json")
         ]
 
         guard let url = candidates.compactMap({ $0 }).first(where: {
@@ -236,8 +235,7 @@ public enum ChummerCatalogLoader {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return nil }
         if t.contains("*") || t.contains("+") || t.contains("-") || t.contains("/")
-            || t.rangeOfCharacter(from: .letters) != nil
-        {
+            || t.rangeOfCharacter(from: .letters) != nil {
             if t.allSatisfy({ $0.isNumber || $0 == "," }) {
                 return Int(t.replacingOccurrences(of: ",", with: ""))
             }
@@ -396,16 +394,16 @@ enum BonusParser {
         var ratingOffset: Int
         var ratingTable: [Int]?
 
-        static func fixed(_ n: Int) -> ParsedAmount {
-            ParsedAmount(amount: n, usesRating: false, ratingOffset: 0, ratingTable: nil)
+        static func fixed(_ n: Int) -> Self {
+            Self(amount: n, usesRating: false, ratingOffset: 0, ratingTable: nil)
         }
 
-        static func rating(coefficient: Int = 1, offset: Int = 0) -> ParsedAmount {
-            ParsedAmount(amount: coefficient, usesRating: true, ratingOffset: offset, ratingTable: nil)
+        static func rating(coefficient: Int = 1, offset: Int = 0) -> Self {
+            Self(amount: coefficient, usesRating: true, ratingOffset: offset, ratingTable: nil)
         }
 
-        static func table(_ values: [Int]) -> ParsedAmount {
-            ParsedAmount(amount: values.first ?? 0, usesRating: false, ratingOffset: 0, ratingTable: values)
+        static func table(_ values: [Int]) -> Self {
+            Self(amount: values.first ?? 0, usesRating: false, ratingOffset: 0, ratingTable: values)
         }
 
         func asModifier(

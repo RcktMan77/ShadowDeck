@@ -9,7 +9,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class RulesReferenceTests: XCTestCase {
-
     private var store: RulesReferenceStore!
 
     override func setUp() {
@@ -32,13 +31,13 @@ final class RulesReferenceTests: XCTestCase {
         let refs = [
             PageRef(bookKey: PageRef.BookKey.sr6Core, page: 36, label: "SR6"),
             PageRef(bookKey: PageRef.BookKey.sr5CRB, page: 44, label: "SR5"),
-            PageRef(bookKey: PageRef.BookKey.sr4a, page: 60, label: "SR4"),
+            PageRef(bookKey: PageRef.BookKey.sr4a, page: 60, label: "SR4")
         ]
         let sorted = PageRef.sortedForDisplay(refs)
         XCTAssertEqual(sorted.map(\.bookKey), [
             PageRef.BookKey.sr4a,
             PageRef.BookKey.sr5CRB,
-            PageRef.BookKey.sr6Core,
+            PageRef.BookKey.sr6Core
         ])
 
         // Character edition first (SR5), then remaining cores in era order.
@@ -46,7 +45,7 @@ final class RulesReferenceTests: XCTestCase {
         XCTAssertEqual(preferred.map(\.bookKey), [
             PageRef.BookKey.sr5CRB,
             PageRef.BookKey.sr4a,
-            PageRef.BookKey.sr6Core,
+            PageRef.BookKey.sr6Core
         ])
 
         if let hits = store.entry(id: "dice-hits") {
@@ -153,7 +152,7 @@ final class RulesReferenceTests: XCTestCase {
                 category: .magic,
                 tags: ["drain", "spell"],
                 summary: "Spellcasting backlash."
-            ),
+            )
         ])
         let os = custom.search(query: "overwatch")
         XCTAssertEqual(os.map(\.entry.id), ["t1"])

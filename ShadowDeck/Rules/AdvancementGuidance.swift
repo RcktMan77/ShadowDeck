@@ -232,7 +232,7 @@ public enum AdvancementGuidance {
             let b = before.dicePools[key] ?? 0
             let a = after.dicePools[key] ?? 0
             guard a > b else { continue }
-            let name = character.skills.first(where: { $0.catalogKey == key })?.displayName ?? key
+            let name = character.skills.first { $0.catalogKey == key }?.displayName ?? key
             boosts.append(PoolBoost(name: name, from: b, to: a))
         }
         // Prefer larger swings first, then name
@@ -256,38 +256,32 @@ public enum AdvancementGuidance {
         if blob.contains("pistol") || blob.contains("automatic") || blob.contains("longarm")
             || blob.contains("heavy_weapon") || blob.contains("sneak") || blob.contains("gym")
             || blob.contains("escape") || blob.contains("lock") || blob.contains("palming")
-            || blob.contains("disguise") || blob.contains("imperson")
-        {
+            || blob.contains("disguise") || blob.contains("imperson") {
             return .agility
         }
         if blob.contains("unarmed") || blob.contains("blade") || blob.contains("club")
             || blob.contains("throw") || blob.contains("swim") || blob.contains("run")
-            || blob.contains("athlet")
-        {
+            || blob.contains("athlet") {
             return .strength
         }
         if blob.contains("hack") || blob.contains("computer") || blob.contains("software")
             || blob.contains("cybercombat") || blob.contains("electronic") || blob.contains("hardware")
             || blob.contains("arcana") || blob.contains("aeronautics") || blob.contains("industrial")
             || blob.contains("mechanic") || blob.contains("armorer") || blob.contains("first_aid")
-            || blob.contains("medicine")
-        {
+            || blob.contains("medicine") {
             return .logic
         }
         if blob.contains("perception") || blob.contains("assense") || blob.contains("track")
-            || blob.contains("navigation") || blob.contains("survival") || blob.contains("artisa")
-        {
+            || blob.contains("navigation") || blob.contains("survival") || blob.contains("artisa") {
             return .intuition
         }
         if blob.contains("con") || blob.contains("etiquette") || blob.contains("negotiation")
             || blob.contains("leadership") || blob.contains("instruction") || blob.contains("intimidation")
-            || blob.contains("performance")
-        {
+            || blob.contains("performance") {
             return .charisma
         }
         if blob.contains("spellcasting") || blob.contains("counterspelling") || blob.contains("summoning")
-            || blob.contains("binding") || blob.contains("banishing") || blob.contains("alchemy")
-        {
+            || blob.contains("binding") || blob.contains("banishing") || blob.contains("alchemy") {
             return .magic
         }
         if blob.contains("compiling") || blob.contains("registering") || blob.contains("decompiling") {
@@ -305,8 +299,7 @@ public enum AdvancementGuidance {
         if skill.category == .language
             || type.contains("language")
             || type.contains("street")
-            || type.contains("interest")
-        {
+            || type.contains("interest") {
             return .intuition
         }
         if type.contains("academic") || type.contains("professional") {
@@ -315,8 +308,7 @@ public enum AdvancementGuidance {
         let name = skill.displayName.lowercased() + " " + skill.catalogKey.lowercased()
         if name.contains("corp") || name.contains("science") || name.contains("history")
             || name.contains("matrix") || name.contains("magical") || name.contains("theory")
-            || name.contains("academic")
-        {
+            || name.contains("academic") {
             return .logic
         }
         return .intuition

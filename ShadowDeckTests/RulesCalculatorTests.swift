@@ -7,7 +7,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class RulesCalculatorTests: XCTestCase {
-
     // MARK: - Karma
 
     func testKarmaActiveSkillSR5SingleStep() {

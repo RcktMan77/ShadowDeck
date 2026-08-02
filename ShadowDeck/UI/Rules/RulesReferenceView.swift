@@ -472,11 +472,10 @@ struct RulesReferenceView: View {
                             page: pageBinding,
                             zoomPreset: zoomBinding(for: item.id),
                             navigationEpoch: controller.pdfNavigationEpoch,
-                            searchBridge: pdfSearch,
-                            onPageChange: { page in
+                            searchBridge: pdfSearch
+                        )                            { page in
                                 persistLastPage(itemID: item.id, page: page)
                             }
-                        )
                         .id(item.id)
                         .onAppear {
                             // Clear find results after the mount update (not mid-body).

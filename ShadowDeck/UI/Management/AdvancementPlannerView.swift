@@ -372,7 +372,7 @@ struct AdvancementPlannerView: View {
             ("Attributes", attributes),
             ("Active Skills", activeCombined),
             ("Knowledge Skills", knowledge),
-            ("Languages", language),
+            ("Languages", language)
         ].filter { !$0.items.isEmpty }
     }
 
@@ -695,8 +695,7 @@ struct AdvancementPlannerView: View {
             return .language
         }
         if notes == "knowledge" || cat.contains("knowledge")
-            || ["academic", "interest", "professional", "street"].contains(cat)
-        {
+            || ["academic", "interest", "professional", "street"].contains(cat) {
             return .knowledge
         }
         return .active
@@ -732,8 +731,7 @@ struct AdvancementPlannerView: View {
                        character: character,
                        attribute: attr,
                        rules: rules
-                   )
-                {
+                   ) {
                     if live.fromRating != item.fromRating || live.karmaCost != item.karmaCost {
                         changed = true
                     }

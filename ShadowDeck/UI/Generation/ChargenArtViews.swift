@@ -15,8 +15,7 @@ enum ChargenArtLoader {
         let bundle = Bundle.main
         if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/ChargenArt")
-            ?? bundle.url(forResource: name, withExtension: "jpg")
-        {
+            ?? bundle.url(forResource: name, withExtension: "jpg") {
             return url
         }
         let dev = URL(fileURLWithPath: #filePath)
@@ -76,7 +75,7 @@ struct PaintedPortraitView: View {
     }
 
     let kind: Kind
-    var customImage: NSImage? = nil
+    var customImage: NSImage?
     var cornerRadius: CGFloat = 14
     var showLabel: Bool = true
 
