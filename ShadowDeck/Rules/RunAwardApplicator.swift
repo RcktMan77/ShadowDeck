@@ -2,8 +2,8 @@
 //  RunAwardApplicator.swift
 //  ShadowDeck
 //
-//  Pure preview + apply for distributing run nuyen/karma to linked characters.
-//  UI owns library I/O; this type never loads or saves.
+//  Pure preview + apply for distributing run nuyen/karma (and optional reputation)
+//  to linked characters. UI owns library I/O; this type never loads or saves.
 //
 
 import Foundation
@@ -15,14 +15,35 @@ public struct AwardShare: Sendable, Hashable, Identifiable {
     public var name: String
     public var nuyen: Int
     public var karma: Int
+    /// Street Cred delta for this runner (Phase 2D). Default 0.
+    public var streetCredDelta: Int
+    /// Notoriety delta for this runner (Phase 2D). Default 0.
+    public var notorietyDelta: Int
+    /// Public Awareness delta for this runner (Phase 2D). Default 0.
+    public var publicAwarenessDelta: Int
 
     public var id: UUID { characterID }
 
-    public init(characterID: UUID, name: String, nuyen: Int, karma: Int) {
+    public init(
+        characterID: UUID,
+        name: String,
+        nuyen: Int,
+        karma: Int,
+        streetCredDelta: Int = 0,
+        notorietyDelta: Int = 0,
+        publicAwarenessDelta: Int = 0
+    ) {
         self.characterID = characterID
         self.name = name
         self.nuyen = nuyen
         self.karma = karma
+        self.streetCredDelta = streetCredDelta
+        self.notorietyDelta = notorietyDelta
+        self.publicAwarenessDelta = publicAwarenessDelta
+    }
+
+    public var hasReputationDelta: Bool {
+        streetCredDelta != 0 || notorietyDelta != 0 || publicAwarenessDelta != 0
     }
 }
 
@@ -73,11 +94,19 @@ public struct ApplyResult: Sendable, Hashable {
     public var applied: [AwardShare]
     public var skipped: [SkippedParticipant]
     public var appliedAt: Date
+    /// Heat note written to the session log, if any.
+    public var heatNote: String?
 
-    public init(applied: [AwardShare], skipped: [SkippedParticipant], appliedAt: Date) {
+    public init(
+        applied: [AwardShare],
+        skipped: [SkippedParticipant],
+        appliedAt: Date,
+        heatNote: String? = nil
+    ) {
         self.applied = applied
         self.skipped = skipped
         self.appliedAt = appliedAt
+        self.heatNote = heatNote
     }
 }
 
@@ -90,6 +119,7 @@ public enum RunAwardApplicatorError: Error, Equatable, LocalizedError {
     case noAwards
     case noAvailableParticipants
     case characterSetMismatch
+    case shareSetMismatch
 
     public var errorDescription: String? {
         switch self {
@@ -105,6 +135,8 @@ public enum RunAwardApplicatorError: Error, Equatable, LocalizedError {
             return "None of the linked runners are in the character library."
         case .characterSetMismatch:
             return "Character set does not match the run’s available participants."
+        case .shareSetMismatch:
+            return "Award shares do not match the run’s available participants."
         }
     }
 }
@@ -114,6 +146,7 @@ public enum RunAwardApplicatorError: Error, Equatable, LocalizedError {
 public enum RunAwardApplicator {
     /// Equal floor split of preferred payout among **available** characters.
     /// Remainder nuyen/karma goes to the first available participant (run list order).
+    /// Reputation deltas default to 0 — the UI may edit them before `apply`.
     public static func preview(run: Run, charactersByID: [UUID: Character]) -> AwardPreview {
         let source = run.actualPayout ?? run.expectedPayout
         let sourceLabel = run.actualPayout != nil ? "actual" : "expected"
@@ -147,13 +180,18 @@ public enum RunAwardApplicator {
     }
 
     /// Credits each available character and marks the run applied.
-    /// - Parameter characters: Inout array of full characters to mutate. Must include every
-    ///   available participant from `run.participantCharacterIDs` (order ignored; matched by id).
-    ///   Missing IDs are skipped. Extra characters not on the run are left unchanged and ignored.
+    /// - Parameters:
+    ///   - characters: Inout array of full characters to mutate. Must include every
+    ///     available participant from `run.participantCharacterIDs` (order ignored; matched by id).
+    ///   - shares: Optional custom shares (e.g. edited reputation). When nil, equal-split
+    ///     preview is used. When provided, must cover exactly the available participant set.
+    ///   - heatNote: Optional session heat narrative → `RunLogEntryKind.heat` (and awards log).
     public static func apply(
         run: inout Run,
         characters: inout [Character],
+        shares: [AwardShare]? = nil,
         note: String? = nil,
+        heatNote: String? = nil,
         at date: Date = Date(),
         appendSessionLog: Bool = true
     ) throws -> ApplyResult {
@@ -162,12 +200,19 @@ public enum RunAwardApplicator {
         var byID = Dictionary(uniqueKeysWithValues: characters.map { ($0.id, $0) })
         let preview = preview(run: run, charactersByID: byID)
 
-        guard !preview.perCharacter.isEmpty else {
+        let resolvedShares: [AwardShare]
+        if let shares {
+            resolvedShares = try validateCustomShares(shares, against: preview.perCharacter)
+        } else {
+            resolvedShares = preview.perCharacter
+        }
+
+        guard !resolvedShares.isEmpty else {
             throw RunAwardApplicatorError.noAvailableParticipants
         }
 
         // Ensure every share target is present in the inout array.
-        let shareIDs = Set(preview.perCharacter.map(\.characterID))
+        let shareIDs = Set(resolvedShares.map(\.characterID))
         let providedIDs = Set(characters.map(\.id))
         guard shareIDs.isSubset(of: providedIDs) else {
             throw RunAwardApplicatorError.characterSetMismatch
@@ -176,18 +221,29 @@ public enum RunAwardApplicator {
         let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let noteForStorage = (trimmedNote?.isEmpty == false) ? trimmedNote : nil
 
-        for share in preview.perCharacter {
+        let trimmedHeat = heatNote?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let heatForStorage = (trimmedHeat?.isEmpty == false) ? trimmedHeat : nil
+
+        for share in resolvedShares {
             guard var character = byID[share.characterID] else {
                 throw RunAwardApplicatorError.characterSetMismatch
             }
             character.nuyen += share.nuyen
             character.karmaAvailable += share.karma
             character.karmaTotal += share.karma
+            character.applyReputationDeltas(
+                streetCred: share.streetCredDelta,
+                notoriety: share.notorietyDelta,
+                publicAwareness: share.publicAwarenessDelta
+            )
 
             let summary = ledgerSummary(
                 runTitle: run.title,
                 nuyen: share.nuyen,
-                karma: share.karma
+                karma: share.karma,
+                streetCred: share.streetCredDelta,
+                notoriety: share.notorietyDelta,
+                publicAwareness: share.publicAwarenessDelta
             )
             character.appendAdvancementLedger(
                 AdvancementLedgerEntry(
@@ -196,7 +252,10 @@ public enum RunAwardApplicator {
                     summary: summary,
                     karmaSpent: -share.karma, // negative = gained
                     nuyenDelta: share.nuyen,
-                    relatedRunID: run.id
+                    relatedRunID: run.id,
+                    streetCredDelta: share.streetCredDelta,
+                    notorietyDelta: share.notorietyDelta,
+                    publicAwarenessDelta: share.publicAwarenessDelta
                 )
             )
             character.touch()
@@ -215,21 +274,31 @@ public enum RunAwardApplicator {
 
         if appendSessionLog {
             let totalLine = formatTotals(nuyen: preview.totalNuyen, karma: preview.totalKarma)
-            var logText = "Awards applied — \(totalLine) split among \(preview.perCharacter.count) runner(s)."
+            var logText = "Awards applied — \(totalLine) split among \(resolvedShares.count) runner(s)."
+            if resolvedShares.contains(where: \.hasReputationDelta) {
+                logText += " Reputation adjusted."
+            }
             if let noteForStorage {
                 logText += " Note: \(noteForStorage)"
             }
             run.sessionLog.append(
                 RunLogEntry(createdAt: date, kind: .note, text: logText)
             )
+
+            if let heatForStorage {
+                run.sessionLog.append(
+                    RunLogEntry(createdAt: date, kind: .heat, text: heatForStorage)
+                )
+            }
         }
 
         run.touch()
 
         return ApplyResult(
-            applied: preview.perCharacter,
+            applied: resolvedShares,
             skipped: preview.skipped,
-            appliedAt: date
+            appliedAt: date,
+            heatNote: heatForStorage
         )
     }
 
@@ -317,15 +386,63 @@ public enum RunAwardApplicator {
         }
     }
 
-    private static func ledgerSummary(runTitle: String, nuyen: Int, karma: Int) -> String {
+    /// Custom shares must cover the same character IDs as the equal-split preview (order free).
+    /// Nuyen/karma may match preview or be overridden; reputation is free-form.
+    private static func validateCustomShares(
+        _ shares: [AwardShare],
+        against expected: [AwardShare]
+    ) throws -> [AwardShare] {
+        let expectedIDs = Set(expected.map(\.characterID))
+        let shareIDs = Set(shares.map(\.characterID))
+        guard shareIDs == expectedIDs, shares.count == expected.count else {
+            throw RunAwardApplicatorError.shareSetMismatch
+        }
+        // Preserve run-list order from expected, merge in edited fields by ID.
+        let byID = Dictionary(uniqueKeysWithValues: shares.map { ($0.characterID, $0) })
+        return expected.map { base in
+            guard let edited = byID[base.characterID] else { return base }
+            return AwardShare(
+                characterID: base.characterID,
+                name: edited.name.isEmpty ? base.name : edited.name,
+                nuyen: edited.nuyen,
+                karma: edited.karma,
+                streetCredDelta: edited.streetCredDelta,
+                notorietyDelta: edited.notorietyDelta,
+                publicAwarenessDelta: edited.publicAwarenessDelta
+            )
+        }
+    }
+
+    private static func ledgerSummary(
+        runTitle: String,
+        nuyen: Int,
+        karma: Int,
+        streetCred: Int,
+        notoriety: Int,
+        publicAwareness: Int
+    ) -> String {
         let title = runTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let label = title.isEmpty ? "Run" : title
-        return "\(label) — \(formatTotals(nuyen: nuyen, karma: karma))"
+        var parts = [formatTotals(nuyen: nuyen, karma: karma)]
+        if streetCred != 0 {
+            parts.append(formatSigned(streetCred, suffix: " SC"))
+        }
+        if notoriety != 0 {
+            parts.append(formatSigned(notoriety, suffix: " Not"))
+        }
+        if publicAwareness != 0 {
+            parts.append(formatSigned(publicAwareness, suffix: " PA"))
+        }
+        return "\(label) — \(parts.joined(separator: ", "))"
     }
 
     private static func formatTotals(nuyen: Int, karma: Int) -> String {
         let nuyenPart = "¥\(nuyen.formatted())"
         let karmaPart = "\(karma) karma"
         return "\(nuyenPart) + \(karmaPart)"
+    }
+
+    private static func formatSigned(_ value: Int, suffix: String) -> String {
+        value >= 0 ? "+\(value)\(suffix)" : "\(value)\(suffix)"
     }
 }
