@@ -11,7 +11,7 @@ struct NewRunFromTemplateSheet: View {
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
 
     /// Pre-select this campaign (e.g. opened from campaign detail).
-    var preferredCampaignID: UUID? = nil
+    var preferredCampaignID: UUID?
     var onCancel: () -> Void
     /// Called with the new run id after save.
     var onCreated: (UUID) -> Void

@@ -267,7 +267,7 @@ public struct CharacterReputation: Codable, Sendable, Hashable {
     public var notoriety: Int
     public var publicAwareness: Int
 
-    public static let zero = CharacterReputation(streetCred: 0, notoriety: 0, publicAwareness: 0)
+    public static let zero = Self(streetCred: 0, notoriety: 0, publicAwareness: 0)
 
     public init(streetCred: Int = 0, notoriety: Int = 0, publicAwareness: Int = 0) {
         self.streetCred = streetCred

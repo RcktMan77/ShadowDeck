@@ -849,7 +849,9 @@ enum CampaignHouseRuleHintsCodec {
         let parts = trimmed.components(separatedBy: freeTextSeparator)
         let catalog = Set(CampaignHouseRuleHintCatalog.allLabels)
         let head = parts[0]
-        var free = parts.dropFirst().joined(separator: freeTextSeparator)
+        var free = parts
+            .dropFirst()
+            .joined(separator: freeTextSeparator)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Split head on " · " into catalog hits vs leftover free text.

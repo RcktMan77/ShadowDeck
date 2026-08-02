@@ -73,8 +73,8 @@ struct AppChromeButton: View {
         style: Style = .regular,
         isEnabled: Bool = true,
         action: @escaping () -> Void
-    ) -> AppChromeButton {
-        AppChromeButton(
+    ) -> Self {
+        Self(
             kind: .icon(systemImage: systemImage),
             help: help,
             style: style,
@@ -91,8 +91,8 @@ struct AppChromeButton: View {
         keyEquivalent: String = "",
         keyModifiers: NSEvent.ModifierFlags = [],
         action: @escaping () -> Void
-    ) -> AppChromeButton {
-        AppChromeButton(
+    ) -> Self {
+        Self(
             kind: .title(title),
             help: help ?? title,
             style: style,
@@ -112,8 +112,8 @@ struct AppChromeButton: View {
         keyEquivalent: String = "",
         keyModifiers: NSEvent.ModifierFlags = [],
         action: @escaping () -> Void
-    ) -> AppChromeButton {
-        AppChromeButton(
+    ) -> Self {
+        Self(
             kind: .labeled(title: title, systemImage: systemImage),
             help: help ?? title,
             style: style,
@@ -158,7 +158,7 @@ struct AppChromeButton: View {
 struct IconToolbarButton: View {
     let title: String
     let systemImage: String
-    var role: ButtonRole? = nil
+    var role: ButtonRole?
     var action: () -> Void
 
     var body: some View {
@@ -224,7 +224,7 @@ private struct ChromeNSButton: NSViewRepresentable {
             button.image = nil
             button.imagePosition = .noImage
 
-        case .labeled(let title, let systemImage):
+        case let .labeled(title, systemImage):
             button.title = title
             button.image = NSImage(systemSymbolName: systemImage, accessibilityDescription: title)?
                 .withSymbolConfiguration(symbolConfig)

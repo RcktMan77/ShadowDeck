@@ -31,11 +31,11 @@ public enum PlayerBriefingMarkdown {
             self.teamNames = teamNames
         }
 
-        public static let `default` = Options()
+        public static let `default` = Self()
 
         /// Defaults that match UI: progress off for planning/active, on for terminal runs.
-        public static func defaults(for status: RunStatus, teamNames: [String] = []) -> Options {
-            Options(
+        public static func defaults(for status: RunStatus, teamNames: [String] = []) -> Self {
+            Self(
                 includeSecondaryObjectives: true,
                 hideFailedObjectives: true,
                 showObjectiveProgress: status.isTerminal,
