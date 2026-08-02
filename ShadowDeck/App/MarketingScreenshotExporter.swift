@@ -44,6 +44,10 @@ enum MarketingScreenshotExporter {
         /// Skills tab + dice inspector after a skill roll (Edge options visible).
         case diceRoller
         case runLibrary
+        /// Dedicated Rules Reference window — mechanical cards + calculators.
+        case rulesReference
+        /// Rules Reference → Library mode (sample PDF shelf gallery).
+        case pdfLibrary
         /// Storyboard: open/update sample run detail (userInfo step 0…n).
         case runGif
         /// Storyboard: Advance tab plan → apply (userInfo step 0…n).
@@ -106,7 +110,16 @@ enum MarketingScreenshotExporter {
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         await captureStill(named: "05-dice-roller", to: dir)
 
-        // —— GIFs ——
+        // —— Rules Reference window (separate scene; sample PDF shelf only) ——
+        post(.rulesReference)
+        try? await Task.sleep(nanoseconds: 1_600_000_000)
+        await captureStill(named: "06-rules-reference", to: dir, window: .rulesReference)
+
+        post(.pdfLibrary)
+        try? await Task.sleep(nanoseconds: 1_400_000_000)
+        await captureStill(named: "09-pdf-library", to: dir, window: .rulesReference)
+
+        // —— GIFs (main deck) ——
         await captureRunFlowGIF(to: dir)
         await captureAdvanceFlowGIF(to: dir)
 
@@ -266,6 +279,11 @@ enum MarketingScreenshotExporter {
 
     // MARK: - Capture helpers
 
+    private enum SnapshotTarget {
+        case largestVisible
+        case rulesReference
+    }
+
     @MainActor
     private static func post(_ phase: Phase, step: Int? = nil) {
         var info: [AnyHashable: Any] = [:]
@@ -278,11 +296,15 @@ enum MarketingScreenshotExporter {
     }
 
     @MainActor
-    private static func captureStill(named name: String, to directory: URL) async {
+    private static func captureStill(
+        named name: String,
+        to directory: URL,
+        window target: SnapshotTarget = .largestVisible
+    ) async {
         try? await Task.sleep(nanoseconds: 200_000_000)
         NSApp.windows.forEach { $0.layoutIfNeeded() }
 
-        guard let image = await snapshotLargestWindow() else {
+        guard let image = await snapshotWindow(target: target) else {
             fputs("  ✗ \(name): no window snapshot\n", stderr)
             return
         }
@@ -317,14 +339,27 @@ enum MarketingScreenshotExporter {
     }
 
     @MainActor
-    private static func snapshotLargestWindow() async -> NSImage? {
-        let candidates = NSApp.windows.filter { window in
-            window.isVisible
-                && !window.isMiniaturized
-                && window.frame.width >= 600
-                && window.frame.height >= 400
-                && window.contentView != nil
+    private static func snapshotWindow(target: SnapshotTarget) async -> NSImage? {
+        let candidates: [NSWindow]
+        switch target {
+        case .largestVisible:
+            candidates = NSApp.windows.filter { window in
+                window.isVisible
+                    && !window.isMiniaturized
+                    && window.frame.width >= 600
+                    && window.frame.height >= 400
+                    && window.contentView != nil
+                    && !isRulesReferenceWindow(window)
+            }
+        case .rulesReference:
+            candidates = NSApp.windows.filter { window in
+                window.isVisible
+                    && !window.isMiniaturized
+                    && window.contentView != nil
+                    && isRulesReferenceWindow(window)
+            }
         }
+
         guard let window = candidates.max(by: {
             ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height)
         }), let view = window.contentView else {
@@ -338,6 +373,17 @@ enum MarketingScreenshotExporter {
         let bounds = view.bounds
         guard bounds.width > 1, bounds.height > 1 else { return nil }
         return snapshotViaLayer(view: view, window: window)
+    }
+
+    private static func isRulesReferenceWindow(_ window: NSWindow) -> Bool {
+        if window.identifier?.rawValue == RulesReferenceOpener.windowID { return true }
+        if window.title == "Rules Reference" { return true }
+        return false
+    }
+
+    @MainActor
+    private static func snapshotLargestWindow() async -> NSImage? {
+        await snapshotWindow(target: .largestVisible)
     }
 
     @MainActor
