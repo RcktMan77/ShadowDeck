@@ -109,20 +109,18 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
     </td>
   </tr>
   <tr>
-    <td width="25%" align="center" valign="top">
+    <td colspan="2" align="center" valign="top">
       <a href="Screenshots/06-rules-reference.jpg">
         <img src="Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="210" />
       </a><br />
       <sub><strong>Rules Reference</strong></sub>
     </td>
-    <td width="25%" align="center" valign="top">
+    <td colspan="2" align="center" valign="top">
       <a href="Screenshots/09-pdf-library.jpg">
         <img src="Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="210" />
       </a><br />
       <sub><strong>PDF Library</strong></sub>
     </td>
-    <td width="25%"></td>
-    <td width="25%"></td>
   </tr>
 </table>
 
@@ -276,10 +274,6 @@ A dedicated window (⌘R) with two modes — mechanical cards for the table, and
 
 - **macOS 14.0** or later
 - Development: **Xcode 16+**
-
-#### First launch
-
-A short branded splash appears (skip with click or any key). Flavor “loading” quips do not block use — the app is ready immediately.
 
     </td>
   </tr>
