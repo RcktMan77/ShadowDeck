@@ -106,6 +106,14 @@ struct ContentView: View {
                 campaignCount: libraryEnvironment.campaignCount,
                 runCount: libraryEnvironment.runCount,
                 onNewCampaign: { requestNewCampaign() },
+                onNewCharacter: {
+                    selectedCharacterID = nil
+                    selection = .newCharacter
+                },
+                onImportCharacter: {
+                    selectedCharacterID = nil
+                    selection = .importCharacter
+                },
                 onNewRun: { requestNewRun() },
                 onNewRunFromTemplate: { showNewRunFromTemplate = true }
             )
