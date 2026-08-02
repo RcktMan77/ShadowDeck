@@ -168,14 +168,14 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
 
 ### Character library & play sheet
 
-<!-- GitHub borders every table cell; float the shot and keep only the copy in a bordered table. -->
-<a href="Docs/Screenshots/04-character-sheet.jpg">
-  <img src="Docs/Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet" width="360" align="left" hspace="16" vspace="4" />
-</a>
-
 <table>
   <tr>
-    <td>
+    <td width="42%" valign="top">
+      <a href="Docs/Screenshots/04-character-sheet.jpg">
+        <img src="Docs/Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet" width="360" />
+      </a>
+    </td>
+    <td width="58%" valign="top">
 
 - Local library with **search**, **list** and **gallery** views
 - Interactive **Summary**: portrait, attributes (base + gear/aug bonuses), condition, karma, nuyen, initiative, armor, pools
@@ -187,44 +187,48 @@ Chummer remains excellent for deep builds and data. **ShadowDeck is for running 
   </tr>
 </table>
 
-<br clear="all" />
-
 ### Runs / mission tracker
-
-<a href="Docs/Screenshots/07-run-mission-flow.gif">
-  <img src="Docs/Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow" width="360" align="right" hspace="16" vspace="4" />
-</a>
 
 <table>
   <tr>
-    <td>
+    <td width="58%" valign="top">
 
 - **Run Library** — filter by status, character, and **ruleset**
 - Briefing: client, location, tags, objectives, opposition, complications
 - **Team** limited to library characters that match the run’s ruleset
 - Session log, payout &amp; heat, outcome notes, suggested equal-split awards
 - **Apply Awards…** — explicit commit of nuyen + karma to linked runners (never automatic)
-- Expand the tour poster above to play the full silent GIF flow
 
+    </td>
+    <td width="42%" valign="top" align="center">
+      <a href="Docs/Screenshots/07-run-mission-flow.gif">
+        <img src="Docs/Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow" width="360" />
+      </a><br />
+      <sub>Expand the tour poster above to play the full flow</sub>
     </td>
   </tr>
 </table>
-
-<br clear="all" />
 
 ### Rules Reference & PDF library
 
 A dedicated window (⌘R) with two modes — mechanical cards for the table, and your own PDF shelf for books you own.
 
-<!-- Image-only pair: keep out of a layout table so GitHub does not draw cell borders around the shots. -->
-<p align="center">
-  <a href="Docs/Screenshots/06-rules-reference.jpg"><img src="Docs/Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="420" /></a>
-  &nbsp;&nbsp;
-  <a href="Docs/Screenshots/09-pdf-library.jpg"><img src="Docs/Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="420" /></a>
-</p>
-<p align="center">
-  <sub><strong>Reference</strong> — cards, formulas, calculators &nbsp;·&nbsp; <strong>Library</strong> — personal PDF shelf (samples in marketing shots; yours stay local)</sub>
-</p>
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <a href="Docs/Screenshots/06-rules-reference.jpg">
+        <img src="Docs/Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="420" />
+      </a><br />
+      <sub><strong>Reference</strong> — searchable cards, formulas, edition notes, calculators</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <a href="Docs/Screenshots/09-pdf-library.jpg">
+        <img src="Docs/Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="420" />
+      </a><br />
+      <sub><strong>Library</strong> — personal PDF shelf (sample books in marketing shots; yours stay local)</sub>
+    </td>
+  </tr>
+</table>
 
 | Mode | What you get |
 |------|----------------|
