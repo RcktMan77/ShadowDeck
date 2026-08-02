@@ -34,8 +34,8 @@ public struct DiceRollOptions: Sendable, Hashable {
         self.maxExplosions = max(0, maxExplosions)
     }
 
-    public static let standard = DiceRollOptions(ruleOfSix: false)
-    public static let pushTheLimit = DiceRollOptions(ruleOfSix: true)
+    public static let standard = Self(ruleOfSix: false)
+    public static let pushTheLimit = Self(ruleOfSix: true)
 }
 
 public struct DiceResult: Sendable, Hashable, Identifiable {

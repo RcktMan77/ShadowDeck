@@ -50,7 +50,7 @@ enum CharacterSheetTab: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// Tabs shown for a given awakened path (Magic is always available for notes/spells import).
-    static func tabs(for path: AwakenedPath) -> [CharacterSheetTab] {
+    static func tabs(for path: AwakenedPath) -> [Self] {
         // Keep Magic tab for all so imported spells/powers remain reachable after path edits.
         allCases
     }

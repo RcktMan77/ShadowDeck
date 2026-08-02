@@ -25,7 +25,7 @@ final class CharacterEffectsTests: XCTestCase {
                 category: .armor,
                 equipped: true,
                 armorRating: 6
-            ),
+            )
         ]
         let effects = CharacterEffectsEngine.resolve(c)
         XCTAssertEqual(effects.armorBonus, 12)
@@ -43,7 +43,7 @@ final class CharacterEffectsTests: XCTestCase {
                 category: .other,
                 equipped: false,
                 modifiers: [StatModifier(target: .agility, amount: 2)]
-            ),
+            )
         ]
         XCTAssertEqual(c.effectiveAttributes.agility, 4)
         c.gear[0].equipped = true
@@ -63,9 +63,9 @@ final class CharacterEffectsTests: XCTestCase {
                 essenceCost: 2,
                 modifiers: [
                     StatModifier(target: .strength, amount: 1, usesRating: true),
-                    StatModifier(target: .agility, amount: 1, usesRating: true),
+                    StatModifier(target: .agility, amount: 1, usesRating: true)
                 ]
-            ),
+            )
         ]
         let eff = c.effectiveAttributes
         XCTAssertEqual(eff.strength, 5) // 3 + 2
@@ -86,9 +86,9 @@ final class CharacterEffectsTests: XCTestCase {
                 essenceCost: 3,
                 modifiers: [
                     StatModifier(target: .reaction, amount: 1, usesRating: true),
-                    StatModifier(target: .initiativeDice, amount: 1, usesRating: true),
+                    StatModifier(target: .initiativeDice, amount: 1, usesRating: true)
                 ]
-            ),
+            )
         ]
         let derived = RulesRegistry.rules(for: .sr5).deriveStats(for: c)
         // Base REA 4 +2 = 6; INT 5 → init base 11; dice 1+2 = 3
@@ -101,7 +101,7 @@ final class CharacterEffectsTests: XCTestCase {
         var c = SampleCharacters.sr5CombatMage()
         c.attributes.agility = 5
         c.skills = [
-            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4),
+            SkillRating(catalogKey: "pistols", displayName: "Pistols", category: .active, rating: 4)
         ]
         c.qualities = [
             QualityInstance(
@@ -110,7 +110,7 @@ final class CharacterEffectsTests: XCTestCase {
                 kind: .positive,
                 karmaValue: 4,
                 modifiers: [StatModifier(target: .skill, amount: 2, skillKey: "Pistols")]
-            ),
+            )
         ]
         let derived = RulesRegistry.rules(for: .sr5).deriveStats(for: c)
         // AGI 5 + skill 4 + quality 2 = 11
@@ -142,7 +142,7 @@ final class CharacterEffectsTests: XCTestCase {
                 category: .knowledge,
                 rating: 2,
                 knowledgeType: "Professional"
-            ),
+            )
         ]
         let derived = RulesRegistry.rules(for: .sr5).deriveStats(for: c)
         // Street knowledge → INT + rank
@@ -192,7 +192,7 @@ final class CharacterEffectsTests: XCTestCase {
                 equipped: true,
                 armorRating: 10,
                 modifiers: [StatModifier(target: .armor, amount: 2)]
-            ),
+            )
         ]
         c.augmentations = [
             Augmentation(
@@ -201,7 +201,7 @@ final class CharacterEffectsTests: XCTestCase {
                 kind: .cyberware,
                 essenceCost: 0.5,
                 modifiers: [StatModifier(target: .body, amount: 1)]
-            ),
+            )
         ]
         let effects = c.effects
         XCTAssertEqual(effects.armorBonus, 12) // 10 + 2

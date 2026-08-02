@@ -9,7 +9,6 @@ import XCTest
 @testable import ShadowDeck
 
 final class ContactModelTests: XCTestCase {
-
     // MARK: - Codable
 
     func testLegacyContactJSONDecodesWithDefaults() throws {

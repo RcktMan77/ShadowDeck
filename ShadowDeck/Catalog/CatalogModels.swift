@@ -127,7 +127,7 @@ public enum CatalogSearch {
         if raw.isEmpty { return entries }
 
         let tokens = raw.lowercased()
-            .split(whereSeparator: { $0.isWhitespace || $0 == "," })
+            .split { $0.isWhitespace || $0 == "," }
             .map(String.init)
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty else { return entries }

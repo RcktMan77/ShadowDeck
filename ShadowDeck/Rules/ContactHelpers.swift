@@ -43,7 +43,7 @@ public enum ContactHelpers {
         "Informant",
         "Smuggler",
         "Talismonger",
-        "Rigger Shop",
+        "Rigger Shop"
     ]
 
     /// Locked rules (v1):

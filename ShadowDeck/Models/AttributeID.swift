@@ -58,12 +58,12 @@ public enum AttributeID: String, Codable, Sendable, CaseIterable, Identifiable, 
     }
 
     /// Attributes purchased with normal attribute points at generation (not special/adjustment).
-    public static var standardGenerationAttributes: [AttributeID] {
+    public static var standardGenerationAttributes: [Self] {
         [.body, .agility, .reaction, .strength, .willpower, .logic, .intuition, .charisma]
     }
 
     /// Special attributes that may receive metatype adjustment / special points.
-    public static var specialPointAttributes: [AttributeID] {
+    public static var specialPointAttributes: [Self] {
         [.edge, .magic, .resonance]
     }
 }

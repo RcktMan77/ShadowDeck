@@ -10,6 +10,7 @@ if ! command -v swiftlint >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "Running SwiftLint (config: .swiftlint.yml)…"
-# Baseline rules only — see .swiftlint.yml. Pass --strict to fail on warnings.
+echo "Running SwiftLint (comprehensive config: .swiftlint.yml)…"
+# Defaults + recommended opt-ins. Errors fail the run; warnings are informational.
+# Pass --strict to fail on warnings as well.
 swiftlint lint --config .swiftlint.yml "$@"

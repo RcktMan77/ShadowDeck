@@ -5,8 +5,8 @@ Not a full audit — only intentional patterns and known hotspots.
 
 ## Current language mode
 
-- Project uses **Swift 5** with **upcoming StrictConcurrency** enabled in the Debug build settings.
-- Full Swift 6 mode is **not** enabled yet.
+- Project uses **Swift 6** language mode (`SWIFT_VERSION = 6.0`) with **complete** strict concurrency on the app target.
+- Prefer fixing isolation issues over `@preconcurrency` / `nonisolated(unsafe)` unless documented below.
 
 ## Patterns we keep
 
@@ -44,8 +44,9 @@ Keep `DispatchQueue.main.asyncAfter` / `DispatchWorkItem` when **cancellation** 
 
 ## Import / large work
 
-- Chummer import runs on `@MainActor` today — large `.chum5` files can stall the UI.
-- Future improvement: parse off-main, then hop to main for library save + UI.
+- `CharacterLibrary.importAndSave(from:)` is `async`: **parse/map off the main actor** via `Task.detached`, then save on `@MainActor` (SwiftData).
+- UI call sites (`ImportView`, library drop, package open) `await` the import so Progress UI can stay responsive.
+- Pure `CharacterImporter.importFile` / JSON / XML parse APIs remain synchronous and nonisolated for tests.
 
 ## Checklist for new code
 
