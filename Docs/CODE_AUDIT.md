@@ -1,10 +1,10 @@
 # ShadowDeck Codebase Health Audit
 
-**Date:** 2026-08-01 (cleanup pass completed same day)  
-**Branch audited:** `develop` after Rules Reference merge + audit PRs 1–12  
+**Date:** 2026-08-02 (post Phase 2F + SwiftLint zero-warning pass)  
+**Branch audited:** `develop` after Run Tracker Phase 2 (2A–2F) + audit PRs 1–12  
 **Build:** macOS Debug — **succeeded**  
 **Tests:** full scheme — **succeeded** (no failures)  
-**Linters:** none configured (SwiftLint / swift-format not present; not introduced)
+**Linters:** SwiftLint (`.swiftlint.yml` + `Scripts/lint.sh`) — **0 violations**
 
 ---
 
@@ -53,7 +53,7 @@ ShadowDeck is in solid shape for a solo-maintained macOS campaign app: pure doma
 | **P1-3** | `UI/ContentView.swift` (~1176) | Navigation hub + import + marketing hooks + library selection | Same as above for shell | Extract marketing handlers, package open, library list into helpers/views | M |
 | **P1-4** | `Catalog/ChummerCatalogLoader.swift` + `CatalogStore` | `CatalogStore.shared` reloads full catalog on init (main actor); separate `CatalogLookup` static cache duplicates load path | Double decode risk; startup cost; import vs UI cache divergence | Single source of truth: lazy `CatalogStore` load; `CatalogLookup` delegates to it or shared locked cache filled once | M |
 | **P1-5** | `RulesReferenceController.runLibraryTextSearch` | Parallel `TaskGroup` opens multiple full `PDFDocument`s (SR5 ~1000 pages each) | Peak memory / thrashing on multi-book shelves | Cap concurrency (e.g. 2 books at a time); prefer search open book first; consider cancellable serial for low-memory machines | M |
-| **P1-6** | `UI/Rules/PDFViewerView.swift` | Separate continuous reader + hidden thumbnail driver both load `PDFDocument` | 2× document memory for one open book | Share one document model for thumbs + reader, or lighter thumb generation from cover/cache only | M |
+| **P1-6** | `UI/Rules/PDFViewerView.swift` | Separate continuous reader + hidden thumbnail driver both load `PDFDocument` | 2× document memory for one open book | **Deferred** — previous unify attempt regressed reader UX; leave dual loads alone until a safer design | L |
 | **P1-7** | `RulesReferenceController.results` | Computed property re-runs `store.search` on every observer fire / body access | Extra CPU on typing/filtering | Cache results; invalidate on query/category/edition change only | S |
 | **P1-8** | Observation models mixed | `@Observable` env for library; `ObservableObject` for Rules session, Catalog, Dice, PDFSearchBridge | Inconsistent lifecycle; `@ObservedObject var x = Singleton.shared.controller` is fragile | Standardize: app services as `@Observable` or single `ObservableObject` session owned by `@StateObject` | L |
 | **P1-9** | `RulesReferenceWindowRoot` | `@ObservedObject private var controller = RulesReferenceSession.shared.controller` | Does not own the object; may miss updates if observation graph is wrong | `@StateObject`/`@ObservedObject` on `RulesReferenceSession.shared` or inject controller from environment | S |
@@ -179,7 +179,7 @@ Patterns already successful in Lifestyle / Advancement / Dice / Runs / Awards:
 | `xcodebuild … build` (macOS) | **Succeeded** |
 | `xcodebuild … test` | **Succeeded** |
 | Compiler warnings (app code) | None significant (only AppIntents metadata noise) |
-| SwiftLint / swift-format | **Optional** — `.swiftlint.yml` + `Scripts/lint.sh` (install via Homebrew) |
+| SwiftLint | **Clean** — `Scripts/lint.sh` reports 0 violations (2026-08-02) |
 | Dead code auto-removal | **Not run** (no tool); inventory is manual |
 
 ---
