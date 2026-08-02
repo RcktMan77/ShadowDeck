@@ -25,12 +25,24 @@ struct AddRunContactSheet: View {
     @State private var nextRole: RunContactRole = .johnson
     @State private var selectedCharacterID: UUID?
     @State private var contacts: [Contact] = []
+    /// Live filter on the loaded character’s contact list (name + contact-sheet role).
+    @State private var contactSearch: String = ""
     /// Staged links (may come from several characters / roles).
     @State private var staged: [RunContactLink] = []
     @State private var errorMessage: String?
 
     private var selectedCharacterTitle: String {
         characterSummaries.first { $0.id == selectedCharacterID }?.displayTitle ?? "Character"
+    }
+
+    /// Contacts matching the live search term (empty query → full list).
+    private var filteredContacts: [Contact] {
+        let query = contactSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return contacts }
+        return contacts.filter { contact in
+            contact.name.localizedCaseInsensitiveContains(query)
+                || contact.role.localizedCaseInsensitiveContains(query)
+        }
     }
 
     var body: some View {
@@ -88,6 +100,7 @@ struct AddRunContactSheet: View {
                 }
             }
             .onChange(of: selectedCharacterID) { _, newID in
+                contactSearch = ""
                 loadContacts(for: newID)
             }
         } footer: {
@@ -131,17 +144,50 @@ struct AddRunContactSheet: View {
                 }
             } else {
                 Section {
-                    ForEach(contacts) { contact in
-                        contactToggleRow(contact)
+                    TextField("Search contacts", text: $contactSearch, prompt: Text("Name or contact role…"))
+                        .textFieldStyle(.roundedBorder)
+                        #if os(macOS)
+                        .onSubmit {} // live filter; Enter does not commit the sheet
+                        #endif
+                        .help("Narrow the list by name or contact-sheet role")
+
+                    if filteredContacts.isEmpty {
+                        Text(emptyFilterMessage)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 4)
+                    } else {
+                        ForEach(filteredContacts) { contact in
+                            contactToggleRow(contact)
+                        }
                     }
                 } header: {
-                    Text("Contacts — \(selectedCharacterTitle)")
+                    Text(contactsHeaderTitle)
                 } footer: {
                     Text("Check to stage with “\(nextRole.displayName)”. Uncheck to remove from the list below. Free-text under a name is their contact-sheet role, not the run role.")
                         .font(.caption)
                 }
             }
         }
+    }
+
+    private var contactsHeaderTitle: String {
+        let total = contacts.count
+        let shown = filteredContacts.count
+        let query = contactSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        if query.isEmpty {
+            return "Contacts — \(selectedCharacterTitle) (\(total))"
+        }
+        return "Contacts — \(selectedCharacterTitle) (\(shown) of \(total))"
+    }
+
+    private var emptyFilterMessage: String {
+        let q = contactSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        if q.isEmpty {
+            return "No contacts."
+        }
+        return "No contacts match “\(q)”."
     }
 
     private func contactToggleRow(_ contact: Contact) -> some View {
