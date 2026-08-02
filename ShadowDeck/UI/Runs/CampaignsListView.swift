@@ -530,7 +530,7 @@ struct CampaignDetailView: View {
     }
 
     private var stickyToolbar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Button {
                 commitIdentity(forceNotes: true)
                 onBack()
@@ -541,17 +541,44 @@ struct CampaignDetailView: View {
             Text(nameDraft.isEmpty ? "Untitled Campaign" : nameDraft)
                 .font(.headline)
                 .lineLimit(1)
+                .truncationMode(.middle)
                 .foregroundStyle(.secondary)
+                .layoutPriority(1)
+                .help(nameDraft.isEmpty ? "Untitled Campaign" : nameDraft)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             if let campaign {
-                if campaign.isArchived {
-                    Button("Unarchive") { setArchived(false) }
-                } else {
-                    Button("Archive") { setArchived(true) }
+                // Look up is useful for house rules / table defaults on the campaign card
+                // (less mission-specific than the run toolbar’s awards/heat focus).
+                IconToolbarButton(
+                    title: "Look up — Rules Reference for house rules and table topics",
+                    systemImage: "book.pages"
+                ) {
+                    RulesReferenceOpener.request(query: "house rules")
                 }
-                Button("Delete", systemImage: "trash", role: .destructive) {
+
+                if campaign.isArchived {
+                    IconToolbarButton(
+                        title: "Unarchive this campaign",
+                        systemImage: "tray.and.arrow.up"
+                    ) {
+                        setArchived(false)
+                    }
+                } else {
+                    IconToolbarButton(
+                        title: "Archive this campaign (hides from default list)",
+                        systemImage: "archivebox"
+                    ) {
+                        setArchived(true)
+                    }
+                }
+
+                IconToolbarButton(
+                    title: "Delete this campaign (runs become Unassigned)",
+                    systemImage: "trash",
+                    role: .destructive
+                ) {
                     confirmDelete = true
                 }
             }
