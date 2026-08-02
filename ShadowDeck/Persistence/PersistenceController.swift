@@ -19,7 +19,8 @@ import SwiftData
 public enum PersistenceController {
     public static let schema = Schema([
         CharacterRecord.self,
-        RunRecord.self
+        RunRecord.self,
+        CampaignRecord.self
     ])
 
     public static func makeContainer(
@@ -60,5 +61,9 @@ public enum PersistenceController {
 
     public static func makeRunLibrary(container: ModelContainer) -> RunLibrary {
         RunLibrary(modelContext: container.mainContext)
+    }
+
+    public static func makeCampaignLibrary(container: ModelContainer) -> CampaignLibrary {
+        CampaignLibrary(modelContext: container.mainContext)
     }
 }
