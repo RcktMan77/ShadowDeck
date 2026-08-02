@@ -652,12 +652,8 @@ extension RunDetailView {
 
     var pendingAwardsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Suggested awards")
-                    .font(.subheadline.weight(.semibold))
-                Spacer(minLength: 8)
-                applyAwardsButton
-            }
+            Text("Suggested awards")
+                .font(.subheadline.weight(.semibold))
             Text("Suggestions only — does not change character karma, nuyen, or reputation until you apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -690,6 +686,13 @@ extension RunDetailView {
             teamReputationSnapshot
 
             applyAwardsHints
+
+            // Bottom of section, trailing — after awards list and reputation context.
+            HStack {
+                Spacer(minLength: 0)
+                applyAwardsButton
+            }
+            .padding(.top, 4)
         }
     }
 
