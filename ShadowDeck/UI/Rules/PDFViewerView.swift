@@ -201,7 +201,6 @@ final class SharedPDFDocumentSession: ObservableObject {
 
 // MARK: - Workspace
 
-/// Continuous reader + thumbnail strip sharing **one** `PDFView` (and one document).
 struct PDFReaderWorkspace: View {
     let url: URL
     @Binding var page: Int
@@ -234,24 +233,144 @@ struct PDFReaderWorkspace: View {
 
     var body: some View {
         GeometryReader { geo in
-            // GeometryReader proposes a size; the representable must explicitly fill it
-            // or the NSView host can stay at 0×0 (blank reader + empty thumbs).
             let thumbW = min(thumbnailWidth, max(100, geo.size.width * 0.18))
-            PDFCanvasView(
-                session: session,
-                page: $page,
-                zoomPreset: $zoomPreset,
-                navigationEpoch: navigationEpoch,
-                thumbnailWidth: thumbW,
-                searchBridge: searchBridge,
-                onPageChange: onPageChange
-            )
-            .frame(width: geo.size.width, height: geo.size.height)
+
+            HStack(spacing: 0) {
+                PDFThumbnailPane(session: session, page: $page)
+                    .frame(width: thumbW)
+                    .frame(maxHeight: .infinity)
+
+                Divider()
+
+                PDFCanvasView(
+                    session: session,
+                    page: $page,
+                    zoomPreset: $zoomPreset,
+                    navigationEpoch: navigationEpoch,
+                    searchBridge: searchBridge,
+                    onPageChange: onPageChange
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .frame(minWidth: 400, minHeight: 280)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .layoutPriority(1)
         .id(url) // remount session when the open book changes
+    }
+}
+
+// MARK: - Thumbnails (hidden driver PDFView; shared document)
+
+private struct PDFThumbnailPane: NSViewRepresentable {
+    @ObservedObject var session: SharedPDFDocumentSession
+    @Binding var page: Int
+
+    func makeCoordinator() -> Coord { Coord(page: $page) }
+
+    func makeNSView(context: Context) -> NSView {
+        let box = NSView()
+        let driver = PDFView()
+        driver.isHidden = true
+        driver.displayMode = .singlePage
+        driver.autoScales = true
+
+        let thumbs = PDFThumbnailView()
+        thumbs.thumbnailSize = NSSize(width: 88, height: 114)
+        thumbs.backgroundColor = NSColor.controlBackgroundColor
+        thumbs.pdfView = driver
+        thumbs.translatesAutoresizingMaskIntoConstraints = false
+
+        box.addSubview(driver)
+        box.addSubview(thumbs)
+        NSLayoutConstraint.activate([
+            thumbs.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+            thumbs.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+            thumbs.topAnchor.constraint(equalTo: box.topAnchor),
+            thumbs.bottomAnchor.constraint(equalTo: box.bottomAnchor)
+        ])
+
+        context.coordinator.driver = driver
+        context.coordinator.observe(driver)
+        context.coordinator.attach(session: session)
+        context.coordinator.syncFromBinding()
+        return box
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.page = $page
+        context.coordinator.attach(session: session)
+        context.coordinator.syncFromBinding()
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coord) {
+        coordinator.teardown()
+    }
+
+    @MainActor
+    final class Coord: NSObject {
+        var page: Binding<Int>
+        weak var driver: PDFView?
+        private var attachedURL: URL?
+        private var suppress = 0
+
+        init(page: Binding<Int>) { self.page = page }
+
+        func observe(_ driver: PDFView) {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(changed),
+                name: .PDFViewPageChanged,
+                object: driver
+            )
+        }
+
+        func teardown() {
+            // Observer removal only in deinit (SwiftLint notification_center_detachment).
+        }
+        deinit { NotificationCenter.default.removeObserver(self) }
+
+        func attach(session: SharedPDFDocumentSession) {
+            guard attachedURL != session.url else { return }
+            // Suppress: assigning document always jumps to PDF page 1 and would
+            // publish back through the shared page binding.
+            suppress += 1
+            driver?.document = session.document
+            attachedURL = session.url
+            syncFromBinding()
+            afterViewUpdate { [weak self] in
+                self?.suppress = max(0, (self?.suppress ?? 1) - 1)
+            }
+        }
+
+        func syncFromBinding() {
+            guard let driver, let doc = driver.document, doc.pageCount > 0 else { return }
+            let idx = max(0, min(doc.pageCount - 1, page.wrappedValue - 1))
+            guard let p = doc.page(at: idx) else { return }
+            let cur = driver.currentPage.flatMap { doc.index(for: $0) } ?? -1
+            guard cur != idx else { return }
+            suppress += 1
+            driver.go(to: p)
+            afterViewUpdate { [weak self] in
+                self?.suppress = max(0, (self?.suppress ?? 1) - 1)
+            }
+        }
+
+        @objc private func changed() {
+            guard suppress == 0,
+                  let driver, let doc = driver.document, let cur = driver.currentPage
+            else { return }
+            let one = doc.index(for: cur) + 1
+            guard page.wrappedValue != one else { return }
+            // Thumbnail strip is secondary: never push page 1 (document-load default)
+            // over an explicit chip/search jump still in the binding.
+            // Only propagate when the user actually picks a different thumb.
+            afterViewUpdate { [weak self] in
+                guard let self, self.suppress == 0 else { return }
+                if self.page.wrappedValue != one {
+                    self.page.wrappedValue = one
+                }
+            }
+        }
     }
 }
 
@@ -355,25 +474,20 @@ private func afterViewUpdate(_ work: @escaping @MainActor () -> Void) {
 
 // MARK: - Host view
 
-/// One view graph: thumbnail strip + continuous `PDFView`.
-/// `PDFThumbnailView.pdfView` points at the same continuous reader (no second document/view).
+/// Owns the PDFView. Canvas for zoom = `bounds` (window points), never the
+/// magnified NSScrollView contentView bounds (those grow/shrink with scale).
 private final class PDFCanvasHostView: NSView {
     let pdfView: KeyboardPDFView
-    let thumbnailView: PDFThumbnailView
-    private let divider = NSBox()
-    private var thumbnailWidthConstraint: NSLayoutConstraint?
     var onLayoutZoom: (() -> Void)?
 
     private var lastBounds: CGSize = .zero
 
-    init(thumbnailWidth: CGFloat) {
+    init() {
         pdfView = KeyboardPDFView()
-        thumbnailView = PDFThumbnailView()
         super.init(frame: .zero)
         wantsLayer = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
-        // Continuous reader fills remaining width after the thumbnail strip.
         pdfView.autoScales = false
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
@@ -383,66 +497,28 @@ private final class PDFCanvasHostView: NSView {
         pdfView.minScaleFactor = 0.05
         pdfView.maxScaleFactor = 20
         pdfView.translatesAutoresizingMaskIntoConstraints = false
-        pdfView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        pdfView.setContentHuggingPriority(.defaultLow, for: .vertical)
-        pdfView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        pdfView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
 
-        thumbnailView.thumbnailSize = NSSize(width: 88, height: 114)
-        thumbnailView.backgroundColor = NSColor.controlBackgroundColor
-        // Wire after both views exist; re-assert after document load in attach().
-        thumbnailView.pdfView = pdfView
-        thumbnailView.translatesAutoresizingMaskIntoConstraints = false
-        thumbnailView.setContentHuggingPriority(.required, for: .horizontal)
-        thumbnailView.setContentCompressionResistancePriority(.required, for: .horizontal)
-
-        divider.boxType = .separator
-        divider.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(thumbnailView)
-        addSubview(divider)
         addSubview(pdfView)
-
-        let thumbW = thumbnailView.widthAnchor.constraint(equalToConstant: max(100, thumbnailWidth))
-        thumbW.priority = .required
-        thumbnailWidthConstraint = thumbW
         NSLayoutConstraint.activate([
-            thumbnailView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            thumbnailView.topAnchor.constraint(equalTo: topAnchor),
-            thumbnailView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            thumbW,
-
-            divider.leadingAnchor.constraint(equalTo: thumbnailView.trailingAnchor),
-            divider.topAnchor.constraint(equalTo: topAnchor),
-            divider.bottomAnchor.constraint(equalTo: bottomAnchor),
-            divider.widthAnchor.constraint(equalToConstant: 1),
-
-            pdfView.leadingAnchor.constraint(equalTo: divider.trailingAnchor),
+            pdfView.leadingAnchor.constraint(equalTo: leadingAnchor),
             pdfView.trailingAnchor.constraint(equalTo: trailingAnchor),
             pdfView.topAnchor.constraint(equalTo: topAnchor),
             pdfView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
     }
 
-    func setThumbnailWidth(_ width: CGFloat) {
-        thumbnailWidthConstraint?.constant = max(100, width)
-    }
-
-    /// Re-associate thumbs with the continuous reader after document changes.
-    /// PDFKit sometimes needs this to populate the strip when the document is set late.
-    func rebindThumbnailStrip() {
-        thumbnailView.pdfView = nil
-        thumbnailView.pdfView = pdfView
-    }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// Drawable canvas in window points. Independent of PDFKit magnification.
-    /// Prefer the continuous PDFView’s scroll clip (not the whole host including thumbs).
+    /// Prefer the internal scroll view’s bounds (the real clip area); fall back
+    /// to host bounds. Never use contentView.bounds (magnified document space).
     var canvasSize: CGSize {
         if let scroll = findScrollView(pdfView) {
+            // Frame size is in window points and does not grow with magnification.
             var s = scroll.bounds.size
+            // If a scroller is currently shown, the content band is slightly smaller.
+            // Using the full bounds makes Fit Page ~scroller-thickness too small.
             if scroll.hasVerticalScroller, scroll.scrollerStyle == .legacy {
                 s.width -= scroll.verticalScroller?.frame.width ?? 0
             }
@@ -451,13 +527,9 @@ private final class PDFCanvasHostView: NSView {
             }
             if s.width >= 40, s.height >= 40 { return s }
         }
-        let b = pdfView.bounds.size
+        let b = bounds.size
         if b.width >= 40, b.height >= 40 { return b }
-        // Fall back to host width minus thumbnail strip when pdfView has not laid out yet.
-        var host = bounds.size
-        let thumb = thumbnailWidthConstraint?.constant ?? 128
-        host.width = max(40, host.width - thumb - 1)
-        return host
+        return pdfView.bounds.size
     }
 
     private func findScrollView(_ root: NSView) -> NSScrollView? {
@@ -470,7 +542,6 @@ private final class PDFCanvasHostView: NSView {
 
     override func layout() {
         super.layout()
-        // Prefer host size so we re-zoom once SwiftUI finally gives a non-zero frame.
         let size = bounds.size
         guard size.width >= 40, size.height >= 40 else { return }
         let changed = abs(size.width - lastBounds.width) > 0.5
@@ -482,21 +553,20 @@ private final class PDFCanvasHostView: NSView {
     }
 }
 
-// MARK: - Main canvas (+ thumbnails)
+// MARK: - Main canvas
 
 private struct PDFCanvasView: NSViewRepresentable {
     @ObservedObject var session: SharedPDFDocumentSession
     @Binding var page: Int
     @Binding var zoomPreset: PDFZoomPreset
     var navigationEpoch: Int
-    var thumbnailWidth: CGFloat
     var searchBridge: PDFSearchBridge?
     var onPageChange: ((Int) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> PDFCanvasHostView {
-        let host = PDFCanvasHostView(thumbnailWidth: thumbnailWidth)
+        let host = PDFCanvasHostView()
         let c = context.coordinator
         c.host = host
         c.observe(host.pdfView)
@@ -519,11 +589,6 @@ private struct PDFCanvasView: NSViewRepresentable {
         c.parent = self
         c.host = host
         searchBridge?.pdfView = host.pdfView
-        host.setThumbnailWidth(thumbnailWidth)
-        // Keep thumbnail strip wired to the continuous reader (one graph).
-        if host.thumbnailView.pdfView !== host.pdfView {
-            host.thumbnailView.pdfView = host.pdfView
-        }
 
         if c.loadedURL != session.url {
             c.attach(session: session)
@@ -619,9 +684,6 @@ private struct PDFCanvasView: NSViewRepresentable {
             withSuppress {
                 pdfView.document = session.document
             }
-            // One view graph: thumbs must re-bind after document is set or the strip
-            // can stay empty when pdfView was assigned before any document existed.
-            host?.rebindThumbnailStrip()
             loadedURL = session.url
             lastPage = -1
             lastZoom = nil
@@ -634,7 +696,6 @@ private struct PDFCanvasView: NSViewRepresentable {
                 guard let self else { return }
                 let page = max(1, self.parent.page)
                 self.pendingForcedPage = page
-                self.host?.rebindThumbnailStrip()
                 self.goTo(page: page, force: true)
                 self.applyZoom(reason: "open")
                 self.goTo(page: page, force: true)
