@@ -17,6 +17,7 @@ struct MainSidebarView: View {
     var onImportCharacter: () -> Void
     var onNewRun: () -> Void
     var onNewRunFromTemplate: () -> Void
+    var onNewRunFromPDF: () -> Void = {}
 
     var body: some View {
         // No `List(selection:)` — system selection greys out when the list is
@@ -67,6 +68,7 @@ struct MainSidebarView: View {
         ) {
             Button("New Run") { onNewRun() }
             Button("New Run from Template…") { onNewRunFromTemplate() }
+            Button("Draft Run from PDF…") { onNewRunFromPDF() }
         }
     }
 
