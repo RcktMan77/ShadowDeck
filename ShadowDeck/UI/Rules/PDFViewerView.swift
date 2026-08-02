@@ -920,6 +920,8 @@ struct PDFReaderControlsBar: View {
                 Image(systemName: "chevron.left")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Previous page")
+            .help("Previous page")
 
             HStack(spacing: 4) {
                 TextField(
@@ -935,16 +937,20 @@ struct PDFReaderControlsBar: View {
                 .font(.caption.monospacedDigit())
                 .multilineTextAlignment(.center)
                 .onSubmit { page = max(1, goToPageField) }
+                .accessibilityLabel("Page number")
 
                 Text("of \(pageCount.map(String.init) ?? "—")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel("of \(pageCount.map(String.init) ?? "unknown") pages")
             }
 
             Button { page = min(pageCount ?? 9999, page + 1) } label: {
                 Image(systemName: "chevron.right")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Next page")
+            .help("Next page")
         }
     }
 
@@ -954,6 +960,8 @@ struct PDFReaderControlsBar: View {
                 Image(systemName: "minus.magnifyingglass")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Zoom out")
+            .help("Zoom out")
 
             Picker("Zoom", selection: $zoomPreset) {
                 ForEach(PDFZoomPreset.allCases) { p in
@@ -963,11 +971,15 @@ struct PDFReaderControlsBar: View {
             .labelsHidden()
             .frame(maxWidth: 120)
             .controlSize(.small)
+            .accessibilityLabel("Zoom")
+            .help("Zoom level")
 
             Button { zoomIn() } label: {
                 Image(systemName: "plus.magnifyingglass")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Zoom in")
+            .help("Zoom in")
         }
     }
 
@@ -976,15 +988,18 @@ struct PDFReaderControlsBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .font(.caption)
+                .accessibilityHidden(true)
             TextField("Search", text: $search.query)
                 .textFieldStyle(.roundedBorder)
                 .frame(minWidth: 120, idealWidth: 160, maxWidth: 220)
                 .onSubmit { search.find() }
+                .accessibilityLabel("Find in document")
 
             if search.matchCount > 0 {
                 Text("\(search.activeIndex) of \(search.matchCount)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel("Match \(search.activeIndex) of \(search.matchCount)")
             }
 
             Button { search.findPrevious() } label: {
@@ -992,12 +1007,16 @@ struct PDFReaderControlsBar: View {
             }
             .buttonStyle(.borderless)
             .disabled(search.matchCount == 0)
+            .accessibilityLabel("Previous match")
+            .help("Previous match")
 
             Button { search.findNext() } label: {
                 Image(systemName: "chevron.down")
             }
             .buttonStyle(.borderless)
             .disabled(search.matchCount == 0)
+            .accessibilityLabel("Next match")
+            .help("Next match")
 
             if !search.query.isEmpty {
                 Button { search.clear() } label: {
@@ -1005,6 +1024,8 @@ struct PDFReaderControlsBar: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+                .help("Clear search")
             }
         }
     }
