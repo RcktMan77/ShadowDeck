@@ -5,9 +5,11 @@
 //  Cold-launch splash presentation for the main deck window, plus remembering
 //  the library window frame across launches.
 //
-//  - Opens at a fixed splash size (no visible downsize).
-//  - Loads the last library frame from AppPreferences for post-splash restore.
-//  - Saves the library frame on live-resize end, window move (debounced), resign, terminate.
+//  Splash contract:
+//  1. Open at fixed splash size; suppress titlebar container + traffic lights.
+//  2. On dismiss, resize the main frame under an app-level black veil while chrome
+//     stays hidden (AppKit titlebar chrome sits outside SwiftUI and cannot be veiled).
+//  3. After the veil drops, `revealMainWindowChrome()` restores traffic lights/titlebar.
 //
 //  Pure size/frame helpers live on `LaunchWindowGeometry` for unit tests.
 //
@@ -81,12 +83,13 @@ enum LaunchWindowCoordinator {
         installKeyWindowObserverIfNeeded()
 
         applyColdLaunchFocusIfGuarding()
+        // Reinforce early while AppKit orders windows / restores session state.
         for delay: TimeInterval in [0.0, 0.02, 0.08, 0.2] {
             scheduleSplash(after: delay) {
                 applyColdLaunchFocusIfGuarding()
             }
         }
-        // Only ends splash if still guarding (user may have dismissed already).
+        // Safety timeout if the UI never dismisses (user may already have skipped).
         scheduleSplash(after: 12) {
             guard isGuarding, !didEndSplash else { return }
             endColdLaunchGuard()
@@ -98,6 +101,7 @@ enum LaunchWindowCoordinator {
         applyColdLaunchFocusIfGuarding()
     }
 
+    /// End splash: restore main frame under the veil; chrome stays hidden until reveal.
     static func endColdLaunchGuard() {
         if didEndSplash {
             // Already past splash — never force-resize again (would wipe user layout).
@@ -108,25 +112,19 @@ enum LaunchWindowCoordinator {
         cancelSplashWork()
         removeKeyWindowObserver()
 
-        // Resize under the app veil, but keep titlebar chrome suppressed until
-        // `revealMainWindowChrome()` — otherwise click-to-skip paints an accent
-        // separator line the moment the window activates.
-        applyMainWindowFrameOnly(force: true)
+        applyMainWindowFrameUnderVeil(force: true)
         enableMainFramePersistenceTracking()
 
-        scheduleSplash(after: 0.05) {
-            applyMainWindowFrameOnly(force: false)
-        }
-        scheduleSplash(after: 0.15) {
-            applyMainWindowFrameOnly(force: false)
+        // One short reinforce if AppKit re-applies autosave after the first setFrame.
+        scheduleSplash(after: 0.04) {
+            applyMainWindowFrameUnderVeil(force: false)
         }
     }
 
     /// Called after the splash veil drops — show traffic lights / titlebar again.
     static func revealMainWindowChrome() {
         guard let main = primaryMainWindow() else { return }
-        applyMainTitlebarChrome(on: main)
-        setTrafficLightsHidden(false, on: main)
+        applyMainChrome(on: main)
     }
 
     static func promoteMainWindowForSplash() {
@@ -153,21 +151,39 @@ enum LaunchWindowCoordinator {
         main.saveFrame(usingName: mainFrameAutosaveName)
     }
 
+    // MARK: - Chrome
+
+    /// Hide/show traffic lights only (titlebar container is controlled via splash/main chrome).
     static func setTrafficLightsHidden(_ hidden: Bool, on window: NSWindow? = nil) {
         let target = window ?? primaryMainWindow()
         guard let target else { return }
         for type: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
             target.standardWindowButton(type)?.isHidden = hidden
-            // Also zero alpha so the buttons cannot flash during a one-frame unhide.
             target.standardWindowButton(type)?.alphaValue = hidden ? 0 : 1
         }
-        // The green horizontal line on click is AppKit titlebar chrome (accent separator /
-        // titlebar container), drawn outside the SwiftUI hierarchy — content veils cannot
-        // cover it. Hide the whole titlebar container while splash is up.
-        setTitlebarContainerHidden(hidden, on: target)
     }
 
-    /// Hide/show `NSTitlebarContainerView` (sibling of content, not covered by SwiftUI).
+    /// Splash: black frame, no titlebar chrome, no traffic lights.
+    private static func applySplashChrome(on main: NSWindow) {
+        main.titlebarAppearsTransparent = true
+        main.backgroundColor = .black
+        main.titlebarSeparatorStyle = .none
+        main.appearance = NSAppearance(named: .darkAqua)
+        setTitlebarContainerHidden(true, on: main)
+        setTrafficLightsHidden(true, on: main)
+    }
+
+    /// Normal deck: system window materials and visible chrome.
+    private static func applyMainChrome(on main: NSWindow) {
+        main.titlebarAppearsTransparent = true
+        main.backgroundColor = NSColor.windowBackgroundColor
+        main.titlebarSeparatorStyle = .none
+        main.appearance = nil
+        setTitlebarContainerHidden(false, on: main)
+        setTrafficLightsHidden(false, on: main)
+    }
+
+    /// `NSTitlebarContainerView` is a sibling of the content view — SwiftUI veils cannot cover it.
     private static func setTitlebarContainerHidden(_ hidden: Bool, on main: NSWindow) {
         var view: NSView? = main.standardWindowButton(.closeButton)
         var found: NSView?
@@ -177,17 +193,15 @@ enum LaunchWindowCoordinator {
                 found = v
                 break
             }
-            // Keep last non-nil ancestor as fallback (button → NSTitlebarView → container).
             found = v
             view = v.superview
         }
-        // Prefer container two levels up from the close button when class walk fails.
         let target = found
             ?? main.standardWindowButton(.closeButton)?.superview?.superview
             ?? main.standardWindowButton(.closeButton)?.superview
         target?.isHidden = hidden
         target?.alphaValue = hidden ? 0 : 1
-        // Belt-and-suspenders: any titlebar-class sibling of the content view.
+
         if let theme = main.contentView?.superview {
             for sub in theme.subviews {
                 let name = NSStringFromClass(type(of: sub))
@@ -197,25 +211,6 @@ enum LaunchWindowCoordinator {
                 }
             }
         }
-    }
-
-    /// Soften / black-out title-bar chrome while splash is up (hiddenTitleBar still
-    /// reserves a top strip that can pick up accent tint on key-window activation).
-    private static func applySplashTitlebarChrome(on main: NSWindow) {
-        main.titlebarAppearsTransparent = true
-        main.backgroundColor = .black
-        main.titlebarSeparatorStyle = .none
-        // Avoid accent-tinted materials in the frame while splash is showing.
-        main.appearance = NSAppearance(named: .darkAqua)
-        setTitlebarContainerHidden(true, on: main)
-    }
-
-    private static func applyMainTitlebarChrome(on main: NSWindow) {
-        main.titlebarAppearsTransparent = true
-        main.backgroundColor = NSColor.windowBackgroundColor
-        main.titlebarSeparatorStyle = .none
-        main.appearance = nil // system default
-        setTitlebarContainerHidden(false, on: main)
     }
 
     // MARK: - Size presentation
@@ -241,19 +236,13 @@ enum LaunchWindowCoordinator {
             main.setContentSize(splashContentSize)
             center(main)
         }
-        applySplashTitlebarChrome(on: main)
-        setTrafficLightsHidden(true, on: main)
+        applySplashChrome(on: main)
     }
 
-    /// Frame/size restore only — does not unhide titlebar (see `revealMainWindowChrome`).
-    private static func applyMainWindowFrameOnly(force: Bool) {
+    /// Restore library frame/size while keeping splash chrome (veil still up).
+    private static func applyMainWindowFrameUnderVeil(force: Bool) {
         guard let main = primaryMainWindow() else { return }
-        // Stay black + titlebar-hidden while the SwiftUI veil is still up.
-        main.backgroundColor = .black
-        main.titlebarAppearsTransparent = true
-        main.titlebarSeparatorStyle = .none
-        setTitlebarContainerHidden(true, on: main)
-        setTrafficLightsHidden(true, on: main)
+        applySplashChrome(on: main)
         main.isRestorable = true
         main.setFrameAutosaveName(mainFrameAutosaveName)
 
@@ -274,16 +263,6 @@ enum LaunchWindowCoordinator {
             main.setContentSize(mainContentSize)
             center(main)
         }
-    }
-
-    private static func applyMainWindowPresentation(force: Bool) {
-        guard let main = primaryMainWindow() else { return }
-        applyMainTitlebarChrome(on: main)
-        setTrafficLightsHidden(false, on: main)
-        applyMainWindowFrameOnly(force: force)
-        // Frame helper re-hides chrome; restore for non-splash callers.
-        applyMainTitlebarChrome(on: main)
-        setTrafficLightsHidden(false, on: main)
     }
 
     private static func enableMainFramePersistenceTracking() {

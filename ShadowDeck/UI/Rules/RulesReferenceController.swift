@@ -419,6 +419,21 @@ final class RulesReferenceController: ObservableObject {
         pdfLibrary = library
     }
 
+    /// Marketing capture: full-width gallery shelf (no personal library, no reader open).
+    func applyMarketingLibraryShelf() {
+        mode = .library
+        selectedLibraryItemID = nil
+        libraryLayout = .gallery
+        libraryFilter = ""
+        libraryStatusMessage = nil
+        libraryTextQuery = ""
+        libraryTextHits = []
+        libraryTextHitIndex = 0
+        libraryTextSearching = false
+        libraryTextSearchActive = false
+        libraryTextSearchStatus = nil
+    }
+
     // MARK: - Shelf-wide PDF text search
 
     func runLibraryTextSearch() {
@@ -640,6 +655,8 @@ final class RulesReferenceController: ObservableObject {
     }
 
     func persistUIState() {
+        // Capture runs must not overwrite the interactive user's Rules Reference prefs.
+        guard !MarketingScreenshotExporter.isEnabled else { return }
         AppPreferences.set(mode.rawValue, for: .rulesRefMode)
         AppPreferences.set(query, for: .rulesRefQuery)
         AppPreferences.set(selectedCategory?.rawValue, for: .rulesRefCategory)
