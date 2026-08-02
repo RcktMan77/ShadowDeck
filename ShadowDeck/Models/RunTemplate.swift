@@ -149,10 +149,10 @@ public extension Run {
         location: String = "",
         campaignID: UUID? = nil,
         edition: Edition? = nil
-    ) -> Run {
+    ) -> Self {
         let resolvedEdition = edition ?? template.editionHint ?? .sr5
         let title = template.resolvedTitle(location: location)
-        var run = Run.makeDraft(title: title, edition: resolvedEdition, campaignID: campaignID)
+        var run = Self.makeDraft(title: title, edition: resolvedEdition, campaignID: campaignID)
         run.location = location.trimmingCharacters(in: .whitespacesAndNewlines)
         run.tags = template.tags
         run.opposition = template.oppositionPrompt
@@ -179,7 +179,7 @@ public extension Run {
             objectives: objectives.map {
                 RunTemplateObjective(text: $0.text, isPrimary: $0.isPrimary)
             },
-            oppositionPrompt: Run.isBlankNote(opposition)
+            oppositionPrompt: Self.isBlankNote(opposition)
                 ? ""
                 : ChummerParsingHelpers.cleanRichText(opposition),
             expectedPayout: expectedPayout,

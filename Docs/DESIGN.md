@@ -180,7 +180,7 @@ UI: **Configure…** on the edition wizard step and **House Rules…** on the Su
 
 | Deliverable | Detail |
 |-------------|--------|
-| **Version** | Marketing version `1.0.0` |
+| **Version** | Marketing version `1.1.0` |
 | **UTType** | `com.shadowdeck.character` exported for `.shadowdeck` directory packages (`Info.plist` + `UTType.shadowdeckCharacter`) |
 | **Open package** | Finder double-click / `application(_:open:)` → import into library; File → Open Package…; library **Open Package…** |
 | **Menus** | File → New Character (⌘N), Import (⇧⌘O), Open Package (⌘O) |
