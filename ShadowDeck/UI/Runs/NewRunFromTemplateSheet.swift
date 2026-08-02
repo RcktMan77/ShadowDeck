@@ -50,11 +50,18 @@ struct NewRunFromTemplateSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Cancel", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-                Button("Create Run") { create() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(selectedID == nil)
+                AppChromeButton.title("Cancel", help: "Close without creating a run") {
+                    onCancel()
+                }
+                AppChromeButton.title(
+                    "Create Run",
+                    help: "Create a planning run from the selected template",
+                    style: .prominent,
+                    isEnabled: selectedID != nil,
+                    keyEquivalent: "\r"
+                ) {
+                    create()
+                }
             }
             .padding()
 
