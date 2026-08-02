@@ -538,7 +538,7 @@ struct CampaignDetailView: View {
     }
 
     private var stickyToolbar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             AppChromeButton.labeled("Campaigns", systemImage: "chevron.left", help: "Back to Campaigns") {
                 commitIdentity(forceNotes: true)
                 onBack()
@@ -554,29 +554,32 @@ struct CampaignDetailView: View {
 
             Spacer(minLength: 8)
 
+            // Tight trailing cluster (matches Character / Run detail toolbars).
             if let campaign {
-                if campaign.isArchived {
-                    AppChromeButton.icon(
-                        "tray.and.arrow.up",
-                        help: "Unarchive this campaign"
-                    ) {
-                        setArchived(false)
+                HStack(spacing: 4) {
+                    if campaign.isArchived {
+                        AppChromeButton.icon(
+                            "tray.and.arrow.up",
+                            help: "Unarchive this campaign"
+                        ) {
+                            setArchived(false)
+                        }
+                    } else {
+                        AppChromeButton.icon(
+                            "archivebox",
+                            help: "Archive this campaign (hides from default list)"
+                        ) {
+                            setArchived(true)
+                        }
                     }
-                } else {
-                    AppChromeButton.icon(
-                        "archivebox",
-                        help: "Archive this campaign (hides from default list)"
-                    ) {
-                        setArchived(true)
-                    }
-                }
 
-                AppChromeButton.icon(
-                    "trash",
-                    help: "Delete this campaign (runs become Unassigned)",
-                    style: .destructive
-                ) {
-                    confirmDelete = true
+                    AppChromeButton.icon(
+                        "trash",
+                        help: "Delete this campaign (runs become Unassigned)",
+                        style: .destructive
+                    ) {
+                        confirmDelete = true
+                    }
                 }
             }
         }
