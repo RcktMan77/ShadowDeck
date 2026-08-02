@@ -12,6 +12,10 @@ public enum AppCommand {
     public static let newRun = Notification.Name("com.shadowdeck.command.newRun")
     /// Open New Run from Template sheet. Optional `userInfo["campaignID"]` as UUID.
     public static let newRunFromTemplate = Notification.Name("com.shadowdeck.command.newRunFromTemplate")
+    /// Open experimental Draft Run from Mission PDF sheet (Phase 2F).
+    public static let newRunFromPDF = Notification.Name("com.shadowdeck.command.newRunFromPDF")
+    /// Open an existing run in the main window. `userInfo["runID"]` as UUID.
+    public static let openRunDetail = Notification.Name("com.shadowdeck.command.openRunDetail")
     public static let importCharacter = Notification.Name("com.shadowdeck.command.importCharacter")
     public static let openPackage = Notification.Name("com.shadowdeck.command.openPackage")
     /// Posted with a `URL` object when Finder / File > Open hands us a package.

@@ -34,6 +34,29 @@ struct PDFCoverImage: View {
     }
 }
 
+// MARK: - Mission draft-run control
+
+/// Cover control for Missions & Adventures — draft a run from the PDF.
+/// Sparkles = familiar AI affordance; neutral material so it doesn’t clash with chrome.
+struct MissionDraftRunBadge: View {
+    var compact: Bool = false
+
+    var body: some View {
+        Image(systemName: "sparkles")
+            .font(.system(size: compact ? 9 : 12, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.primary)
+            .frame(width: compact ? 22 : 28, height: compact ? 22 : 28)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.12), radius: compact ? 1 : 2, y: 1)
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Gallery
 
 struct PDFLibraryGalleryView: View {
@@ -44,6 +67,7 @@ struct PDFLibraryGalleryView: View {
     var onRename: (PDFLibraryItem) -> Void
     var onReveal: (PDFLibraryItem) -> Void
     var onRemove: (PDFLibraryItem) -> Void
+    var onDraftRun: (PDFLibraryItem) -> Void
 
     private let columns = [
         GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16, alignment: .top)
@@ -63,7 +87,10 @@ struct PDFLibraryGalleryView: View {
                                     onBookSettings: { onBookSettings(item) },
                                     onRename: { onRename(item) },
                                     onReveal: { onReveal(item) },
-                                    onRemove: { onRemove(item) }
+                                    onRemove: { onRemove(item) },
+                                    onDraftRun: item.shelfSection == .mission
+                                        ? { onDraftRun(item) }
+                                        : nil
                                 )
                             }
                         }
@@ -106,6 +133,7 @@ private struct PDFLibraryGalleryCard: View {
     var onRename: () -> Void
     var onReveal: () -> Void
     var onRemove: () -> Void
+    var onDraftRun: (() -> Void)?
 
     private var cardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -113,12 +141,24 @@ private struct PDFLibraryGalleryCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PDFCoverImage(coverURL: coverURL, cornerRadius: 0)
-                .frame(maxWidth: .infinity)
-                .frame(height: 180)
-                .clipped()
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onOpen)
+            ZStack(alignment: .topTrailing) {
+                PDFCoverImage(coverURL: coverURL, cornerRadius: 0)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .clipped()
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onOpen)
+
+                if let onDraftRun {
+                    Button(action: onDraftRun) {
+                        MissionDraftRunBadge()
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                    .help("Draft a planning run from this mission PDF")
+                    .accessibilityLabel("Draft run from PDF")
+                }
+            }
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(item.displayTitle)
@@ -156,6 +196,9 @@ private struct PDFLibraryGalleryCard: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
         .contextMenu {
             Button("Open", action: onOpen)
+            if let onDraftRun {
+                Button("Draft run from PDF…", action: onDraftRun)
+            }
             Button("Book settings…", action: onBookSettings)
             Button("Rename…", action: onRename)
             Button("Reveal in Finder", action: onReveal)
@@ -175,6 +218,7 @@ struct PDFLibraryListView: View {
     var onRename: (PDFLibraryItem) -> Void
     var onReveal: (PDFLibraryItem) -> Void
     var onRemove: (PDFLibraryItem) -> Void
+    var onDraftRun: (PDFLibraryItem) -> Void
 
     var body: some View {
         List {
@@ -186,6 +230,9 @@ struct PDFLibraryListView: View {
                             .onTapGesture { onOpen(item) }
                             .contextMenu {
                                 Button("Open") { onOpen(item) }
+                                if item.shelfSection == .mission {
+                                    Button("Draft run from PDF…") { onDraftRun(item) }
+                                }
                                 Button("Book settings…") { onBookSettings(item) }
                                 Button("Rename…") { onRename(item) }
                                 Button("Reveal in Finder") { onReveal(item) }
@@ -206,9 +253,23 @@ struct PDFLibraryListView: View {
 
     private func row(_ item: PDFLibraryItem) -> some View {
         HStack(alignment: .center, spacing: 14) {
-            PDFCoverImage(coverURL: coverURL(item), cornerRadius: 4)
-                .frame(width: 40, height: 54)
-                .clipped()
+            ZStack(alignment: .topTrailing) {
+                PDFCoverImage(coverURL: coverURL(item), cornerRadius: 4)
+                    .frame(width: 40, height: 54)
+                    .clipped()
+
+                if item.shelfSection == .mission {
+                    Button {
+                        onDraftRun(item)
+                    } label: {
+                        MissionDraftRunBadge(compact: true)
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 4, y: -4)
+                    .help("Draft a planning run from this mission PDF")
+                    .accessibilityLabel("Draft run from PDF")
+                }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.displayTitle)
