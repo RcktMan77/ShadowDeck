@@ -1,7 +1,7 @@
 # ShadowDeck Codebase Health Audit
 
-**Date:** 2026-08-01  
-**Branch audited:** `feature/rules-reference` (clean tree after Rules Reference commit; not `develop` tip — re-run after merge)  
+**Date:** 2026-08-01 (cleanup pass completed same day)  
+**Branch audited:** `develop` after Rules Reference merge + audit PRs 1–12  
 **Build:** macOS Debug — **succeeded**  
 **Tests:** full scheme — **succeeded** (no failures)  
 **Linters:** none configured (SwiftLint / swift-format not present; not introduced)
@@ -10,9 +10,9 @@
 
 ## A. Executive summary
 
-### Overall health: **Good / Fair**
+### Overall health: **Great**
 
-ShadowDeck is in solid shape for a solo-maintained macOS campaign app: pure domain engines, good test density on rules/import/persistence, and recent features (Runs, Lifestyle, Advancement, Dice, Apply Awards, Rules Reference) mostly follow the same “engine + UI + ledger” pattern. The main risks are **oversized SwiftUI views**, **mixed observation styles**, **main-thread catalog load**, and **Rules/PDF complexity** that will be hard to change safely without modularization.
+ShadowDeck is in solid shape for a solo-maintained macOS campaign app: pure domain engines, good test density on rules/import/persistence, and recent features (Runs, Lifestyle, Advancement, Dice, Apply Awards, Rules Reference) mostly follow the same “engine + UI + ledger” pattern. Audit cleanup PRs 1–12 addressed the top maintainability and performance risks (lazy catalog, unified lookup cache, Rules observation/results cache, PDF search concurrency, view extractions, AppPreferences, launch coordinator tests, accessibility on PDF chrome).
 
 ### Top 5 risks
 
@@ -153,24 +153,22 @@ Patterns already successful in Lifestyle / Advancement / Dice / Runs / Awards:
 
 ---
 
-## G. Suggested cleanup PR sequence
+## G. Cleanup PR sequence — **completed**
 
-Small, shippable PRs for a solo maintainer:
-
-| # | PR title | Scope | Depends |
-|---|----------|--------|---------|
-| 1 | **Docs: align version + splash notes** | DESIGN 0.9.0, splash-every-launch, testing table | — |
-| 2 | **Remove placeholder ShadowDeckTests smoke** | Replace with `RulesReferenceStore.loadBundled` or drop file | — |
-| 3 | **Lazy CatalogStore load** | No decode until first browser/settings | — |
-| 4 | **Unify CatalogLookup → shared cache** | Single load path | 3 |
-| 5 | **Fix RulesReferenceWindowRoot observation** | Observe session correctly | — |
-| 6 | **Cache RulesReferenceController.results** | Invalidate on query/category/edition | — |
-| 7 | **Extract CharacterAtAGlance subviews** | File split only | — |
-| 8 | **Extract Rules Library shelf + search UI** | File split; pure search engine type | 6 |
-| 9 | **PDF: cap search concurrency + optional shared document** | Memory | 8 |
-| 10 | **AppPreferences typed UserDefaults** | Keys enum | — |
-| 11 | **Accessibility pass: toolbars + PDF chrome** | Labels | — |
-| 12 | **LaunchWindowCoordinator extract + pure tests** | From AppDelegate | — |
+| # | PR title | Status |
+|---|----------|--------|
+| 1 | **Docs: align version + splash notes** | ✅ DESIGN 0.9.0, splash every cold launch, testing table |
+| 2 | **Replace placeholder ShadowDeckTests smoke** | ✅ Seed load + catalog lookup smoke |
+| 3 | **Lazy CatalogStore load** | ✅ `ensureLoaded()` on first browser/settings |
+| 4 | **Unify CatalogLookup → shared cache** | ✅ `CatalogCache` single path |
+| 5 | **Fix RulesReferenceWindowRoot observation** | ✅ Observes `RulesReferenceSession` |
+| 6 | **Cache RulesReferenceController.results** | ✅ Invalidate on query/category/edition |
+| 7 | **Extract CharacterAtAGlance subviews** | ✅ Portrait / identity / condition columns |
+| 8 | **Extract Rules Library shelf + search UI** | ✅ `LibraryShelfBrowseView` + `PDFLibrarySearchEngine` |
+| 9 | **PDF: cap search concurrency** | ✅ Max 2 concurrent book opens |
+| 10 | **AppPreferences typed UserDefaults** | ✅ Central key schema |
+| 11 | **Accessibility pass: toolbars + PDF chrome** | ✅ Labels on zoom, find, nav, shelf |
+| 12 | **LaunchWindowCoordinator extract + pure tests** | ✅ Geometry helpers unit-tested |
 
 ---
 
@@ -250,4 +248,4 @@ ShadowDeckTests/ # Engine-heavy unit tests (good density)
 
 ---
 
-*Next step for maintainer: pick PR #1–6 from section G after merging Rules Reference to `develop`. Ask before any non-trivial deletion or architecture rewrite.*
+*Cleanup PRs 1–12 applied. Remaining optional work: further god-view splits (`ContentView`, `RunDetailView`), dual-PDF document sharing for thumbs, SwiftLint, Swift 6 MainActor audit. Ask before any non-trivial deletion or architecture rewrite.*
