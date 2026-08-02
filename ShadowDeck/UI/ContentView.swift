@@ -118,7 +118,10 @@ struct ContentView: View {
                 },
                 onNewRun: { requestNewRun() },
                 onNewRunFromTemplate: { showNewRunFromTemplate = true },
-                onNewRunFromPDF: { showDraftRunFromPDF = true }
+                onNewRunFromPDF: { showDraftRunFromPDF = true },
+                onOpenPDFShelf: {
+                    RulesReferenceOpener.requestPDFLibrary()
+                }
             )
         } detail: {
             NavigationStack {
@@ -219,10 +222,13 @@ struct ContentView: View {
             let query = note.userInfo?["query"] as? String
             let edition = note.userInfo?["edition"] as? Edition
             let calc = note.userInfo?["calcContext"] as? RulesCalcContext
+            let modeRaw = note.userInfo?["mode"] as? String
+            let mode = modeRaw.flatMap(RulesReferenceMode.init(rawValue:)) ?? .reference
             RulesReferenceSession.shared.prepare(
                 query: query,
                 edition: edition ?? calc?.edition,
-                calcContext: calc
+                calcContext: calc,
+                mode: mode
             )
             openWindow(id: RulesReferenceOpener.windowID)
         }
