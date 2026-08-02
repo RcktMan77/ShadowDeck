@@ -234,6 +234,8 @@ struct PDFReaderWorkspace: View {
 
     var body: some View {
         GeometryReader { geo in
+            // GeometryReader proposes a size; the representable must explicitly fill it
+            // or the NSView host can stay at 0×0 (blank reader + empty thumbs).
             let thumbW = min(thumbnailWidth, max(100, geo.size.width * 0.18))
             PDFCanvasView(
                 session: session,
@@ -244,7 +246,9 @@ struct PDFReaderWorkspace: View {
                 searchBridge: searchBridge,
                 onPageChange: onPageChange
             )
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .frame(minWidth: 400, minHeight: 280)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .layoutPriority(1)
         .id(url) // remount session when the open book changes
@@ -369,6 +373,7 @@ private final class PDFCanvasHostView: NSView {
         wantsLayer = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
+        // Continuous reader fills remaining width after the thumbnail strip.
         pdfView.autoScales = false
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
@@ -378,11 +383,18 @@ private final class PDFCanvasHostView: NSView {
         pdfView.minScaleFactor = 0.05
         pdfView.maxScaleFactor = 20
         pdfView.translatesAutoresizingMaskIntoConstraints = false
+        pdfView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        pdfView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        pdfView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        pdfView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
 
         thumbnailView.thumbnailSize = NSSize(width: 88, height: 114)
         thumbnailView.backgroundColor = NSColor.controlBackgroundColor
+        // Wire after both views exist; re-assert after document load in attach().
         thumbnailView.pdfView = pdfView
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
+        thumbnailView.setContentHuggingPriority(.required, for: .horizontal)
+        thumbnailView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         divider.boxType = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
@@ -392,6 +404,7 @@ private final class PDFCanvasHostView: NSView {
         addSubview(pdfView)
 
         let thumbW = thumbnailView.widthAnchor.constraint(equalToConstant: max(100, thumbnailWidth))
+        thumbW.priority = .required
         thumbnailWidthConstraint = thumbW
         NSLayoutConstraint.activate([
             thumbnailView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -415,6 +428,13 @@ private final class PDFCanvasHostView: NSView {
         thumbnailWidthConstraint?.constant = max(100, width)
     }
 
+    /// Re-associate thumbs with the continuous reader after document changes.
+    /// PDFKit sometimes needs this to populate the strip when the document is set late.
+    func rebindThumbnailStrip() {
+        thumbnailView.pdfView = nil
+        thumbnailView.pdfView = pdfView
+    }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -433,7 +453,11 @@ private final class PDFCanvasHostView: NSView {
         }
         let b = pdfView.bounds.size
         if b.width >= 40, b.height >= 40 { return b }
-        return bounds.size
+        // Fall back to host width minus thumbnail strip when pdfView has not laid out yet.
+        var host = bounds.size
+        let thumb = thumbnailWidthConstraint?.constant ?? 128
+        host.width = max(40, host.width - thumb - 1)
+        return host
     }
 
     private func findScrollView(_ root: NSView) -> NSScrollView? {
@@ -446,7 +470,8 @@ private final class PDFCanvasHostView: NSView {
 
     override func layout() {
         super.layout()
-        let size = pdfView.bounds.size
+        // Prefer host size so we re-zoom once SwiftUI finally gives a non-zero frame.
+        let size = bounds.size
         guard size.width >= 40, size.height >= 40 else { return }
         let changed = abs(size.width - lastBounds.width) > 0.5
             || abs(size.height - lastBounds.height) > 0.5
@@ -594,6 +619,9 @@ private struct PDFCanvasView: NSViewRepresentable {
             withSuppress {
                 pdfView.document = session.document
             }
+            // One view graph: thumbs must re-bind after document is set or the strip
+            // can stay empty when pdfView was assigned before any document existed.
+            host?.rebindThumbnailStrip()
             loadedURL = session.url
             lastPage = -1
             lastZoom = nil
@@ -606,6 +634,7 @@ private struct PDFCanvasView: NSViewRepresentable {
                 guard let self else { return }
                 let page = max(1, self.parent.page)
                 self.pendingForcedPage = page
+                self.host?.rebindThumbnailStrip()
                 self.goTo(page: page, force: true)
                 self.applyZoom(reason: "open")
                 self.goTo(page: page, force: true)
