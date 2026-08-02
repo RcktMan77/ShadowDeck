@@ -261,6 +261,11 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
     public var outcomeSummary: String
     public var gmNotes: String
 
+    /// Player-safe blurb for the briefing sheet (Phase 2E). Empty = omit section.
+    public var playerFacingSummary: String
+    /// Player-safe risks (not full opposition). Empty = omit section.
+    public var knownRisks: String
+
     /// When non-nil, suggested awards have been committed to linked characters (double-apply guard).
     public var awardsAppliedAt: Date?
     /// Optional free-text note captured when awards were applied.
@@ -295,6 +300,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         sessionLog: [RunLogEntry] = [],
         outcomeSummary: String = "",
         gmNotes: String = "",
+        playerFacingSummary: String = "",
+        knownRisks: String = "",
         awardsAppliedAt: Date? = nil,
         awardsAppliedNote: String? = nil,
         createdAt: Date = Date(),
@@ -323,13 +330,15 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.sessionLog = sessionLog
         self.outcomeSummary = outcomeSummary
         self.gmNotes = gmNotes
+        self.playerFacingSummary = playerFacingSummary
+        self.knownRisks = knownRisks
         self.awardsAppliedAt = awardsAppliedAt
         self.awardsAppliedNote = awardsAppliedNote
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
     }
 
-    // MARK: Codable (legacy payloads may omit `edition` / awards / contacts)
+    // MARK: Codable (legacy payloads may omit `edition` / awards / contacts / briefing)
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, title, tags, status, edition
@@ -338,6 +347,7 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         case expectedPayout, actualPayout, heatDelta
         case participantCharacterIDs, campaignID, contacts
         case sessionLog, outcomeSummary, gmNotes
+        case playerFacingSummary, knownRisks
         case awardsAppliedAt, awardsAppliedNote
         case createdAt, modifiedAt
     }
@@ -367,6 +377,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         sessionLog = try c.decodeIfPresent([RunLogEntry].self, forKey: .sessionLog) ?? []
         outcomeSummary = try c.decodeIfPresent(String.self, forKey: .outcomeSummary) ?? ""
         gmNotes = try c.decodeIfPresent(String.self, forKey: .gmNotes) ?? ""
+        playerFacingSummary = try c.decodeIfPresent(String.self, forKey: .playerFacingSummary) ?? ""
+        knownRisks = try c.decodeIfPresent(String.self, forKey: .knownRisks) ?? ""
         awardsAppliedAt = try c.decodeIfPresent(Date.self, forKey: .awardsAppliedAt)
         awardsAppliedNote = try c.decodeIfPresent(String.self, forKey: .awardsAppliedNote)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
@@ -398,6 +410,8 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         try c.encode(sessionLog, forKey: .sessionLog)
         try c.encode(outcomeSummary, forKey: .outcomeSummary)
         try c.encode(gmNotes, forKey: .gmNotes)
+        try c.encode(playerFacingSummary, forKey: .playerFacingSummary)
+        try c.encode(knownRisks, forKey: .knownRisks)
         try c.encodeIfPresent(awardsAppliedAt, forKey: .awardsAppliedAt)
         try c.encodeIfPresent(awardsAppliedNote, forKey: .awardsAppliedNote)
         try c.encode(createdAt, forKey: .createdAt)
