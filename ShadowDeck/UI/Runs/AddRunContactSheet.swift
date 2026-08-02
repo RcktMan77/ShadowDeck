@@ -78,11 +78,18 @@ struct AddRunContactSheet: View {
             Text("Add from character contacts")
                 .font(.headline)
             Spacer()
-            Button("Cancel", action: onCancel)
-                .keyboardShortcut(.cancelAction)
-            Button(addButtonTitle) { commit() }
-                .keyboardShortcut(.defaultAction)
-                .disabled(staged.isEmpty)
+            AppChromeButton.title("Cancel", help: "Close without adding") {
+                onCancel()
+            }
+            AppChromeButton.title(
+                addButtonTitle,
+                help: "Add staged people to this run",
+                style: .prominent,
+                isEnabled: !staged.isEmpty,
+                keyEquivalent: "\r"
+            ) {
+                commit()
+            }
         }
         .padding()
     }
