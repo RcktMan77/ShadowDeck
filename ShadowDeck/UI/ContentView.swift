@@ -39,7 +39,8 @@ enum SidebarItem: String, Identifiable, Hashable, CaseIterable {
         case .runs: "list.clipboard.fill"
         case .newCharacter: "plus.circle.fill"
         case .newCampaign: "folder.badge.plus"
-        case .newRun: "plus.rectangle.on.folder.fill"
+        // Sheet with + (macOS 14–safe); pairs with Library → Runs `list.clipboard.fill`.
+        case .newRun: "doc.badge.plus"
         case .importCharacter: "square.and.arrow.down.fill"
         }
     }
