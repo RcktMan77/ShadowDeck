@@ -48,7 +48,13 @@ public enum ConceptTagline {
         } else if awakened.usesMagic,
                   !roles.contains(where: { magicRoleLabels.contains($0) }) {
             // e.g. “coder” + awakened adept prose → keep coder, add Adept if present in text
-            if haystack.contains("adept") { roles.insert("Adept", at: 0) } else if haystack.contains("mystic") { roles.insert("Mystic Adept", at: 0) } else if haystack.contains("mage") || haystack.contains("magician") || haystack.contains("spell") {
+            if haystack.contains("adept") {
+                roles.insert("Adept", at: 0)
+            } else if haystack.contains("mystic") {
+                roles.insert("Mystic Adept", at: 0)
+            } else if haystack.contains("mage")
+                || haystack.contains("magician")
+                || haystack.contains("spell") {
                 roles.insert("Mage", at: 0)
             }
         }
@@ -132,10 +138,8 @@ public enum ConceptTagline {
     }
 
     private static func matchFlavor(in haystack: String) -> String? {
-        for rule in flavorRules {
-            if rule.tokens.contains(where: { haystack.contains($0) }) {
-                return rule.label
-            }
+        for rule in flavorRules where rule.tokens.contains(where: { haystack.contains($0) }) {
+            return rule.label
         }
         return nil
     }

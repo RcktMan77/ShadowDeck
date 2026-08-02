@@ -145,39 +145,39 @@ struct CharacterAtAGlanceView: View {
                         SkillsManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { skill in openDiceRoller(skill: skill) }
+                        ) { skill in openDiceRoller(skill: skill) }
                     case .gear:
                         GearManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     case .augmentations:
                         AugmentationsManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     case .qualities:
                         QualitiesManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     case .contacts:
                         ContactsManagementView(character: binding(to: c), onPersist: persistCharacter)
                     case .lifestyle:
                         LifestyleManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     case .advance:
                         AdvancementPlannerView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     case .magic:
                         MagicManagementView(
                             character: binding(to: c),
                             onPersist: persistCharacter
-                        )                            { statusMessage = $0 }
+                        ) { statusMessage = $0 }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -353,7 +353,7 @@ struct CharacterAtAGlanceView: View {
                         houseRulesLabel: c.houseRules.enabled.isEmpty
                             ? "Core book rules"
                             : "\(c.houseRules.enabled.count) house rules"
-                    )                        { showHouseRulesBrowser = true }
+                    ) { showHouseRulesBrowser = true }
                     .sheet(isPresented: $showHouseRulesBrowser) {
                         HouseRulesBrowserView(
                             houseRules: Binding(

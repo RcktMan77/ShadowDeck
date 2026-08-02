@@ -219,7 +219,7 @@ final class CharacterEffectsTests: XCTestCase {
 
     func testLegacyGearJSONDecodesWithoutNewFields() throws {
         // Pre–Phase 7 gear payload (no rating/modifiers/purchasedInApp).
-        let json = """
+        let json = Data("""
         {
           "id": "00000000-0000-0000-0000-000000000001",
           "catalogKey": "armor_jacket",
@@ -232,7 +232,7 @@ final class CharacterEffectsTests: XCTestCase {
           "notes": "",
           "armorRating": 12
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let item = try JSONDecoder().decode(GearItem.self, from: json)
         XCTAssertEqual(item.armorRating, 12)
         XCTAssertEqual(item.rating, 1)

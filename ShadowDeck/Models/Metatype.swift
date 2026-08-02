@@ -84,36 +84,76 @@ public enum MetatypeCatalog {
         switch metatype {
         case .human:
             return base(
-                body: 1...6, agility: 1...6, reaction: 1...6, strength: 1...6,
-                willpower: 1...6, logic: 1...6, intuition: 1...6, charisma: 1...6,
-                edge: 1...humanEdgeMax, magic: 0...6, resonance: 0...6
+                body: 1...6,
+                agility: 1...6,
+                reaction: 1...6,
+                strength: 1...6,
+                willpower: 1...6,
+                logic: 1...6,
+                intuition: 1...6,
+                charisma: 1...6,
+                edge: 1...humanEdgeMax,
+                magic: 0...6,
+                resonance: 0...6
             )
         case .elf:
             return base(
-                body: 1...6, agility: 2...7, reaction: 1...6, strength: 1...6,
-                willpower: 1...6, logic: 1...6, intuition: 1...6, charisma: 3...8,
-                edge: 1...otherEdgeMax, magic: 0...6, resonance: 0...6
+                body: 1...6,
+                agility: 2...7,
+                reaction: 1...6,
+                strength: 1...6,
+                willpower: 1...6,
+                logic: 1...6,
+                intuition: 1...6,
+                charisma: 3...8,
+                edge: 1...otherEdgeMax,
+                magic: 0...6,
+                resonance: 0...6
             )
         case .dwarf:
             return base(
-                body: 3...8, agility: 1...6, reaction: 1...5, strength: 3...8,
-                willpower: 2...7, logic: 1...6, intuition: 1...6, charisma: 1...6,
-                edge: 1...otherEdgeMax, magic: 0...6, resonance: 0...6
+                body: 3...8,
+                agility: 1...6,
+                reaction: 1...5,
+                strength: 3...8,
+                willpower: 2...7,
+                logic: 1...6,
+                intuition: 1...6,
+                charisma: 1...6,
+                edge: 1...otherEdgeMax,
+                magic: 0...6,
+                resonance: 0...6
             )
         case .ork:
             return base(
-                body: 4...9, agility: 1...6, reaction: 1...6, strength: 3...8,
-                willpower: 1...6, logic: 1...5, intuition: 1...6, charisma: 1...5,
-                edge: 1...otherEdgeMax, magic: 0...6, resonance: 0...6
+                body: 4...9,
+                agility: 1...6,
+                reaction: 1...6,
+                strength: 3...8,
+                willpower: 1...6,
+                logic: 1...5,
+                intuition: 1...6,
+                charisma: 1...5,
+                edge: 1...otherEdgeMax,
+                magic: 0...6,
+                resonance: 0...6
             )
         case .troll:
             // SR5/6 troll Body/Strength maxima are higher; keep peer-level core tables.
             let bodyMax = edition == .sr4 ? 10 : 10
             let strengthMax = edition == .sr4 ? 10 : 10
             return base(
-                body: 5...bodyMax, agility: 1...5, reaction: 1...6, strength: 5...strengthMax,
-                willpower: 1...6, logic: 1...5, intuition: 1...5, charisma: 1...4,
-                edge: 1...otherEdgeMax, magic: 0...6, resonance: 0...6
+                body: 5...bodyMax,
+                agility: 1...5,
+                reaction: 1...6,
+                strength: 5...strengthMax,
+                willpower: 1...6,
+                logic: 1...5,
+                intuition: 1...5,
+                charisma: 1...4,
+                edge: 1...otherEdgeMax,
+                magic: 0...6,
+                resonance: 0...6
             )
         }
     }

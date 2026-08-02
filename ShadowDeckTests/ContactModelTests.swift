@@ -12,7 +12,7 @@ final class ContactModelTests: XCTestCase {
     // MARK: - Codable
 
     func testLegacyContactJSONDecodesWithDefaults() throws {
-        let json = """
+        let json = Data("""
         {
           "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
           "name": "Fixer Fran",
@@ -21,7 +21,7 @@ final class ContactModelTests: XCTestCase {
           "connection": 5,
           "notes": ""
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let contact = try JSONDecoder().decode(Contact.self, from: json)
         XCTAssertEqual(contact.name, "Fixer Fran")
         XCTAssertEqual(contact.loyalty, 3)

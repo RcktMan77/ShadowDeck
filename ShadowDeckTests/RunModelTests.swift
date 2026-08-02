@@ -54,7 +54,7 @@ final class RunModelTests: XCTestCase {
 
     func testLegacyRunJSONWithoutEditionDefaultsToSR5() throws {
         // Minimal payload shaped like pre-edition runs.
-        let json = """
+        let json = Data("""
         {
           "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
           "schemaVersion": 1,
@@ -75,7 +75,7 @@ final class RunModelTests: XCTestCase {
           "createdAt": "2020-01-01T00:00:00Z",
           "modifiedAt": "2020-01-01T00:00:00Z"
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let run = try decoder.decode(Run.self, from: json)

@@ -182,8 +182,8 @@ enum PDFLibrarySearchEngine {
         }
         guard positions.count >= 2 else { return false }
         positions.sort()
-        for i in 0..<(positions.count - 1) {
-            if positions[i + 1] - positions[i] <= 80 { return true }
+        for i in 0..<(positions.count - 1) where positions[i + 1] - positions[i] <= 80 {
+            return true
         }
         return false
     }
