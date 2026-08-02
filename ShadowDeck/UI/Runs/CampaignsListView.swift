@@ -88,8 +88,12 @@ struct CampaignsListView: View {
                 Toggle("Show archived", isOn: $showArchived)
                     .toggleStyle(.checkbox)
                     .onChange(of: showArchived) { _, _ in refresh() }
-                Button("Refresh", systemImage: "arrow.clockwise") { refresh() }
-                Button("New Campaign", systemImage: "plus.circle") { createCampaign() }
+                AppChromeButton.labeled("Refresh", systemImage: "arrow.clockwise", help: "Reload campaigns") {
+                    refresh()
+                }
+                AppChromeButton.labeled("New Campaign", systemImage: "plus.circle", help: "Create a new campaign") {
+                    createCampaign()
+                }
             }
 
             if let statusMessage {
@@ -478,12 +482,16 @@ struct CampaignDetailView: View {
             // Bottom-right save: flush drafts and return to Campaigns library.
             HStack {
                 Spacer()
-                Button("Save") {
+                AppChromeButton.title(
+                    "Save",
+                    help: "Save and return to Campaigns",
+                    style: .prominent,
+                    isEnabled: campaign != nil,
+                    keyEquivalent: "s",
+                    keyModifiers: .command
+                ) {
                     saveAndReturn()
                 }
-                .keyboardShortcut("s", modifiers: [.command])
-                .buttonStyle(.borderedProminent)
-                .disabled(campaign == nil)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -530,29 +538,48 @@ struct CampaignDetailView: View {
     }
 
     private var stickyToolbar: some View {
-        HStack(spacing: 12) {
-            Button {
+        HStack(spacing: 4) {
+            AppChromeButton.labeled("Campaigns", systemImage: "chevron.left", help: "Back to Campaigns") {
                 commitIdentity(forceNotes: true)
                 onBack()
-            } label: {
-                Label("Campaigns", systemImage: "chevron.left")
             }
 
             Text(nameDraft.isEmpty ? "Untitled Campaign" : nameDraft)
                 .font(.headline)
                 .lineLimit(1)
+                .truncationMode(.middle)
                 .foregroundStyle(.secondary)
+                .layoutPriority(1)
+                .help(nameDraft.isEmpty ? "Untitled Campaign" : nameDraft)
 
-            Spacer()
+            Spacer(minLength: 8)
 
+            // Tight trailing cluster (matches Character / Run detail toolbars).
             if let campaign {
-                if campaign.isArchived {
-                    Button("Unarchive") { setArchived(false) }
-                } else {
-                    Button("Archive") { setArchived(true) }
-                }
-                Button("Delete", systemImage: "trash", role: .destructive) {
-                    confirmDelete = true
+                HStack(spacing: 4) {
+                    if campaign.isArchived {
+                        AppChromeButton.icon(
+                            "tray.and.arrow.up",
+                            help: "Unarchive this campaign"
+                        ) {
+                            setArchived(false)
+                        }
+                    } else {
+                        AppChromeButton.icon(
+                            "archivebox",
+                            help: "Archive this campaign (hides from default list)"
+                        ) {
+                            setArchived(true)
+                        }
+                    }
+
+                    AppChromeButton.icon(
+                        "trash",
+                        help: "Delete this campaign (runs become Unassigned)",
+                        style: .destructive
+                    ) {
+                        confirmDelete = true
+                    }
                 }
             }
         }

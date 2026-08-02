@@ -85,7 +85,9 @@ struct LibraryShelfBrowseView: View {
     }
 
     private var shelfChromeControls: some View {
-        HStack(spacing: 12) {
+        // Match regular-size AppChromeButton (34pt host) with regular pickers.
+        let h = AppChromeButton.chromeHeight
+        return HStack(alignment: .center, spacing: 10) {
             Picker("Layout", selection: Binding(
                 get: { controller.libraryLayout },
                 set: { controller.libraryLayout = $0; controller.persistUIState() }
@@ -98,8 +100,9 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 88)
+            .controlSize(.regular)
             .labelsHidden()
+            .frame(width: 88, height: h)
             .help("List or Gallery view")
             .accessibilityLabel("Shelf layout")
 
@@ -112,18 +115,20 @@ struct LibraryShelfBrowseView: View {
                 }
             }
             .pickerStyle(.menu)
-            .frame(maxWidth: 140)
-            .controlSize(.small)
+            .controlSize(.regular)
+            .frame(minWidth: 110, idealWidth: 140, maxWidth: 160, minHeight: h, maxHeight: h)
             .help("Sort within each section")
             .accessibilityLabel("Sort shelf")
 
-            Button {
+            AppChromeButton.labeled(
+                "Add PDF…",
+                systemImage: "doc.badge.plus",
+                help: "Add a PDF you own to the Library shelf"
+            ) {
                 isImportingPDF = true
-            } label: {
-                Label("Add PDF…", systemImage: "doc.badge.plus")
             }
-            .controlSize(.small)
         }
+        .frame(height: h)
     }
 
     private var shelfSearchField: some View {
@@ -289,26 +294,24 @@ struct LibraryShelfBrowseView: View {
     }
 
     private var libraryTextResultsChrome: some View {
-        HStack(spacing: 10) {
-            Button {
+        HStack(spacing: 8) {
+            AppChromeButton.labeled(
+                "Previous",
+                systemImage: "chevron.up",
+                help: "Previous search result",
+                isEnabled: controller.canGoToPreviousLibraryHit
+            ) {
                 controller.goToPreviousLibraryHit()
-            } label: {
-                Label("Previous", systemImage: "chevron.up")
             }
-            .controlSize(.small)
-            .disabled(!controller.canGoToPreviousLibraryHit)
-            .help("Previous result")
-            .accessibilityLabel("Previous search result")
 
-            Button {
+            AppChromeButton.labeled(
+                "Next",
+                systemImage: "chevron.down",
+                help: "Next search result",
+                isEnabled: controller.canGoToNextLibraryHit
+            ) {
                 controller.goToNextLibraryHit()
-            } label: {
-                Label("Next", systemImage: "chevron.down")
             }
-            .controlSize(.small)
-            .disabled(!controller.canGoToNextLibraryHit)
-            .help("Next result")
-            .accessibilityLabel("Next search result")
 
             if !controller.libraryTextHits.isEmpty {
                 Text("\(controller.libraryTextHitIndex + 1) of \(controller.libraryTextHits.count)")
@@ -321,10 +324,9 @@ struct LibraryShelfBrowseView: View {
 
             Spacer()
 
-            Button("Back to shelf") {
+            AppChromeButton.title("Back to shelf", help: "Clear PDF text search and return to the shelf") {
                 controller.clearLibraryTextSearch()
             }
-            .controlSize(.small)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -335,12 +337,15 @@ struct LibraryShelfBrowseView: View {
         let groups = controller.librarySectionGroups
         if groups.isEmpty {
             if controller.pdfLibrary.items.isEmpty {
+                // Primary path is Add PDF… in the shelf header (and drag-and-drop).
+                // Match Runs/Campaigns: copy only — no duplicate empty-state CTA.
                 ContentUnavailableView {
                     Label("No Books Yet", systemImage: "books.vertical.fill")
                 } description: {
-                    Text("Add PDFs you legally own. They stay on this Mac only.\nDrag a PDF onto this shelf, or use Add PDF…")
-                } actions: {
-                    Button("Add PDF…") { isImportingPDF = true }
+                    Text(
+                        "Add PDFs you legally own. They stay on this Mac only. "
+                            + "Drag a PDF onto this shelf, or use Add PDF… above."
+                    )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -349,7 +354,7 @@ struct LibraryShelfBrowseView: View {
                 } description: {
                     Text("No books match the filter.")
                 } actions: {
-                    Button("Clear Filter") {
+                    AppChromeButton.title("Clear Filter", help: "Clear the book filter") {
                         Task { @MainActor in controller.libraryFilter = "" }
                     }
                 }
