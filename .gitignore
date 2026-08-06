@@ -80,3 +80,6 @@ SampleAssets/ghostwire_portrait_animated_still.jpg
 # Local table-readiness audit snapshots (not product docs)
 Docs/TABLE_READINESS_AUDIT.md
 Docs/TABLE_READINESS_REAUDIT.md
+
+# Local maintainer tooling (not published in the public repository)
+Scripts/

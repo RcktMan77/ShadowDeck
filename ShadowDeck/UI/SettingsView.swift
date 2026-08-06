@@ -61,35 +61,50 @@ struct SettingsView: View {
 
             Form {
                 Section {
-                    Text("ShadowDeck ships edition-scoped catalogs: SR4A and SR6 core packs extracted from the rulebooks for costs/names, plus a large SR5 reference catalog derived from Chummer5a’s open data. Management tabs load the catalog that matches the open character’s edition. No Chummer install is required.")
+                    Text("ShadowDeck ships edition-scoped catalogs: SR4A and SR6 core packs for costs/names, plus a large SR5 reference catalog derived from Chummer5a’s open data. Management tabs load the catalog that matches the open character’s edition. No Chummer install is required.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if let dir = catalog.result.sourceDirectory {
-                        LabeledContent("Active source", value: dir.lastPathComponent)
-                    }
-                    LabeledContent("Entries loaded", value: "\(catalog.result.entries.count)")
-                    if !catalog.result.loadedFiles.isEmpty {
-                        Text(catalog.result.loadedFiles.joined(separator: "\n"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-                    if !catalog.result.errors.isEmpty {
-                        Text(catalog.result.errors.joined(separator: "\n"))
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                    LabeledContent(
+                        "Entries loaded",
+                        value: "\(catalog.totalEntriesAcrossEditions)"
+                    )
+                    // Per-edition breakdown (SR4 → SR5 → SR6).
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(catalog.editionSummaries) { row in
+                            if row.loadedFiles.isEmpty {
+                                Text("\(row.edition.shortName): \(row.entryCount) entries")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(row.loadedFiles, id: \.self) { line in
+                                    Text(line)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                            ForEach(row.errors, id: \.self) { err in
+                                Text("\(row.edition.shortName): \(err)")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                        }
                     }
 
-                    AppChromeButton.title("Reload Catalog", help: "Reload the gear/quality catalog") {
+                    if let dir = catalog.result.sourceDirectory {
+                        LabeledContent("Active override source", value: dir.lastPathComponent)
+                    }
+
+                    AppChromeButton.title("Reload Catalog", help: "Reload all edition catalogs") {
                         catalog.reload()
-                        status = "Reloaded \(catalog.result.entries.count) entries."
+                        status = "Reloaded \(catalog.totalEntriesAcrossEditions) entries across \(catalog.editionSummaries.count) editions."
                     }
                 } header: {
-                    Text("Built-in catalog")
+                    Text("Built-in catalogs")
                 } footer: {
-                    Text("Data is GPL-3.0-derived from Chummer5a (see Resources/Catalog/NOTICE.txt). Shadowrun remains a trademark of its owners; this is an unofficial fan tool.")
+                    Text("SR5 data is GPL-3.0-derived from Chummer5a (see Resources/Catalog/NOTICE.txt). SR4A/SR6 packs are mechanical name/cost tables only. Shadowrun remains a trademark of its owners; this is an unofficial fan tool.")
                 }
 
                 Section {
@@ -115,16 +130,16 @@ struct SettingsView: View {
                                 CatalogSettings.preferExternalCatalog = true
                                 preferExternal = true
                                 catalog.reload()
-                                status = catalog.result.isEmpty
+                                status = catalog.totalEntriesAcrossEditions == 0
                                     ? "No entries from external folder."
-                                    : "Loaded \(catalog.result.entries.count) from external folder."
+                                    : "Loaded \(catalog.totalEntriesAcrossEditions) entries across editions."
                             }
                         }
                     }
                 } header: {
                     Text("Developer override")
                 } footer: {
-                    Text("Only needed if you regenerate catalogs from a Chummer checkout. End users should leave this off.")
+                    Text("Optional live Chummer data XML for SR5-oriented loads. End users should leave this off.")
                 }
 
                 if !status.isEmpty {
@@ -140,12 +155,12 @@ struct SettingsView: View {
                 Label("Catalog", systemImage: "books.vertical")
             }
         }
-        .frame(width: 560, height: 440)
+        .frame(width: 560, height: 480)
         .onAppear {
             preferExternal = CatalogSettings.preferExternalCatalog
             externalPath = CatalogSettings.chummerDataPath ?? ""
             showSplashOnStartup = !AppPreferences.bool(.skipLaunchSplash)
-            catalog.ensureLoaded()
+            catalog.reload()
         }
     }
 
@@ -162,7 +177,7 @@ struct SettingsView: View {
         CatalogSettings.preferExternalCatalog = true
         preferExternal = true
         catalog.reload()
-        status = "External catalog: \(catalog.result.entries.count) entries."
+        status = "Reloaded catalogs: \(catalog.totalEntriesAcrossEditions) total entries."
     }
 }
 
