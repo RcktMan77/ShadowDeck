@@ -160,6 +160,7 @@ struct AdvancementPlannerView: View {
             CatalogBrowserView(
                 title: "New Skill (rank 1)",
                 kinds: [.skill],
+                edition: character.edition,
                 onPick: { entry in
                     addNewSkillToCart(entry)
                     showNewSkill = false

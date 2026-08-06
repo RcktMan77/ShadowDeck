@@ -27,8 +27,11 @@ struct ShadowDeckApp: App {
         AppPreferences.remove(.launchSplashRevision)
         do {
             // Marketing captures never open the on-disk personal library.
+            // SHADOWDECK_IN_MEMORY_LIBRARY=1: empty ephemeral store for QA (never touches live disk).
             if MarketingScreenshotExporter.isEnabled {
                 libraryEnvironment = try LibraryEnvironment.marketingCapture()
+            } else if ProcessInfo.processInfo.environment["SHADOWDECK_IN_MEMORY_LIBRARY"] == "1" {
+                libraryEnvironment = try LibraryEnvironment.ephemeral()
             } else {
                 libraryEnvironment = try LibraryEnvironment.live()
             }
