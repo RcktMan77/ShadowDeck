@@ -248,7 +248,7 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 | **Advancement** | Plan and spend karma on raises with edition-aware costs |
 | **Contacts** | Standing, tags, and a log of favors and meetings |
 | **Import / export** | Bring characters in from Chummer; export sheets and portable packages |
-| **Catalog** | SR5 gear and qualities that update the sheet when you equip them |
+| **Catalog** | Edition-scoped gear/quality packs (SR4A, SR5, SR6) that update the sheet when you equip them |
 
 ---
 
@@ -295,8 +295,7 @@ Focus: deepen solo campaign tools before multi-user play.
 | Branching | [Docs/BRANCHING.md](Docs/BRANCHING.md) |
 | Design | [Docs/DESIGN.md](Docs/DESIGN.md) |
 | Chummer import | [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md) |
-| Signed / notarized release | [Docs/RELEASE.md](Docs/RELEASE.md) |
-| Screenshot pipeline | [Screenshots/README.md](Screenshots/README.md) |
+| Screenshot assets | [Screenshots/README.md](Screenshots/README.md) |
 
 ```bash
 # Debug build
@@ -307,22 +306,12 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
   -destination 'platform=macOS' test
 
-# Release app → build/Release/ShadowDeck.app (optional --zip, --sign, --notarize)
-Scripts/release_build.sh --zip
-# Signed + notarized distribution (see Docs/RELEASE.md). Local env only:
-#   export CODESIGN_IDENTITY="Developer ID Application: …"
-#   export SHADOWDECK_NOTARY_PROFILE="your-notary-profile"
-#   Scripts/release_build.sh --zip --sign --notarize
-
-# Refresh README marquees (stills, GIFs, posters → Screenshots/)
-Scripts/capture_readme_screenshots.sh
+# Release configuration app
+xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
+  -configuration Release -destination 'platform=macOS' build
 ```
 
-Regenerate the bundled catalog from a Chummer `data/` folder:
-
-```bash
-python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
-```
+Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`). Maintainer tooling for packaging and catalog maintenance is **local-only** (not in the public repository).
 
 ---
 

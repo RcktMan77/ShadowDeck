@@ -578,6 +578,23 @@ enum CatalogCache {
     }
 }
 
+/// Per-edition catalog load summary for Settings (SR4 → SR6).
+public struct CatalogEditionSummary: Sendable, Identifiable, Equatable {
+    public var id: Edition { edition }
+    public var edition: Edition
+    public var entryCount: Int
+    /// Human-readable lines such as `Bundled sr5_catalog.json (4197 entries)`.
+    public var loadedFiles: [String]
+    public var errors: [String]
+
+    public init(edition: Edition, result: CatalogLoadResult) {
+        self.edition = edition
+        self.entryCount = result.entries.count
+        self.loadedFiles = result.loadedFiles
+        self.errors = result.errors
+    }
+}
+
 /// Process-wide cached catalog for SwiftUI (lazy — no decode at app launch).
 @MainActor
 public final class CatalogStore: ObservableObject {
@@ -591,6 +608,13 @@ public final class CatalogStore: ObservableObject {
         errors: []
     )
     @Published public private(set) var isLoaded = false
+    /// Bundled (or override) stats for every edition, ascending SR4 → SR6.
+    @Published public private(set) var editionSummaries: [CatalogEditionSummary] = []
+
+    /// Sum of entry counts across all editions currently summarized.
+    public var totalEntriesAcrossEditions: Int {
+        editionSummaries.reduce(0) { $0 + $1.entryCount }
+    }
 
     private init() {
         // Intentionally empty: decode on first browser/settings access, not at launch.
@@ -598,21 +622,33 @@ public final class CatalogStore: ObservableObject {
 
     /// Load catalog if needed for the current edition (idempotent).
     public func ensureLoaded(for edition: Edition = .sr5) {
-        if isLoaded, self.edition == edition { return }
+        if isLoaded, self.edition == edition, !editionSummaries.isEmpty { return }
         reload(for: edition)
     }
 
     public func reload(for edition: Edition = .sr5) {
-        let loaded = ChummerCatalogLoader.load(edition: edition)
-        CatalogCache.replace(edition: edition, with: loaded)
+        // Always refresh all edition bundles so Settings can show SR4/SR5/SR6 totals.
+        refreshAllEditionSummaries()
+        let loaded = CatalogCache.loadResult(edition: edition)
         self.edition = edition
         result = loaded
         isLoaded = true
     }
 
-    /// Settings / default reload keeps the active edition.
+    /// Settings / default reload keeps the active edition and refreshes all bundles.
     public func reload() {
         reload(for: edition)
+    }
+
+    /// Load every edition into the cache and rebuild ordered summaries (SR4, SR5, SR6).
+    public func refreshAllEditionSummaries() {
+        var rows: [CatalogEditionSummary] = []
+        for ed in Edition.allCases {
+            let loaded = ChummerCatalogLoader.load(edition: ed)
+            CatalogCache.replace(edition: ed, with: loaded)
+            rows.append(CatalogEditionSummary(edition: ed, result: loaded))
+        }
+        editionSummaries = rows
     }
 
     public func entries(

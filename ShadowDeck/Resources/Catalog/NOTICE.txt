@@ -13,17 +13,14 @@ v3 (or later), as stated in the Chummer5a repository (`LICENSE`, `xml_license.tx
 This catalog is provided for use with ShadowDeck under the same GPL-3.0 terms
 as they apply to the redistributed data portion.
 
-To regenerate from upstream Chummer data:
-
-  python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
+No Chummer installation is required to use ShadowDeck. Catalog regeneration,
+if performed by maintainers, uses local tooling outside this public repository.
 
 ## SR4A (`sr4_catalog.json`)
 
 Mechanical tables (item names, nuyen costs, availability, Essence, chargen BP
 rules for spells/contacts/skills, quality BP costs) extracted for companion use
-from the **Shadowrun 20th Anniversary Core Rulebook** (SR4A), via:
-
-  python3 Scripts/build_sr4_catalog_from_pdf.py /path/to/20th-anniversary-core-rulebook.pdf
+from the **Shadowrun 20th Anniversary Core Rulebook** (SR4A).
 
 **Edition note:** This is **SR4A** (20th Anniversary Edition, 2009), fully
 compatible with Shadowrun Fourth Edition books. It is **not** a separate product
@@ -34,21 +31,18 @@ Full rule text and fiction are **not** redistributed. Game content remains the
 property of its respective trademark and copyright holders. ShadowDeck is an
 unofficial fan tool and is not affiliated with Catalyst Game Labs or WizKids.
 
-Spot-check known table values (e.g. Ares Predator IV ¥350, Armor Vest ¥600,
-Datajack ¥500 / 0.1 ESS, spell chargen 3 BP) run at build time
-(`manifest.exactnessChecks`).
+Known table values (e.g. Ares Predator IV ¥350, Armor Vest ¥600, Datajack
+¥500 / 0.1 ESS) are validated by automated spot-checks in unit tests / catalog
+manifests where present.
 
 ## SR6 (`sr6_catalog.json`)
 
 Mechanical tables extracted from the **Shadowrun Sixth World Core Rulebook
-(City Edition Seattle)** gear listing, via:
+(City Edition Seattle)** gear listing (names, nuyen, availability, essence,
+damage — not full rule text).
 
-  python3 Scripts/build_sr6_catalog_from_pdf.py \
-    "/path/to/Shadowrun 6th World Core Rulebook- City Edition Seattle.pdf"
-
-Build **fails** if exactness spot-checks fail (e.g. Combat Axe ¥500, Ares
-Predator VI ¥750, Datajack ¥1,000 / ESS 0.1, Armor Jacket ¥1,000). Verified
-seed rows from the book override parse ambiguities for those items.
+Known table values (e.g. Combat Axe ¥500, Ares Predator VI ¥750, Datajack
+¥1,000 / ESS 0.1, Armor Jacket ¥1,000) are validated by automated spot-checks.
 
 Full rule text is not redistributed. Game content remains property of its
 rights holders. ShadowDeck is unofficial and unaffiliated with Catalyst Game Labs.
