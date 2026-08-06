@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.1.0-0A7EA4?style=flat-square" alt="Version 1.1.0" /></a>
+  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.2.0-0A7EA4?style=flat-square" alt="Version 1.2.0" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
   <img src="https://img.shields.io/badge/platform-Mac-lightgrey?style=flat-square" alt="Mac" />
