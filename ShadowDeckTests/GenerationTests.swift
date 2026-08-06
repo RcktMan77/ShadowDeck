@@ -331,4 +331,44 @@ final class GenerationTests: XCTestCase {
         XCTAssertEqual(character.nuyen, 25_000)
         XCTAssertFalse(character.skills.isEmpty)
     }
+
+    func testSR4SkillGroupSpellAndContactBP() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectMetatype(.human)
+        draft.recomputeBuildPoints()
+        let start = draft.budget.buildPointsRemaining
+
+        draft.setSkillGroupRating(.fireArarms, rating: 3)
+        XCTAssertEqual(draft.buildPointLedger.skillGroups, 30)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, start - 30)
+
+        draft.setSkillRank(catalogKey: "spellcasting", displayName: "Spellcasting", rank: 4)
+        draft.setAwakenedPath(.fullMagician)
+        // Magician quality not auto-added; still can buy spells if usesMagic
+        XCTAssertEqual(draft.maxSpellsAtChargen, 8)
+        let beforeSpell = draft.budget.buildPointsRemaining
+        draft.addSpell(SpellInstance(catalogKey: "manabolt", name: "Manabolt", category: "Combat Spell"))
+        XCTAssertEqual(draft.spells.count, 1)
+        XCTAssertEqual(draft.buildPointLedger.spells, 3)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, beforeSpell - 3)
+
+        let beforeContact = draft.budget.buildPointsRemaining
+        draft.addContact(Contact(name: "Fixer Jax", role: "Fixer", loyalty: 2, connection: 4))
+        XCTAssertEqual(draft.buildPointLedger.contacts, 6)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, beforeContact - 6)
+
+        let character = draft.buildCharacter()
+        XCTAssertEqual(character.skillGroups.first?.group, .fireArarms)
+        XCTAssertEqual(character.skillGroups.first?.rating, 3)
+        XCTAssertEqual(character.spells.count, 1)
+        XCTAssertEqual(character.contacts.count, 1)
+        XCTAssertEqual(character.contacts.first?.connection, 4)
+    }
+
+    func testSR4ContactCostFormula() {
+        XCTAssertEqual(SR4BuildPointEngine.contactCost(connection: 3, loyalty: 5), 8)
+        XCTAssertEqual(SR4BuildPointEngine.spellCost(count: 6), 18)
+        XCTAssertEqual(SR4BuildPointEngine.skillGroupCost(ratings: [.sorcery: 3]), 30)
+    }
 }

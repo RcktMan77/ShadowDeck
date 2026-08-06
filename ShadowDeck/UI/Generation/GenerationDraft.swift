@@ -83,6 +83,12 @@ public final class GenerationDraft {
     public var attributePurchases: [AttributeID: Int] = [:]
     public var specialPurchases: [AttributeID: Int] = [:]
     public var skillRanks: [String: Int] = [:]
+    /// SR4A skill group ratings (0 = none). Chargen max 4.
+    public var skillGroupRatings: [SkillGroupID: Int] = [:]
+    /// Spells learned with BP during SR4 chargen.
+    public var spells: [SpellInstance] = []
+    /// Contacts bought with BP during SR4 chargen (Connection + Loyalty).
+    public var contacts: [Contact] = []
 
     public var budget = GenerationBudget()
 
@@ -144,10 +150,18 @@ public final class GenerationDraft {
             awakened: awakened,
             skills: skills,
             skillRanks: skillRanks,
+            skillGroupRatings: skillGroupRatings,
+            spells: spells,
+            contacts: contacts,
             qualities: qualities,
             nuyen: nuyen,
             budget: budget.buildPointsTotal
         ).ledger
+    }
+
+    /// Max spells at SR4A chargen (2 × highest Spellcasting / Ritual Spellcasting).
+    public var maxSpellsAtChargen: Int {
+        SR4BuildPointEngine.maxSpellsAtChargen(skillRanks: skillRanks, skills: skills)
     }
 
     public var priorityValid: Bool {
@@ -598,7 +612,117 @@ public final class GenerationDraft {
         (skillRanks[catalogKey] ?? 0) > 0
     }
 
+    // MARK: - SR4 skill groups / spells / contacts
+
+    public func skillGroupRating(_ group: SkillGroupID) -> Int {
+        skillGroupRatings[group] ?? 0
+    }
+
+    public func canIncreaseSkillGroup(_ group: SkillGroupID) -> Bool {
+        guard generationSystem == .buildPoints else { return false }
+        let current = skillGroupRating(group)
+        guard current < SR4BuildPointEngine.skillGroupMaxAtChargen else { return false }
+        return budget.buildPointsRemaining >= SR4BuildPointEngine.skillGroupRankCost
+    }
+
+    public func canDecreaseSkillGroup(_ group: SkillGroupID) -> Bool {
+        skillGroupRating(group) > 0
+    }
+
+    public func setSkillGroupRating(_ group: SkillGroupID, rating: Int) {
+        let clamped = max(0, min(rating, SR4BuildPointEngine.skillGroupMaxAtChargen))
+        let previous = skillGroupRating(group)
+        let delta = clamped - previous
+        guard delta != 0 else { return }
+        if generationSystem == .buildPoints, delta > 0 {
+            let need = delta * SR4BuildPointEngine.skillGroupRankCost
+            guard budget.buildPointsRemaining >= need else { return }
+        }
+        if clamped == 0 {
+            skillGroupRatings.removeValue(forKey: group)
+        } else {
+            skillGroupRatings[group] = clamped
+        }
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
+    public func canAddSpell() -> Bool {
+        guard generationSystem == .buildPoints else { return true }
+        guard awakened.usesMagic else { return false }
+        guard spells.count < maxSpellsAtChargen else { return false }
+        return budget.buildPointsRemaining >= SR4BuildPointEngine.spellCost
+    }
+
+    public func addSpell(_ spell: SpellInstance) {
+        if generationSystem == .buildPoints {
+            guard canAddSpell() else { return }
+            guard !spells.contains(where: { $0.catalogKey == spell.catalogKey || $0.name == spell.name }) else {
+                return
+            }
+        }
+        spells.append(spell)
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
+    public func removeSpell(id: UUID) {
+        spells.removeAll { $0.id == id }
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
+    public func contactBPCost(_ contact: Contact) -> Int {
+        SR4BuildPointEngine.contactCost(connection: contact.connection, loyalty: contact.loyalty)
+    }
+
+    public func canAddContact(connection: Int, loyalty: Int) -> Bool {
+        guard generationSystem == .buildPoints else { return true }
+        let cost = SR4BuildPointEngine.contactCost(connection: connection, loyalty: loyalty)
+        return budget.buildPointsRemaining >= cost
+    }
+
+    public func addContact(_ contact: Contact) {
+        if generationSystem == .buildPoints {
+            guard canAddContact(connection: contact.connection, loyalty: contact.loyalty) else { return }
+        }
+        contacts.append(contact)
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
+    public func updateContact(_ contact: Contact) {
+        guard let idx = contacts.firstIndex(where: { $0.id == contact.id }) else { return }
+        let previous = contacts[idx]
+        if generationSystem == .buildPoints {
+            let oldCost = contactBPCost(previous)
+            let newCost = contactBPCost(contact)
+            let free = budget.buildPointsRemaining + oldCost
+            guard free >= newCost else { return }
+        }
+        contacts[idx] = contact
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
+    public func removeContact(id: UUID) {
+        contacts.removeAll { $0.id == id }
+        if generationSystem == .buildPoints {
+            recomputeBuildPoints()
+        }
+    }
+
     public func buildCharacter() -> Character {
+        let groupInstances = skillGroupRatings
+            .filter { $0.value > 0 }
+            .map { SkillGroupRating(group: $0.key, rating: $0.value) }
+            .sorted { $0.group.rawValue < $1.group.rawValue }
+
         var character = Character(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             streetName: streetName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -622,13 +746,18 @@ public final class GenerationDraft {
                 attributePoints: budget.attributePointsTotal,
                 specialAttributePoints: budget.specialPointsTotal,
                 skillPoints: budget.skillPointsTotal,
-                skillGroupPoints: budget.skillGroupPointsTotal,
+                skillGroupPoints: generationSystem == .buildPoints
+                    ? groupInstances.reduce(0) { $0 + $1.rating }
+                    : budget.skillGroupPointsTotal,
                 isFinished: true
             ),
             houseRules: houseRules,
             attributes: attributes,
             skills: skills.filter { $0.rating > 0 },
+            skillGroups: groupInstances,
             qualities: qualities,
+            spells: spells,
+            contacts: contacts,
             karmaTotal: budget.karmaTotal,
             karmaAvailable: budget.karmaRemaining,
             nuyen: nuyen
@@ -678,6 +807,9 @@ public final class GenerationDraft {
             awakened: awakened,
             skills: skills,
             skillRanks: skillRanks,
+            skillGroupRatings: skillGroupRatings,
+            spells: spells,
+            contacts: contacts,
             qualities: qualities,
             nuyen: nuyen,
             budget: budgetTotal

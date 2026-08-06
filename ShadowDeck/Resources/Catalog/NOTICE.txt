@@ -1,7 +1,9 @@
 ShadowDeck Catalog Data
 =======================
 
-The file `sr5_catalog.json` is derived from the Chummer5a project data XML files:
+## SR5 (`sr5_catalog.json`)
+
+Derived from the Chummer5a project data XML files:
 
   https://github.com/chummer5a/chummer5a
 
@@ -9,10 +11,29 @@ Those source data files are free software under the GNU General Public License
 v3 (or later), as stated in the Chummer5a repository (`LICENSE`, `xml_license.txt`).
 
 This catalog is provided for use with ShadowDeck under the same GPL-3.0 terms
-as they apply to the redistributed data portion. Shadowrun game content remains
-the property of its respective trademark and copyright holders. ShadowDeck is an
-unofficial fan tool and is not affiliated with Catalyst Game Labs.
+as they apply to the redistributed data portion.
 
 To regenerate from upstream Chummer data:
 
   python3 Scripts/build_catalog_from_chummer.py /path/to/Chummer/data
+
+## SR4A (`sr4_catalog.json`)
+
+Mechanical tables (item names, nuyen costs, availability, Essence, chargen BP
+rules for spells/contacts/skills, quality BP costs) extracted for companion use
+from the **Shadowrun 20th Anniversary Core Rulebook** (SR4A), via:
+
+  python3 Scripts/build_sr4_catalog_from_pdf.py /path/to/20th-anniversary-core-rulebook.pdf
+
+**Edition note:** This is **SR4A** (20th Anniversary Edition, 2009), fully
+compatible with Shadowrun Fourth Edition books. It is **not** a separate product
+line called “SR4E.” Community “4e” slang usually means fourth edition in general;
+ShadowDeck’s SR4 profile targets **SR4A**.
+
+Full rule text and fiction are **not** redistributed. Game content remains the
+property of its respective trademark and copyright holders. ShadowDeck is an
+unofficial fan tool and is not affiliated with Catalyst Game Labs or WizKids.
+
+Spot-check known table values (e.g. Ares Predator IV ¥350, Armor Vest ¥600,
+Datajack ¥500 / 0.1 ESS, spell chargen 3 BP) run at build time
+(`manifest.exactnessChecks`).
