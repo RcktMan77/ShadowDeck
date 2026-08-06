@@ -178,4 +178,157 @@ final class GenerationTests: XCTestCase {
         }
         XCTAssertTrue(ChargenHelpCatalog.pathDescription(.mundane).lowercased().contains("no magic"))
     }
+
+    // MARK: - SR4 Build Points (real accounting)
+
+    func testSR4BuildPointEngineMetatypeAndResources() {
+        XCTAssertEqual(SR4BuildPointEngine.metatypeCost(.human), 0)
+        XCTAssertEqual(SR4BuildPointEngine.metatypeCost(.troll), 40)
+        XCTAssertEqual(SR4BuildPointEngine.resourceCost(nuyen: 0), 0)
+        XCTAssertEqual(SR4BuildPointEngine.resourceCost(nuyen: 5_000), 1)
+        XCTAssertEqual(SR4BuildPointEngine.resourceCost(nuyen: 5_001), 2)
+        XCTAssertEqual(SR4BuildPointEngine.nuyenForBuildPoints(3), 15_000)
+    }
+
+    func testSR4DraftBudgetIs400AndMetatypeSpendsBP() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        XCTAssertEqual(draft.generationSystem, .buildPoints)
+        XCTAssertEqual(draft.budget.buildPointsTotal, 400)
+        draft.selectMetatype(.human)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, 400)
+        draft.selectMetatype(.elf)
+        // Elf 30 BP; attributes at minima should add 0 beyond metatype.
+        XCTAssertEqual(draft.buildPointLedger.metatype, 30)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, 370)
+    }
+
+    func testSR4AttributeSpends10BPAndBlocksOverspend() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectMetatype(.human)
+        draft.resetAttributesToMinima()
+        draft.recomputeBuildPoints()
+        let before = draft.budget.buildPointsRemaining
+        XCTAssertTrue(draft.canIncreaseAttribute(.body))
+        draft.increaseAttribute(.body)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, before - 10)
+        XCTAssertEqual(draft.buildPointLedger.attributes, 10)
+
+        // Exhaust BP by purchasing attributes until cannot increase.
+        while draft.canIncreaseAttribute(.agility) {
+            draft.increaseAttribute(.agility)
+        }
+        // Either at metatype max or insufficient BP for another 10.
+        XCTAssertFalse(draft.canIncreaseAttribute(.agility))
+        XCTAssertGreaterThanOrEqual(draft.budget.buildPointsRemaining, 0)
+    }
+
+    func testSR4SkillSpends4BPPerRank() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectMetatype(.human)
+        draft.recomputeBuildPoints()
+        let before = draft.budget.buildPointsRemaining
+        draft.setSkillRank(catalogKey: "pistols", displayName: "Pistols", rank: 3)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, before - 12)
+        XCTAssertEqual(draft.buildPointLedger.skills, 12)
+        draft.setSkillRank(catalogKey: "pistols", displayName: "Pistols", rank: 0)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, before)
+    }
+
+    func testSR4ResourcesAndQualitiesAffectBP() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectMetatype(.human)
+        draft.recomputeBuildPoints()
+        draft.setNuyenForBuildPoints(50_000)
+        XCTAssertEqual(draft.nuyen, 50_000)
+        XCTAssertEqual(draft.buildPointLedger.resources, 10)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, 390)
+
+        XCTAssertTrue(draft.canAddQuality(kind: .positive, karmaValue: 10))
+        draft.qualities.append(
+            QualityInstance(catalogKey: "toughness", name: "Toughness", kind: .positive, karmaValue: 10)
+        )
+        draft.recomputeBuildPoints()
+        XCTAssertEqual(draft.buildPointLedger.qualities, 10)
+        XCTAssertEqual(draft.budget.buildPointsRemaining, 380)
+
+        draft.qualities.append(
+            QualityInstance(catalogKey: "sinner", name: "SINner", kind: .negative, karmaValue: 5)
+        )
+        draft.recomputeBuildPoints()
+        XCTAssertEqual(draft.buildPointLedger.qualities, 5) // 10 - 5
+        XCTAssertEqual(draft.budget.buildPointsRemaining, 385)
+    }
+
+    func testSR4OverspendBlocksFinishAndBuildRecordsSpent() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectMetatype(.troll) // 40 BP
+        draft.selectArchetype(.streetSamurai)
+        draft.name = "Brick"
+        // Force overspend: more nuyen than remaining BP can buy after heavy attrs/skills.
+        draft.resetAttributesToMinima()
+        for _ in 0..<30 {
+            if draft.canIncreaseAttribute(.body) { draft.increaseAttribute(.body) }
+            if draft.canIncreaseAttribute(.strength) { draft.increaseAttribute(.strength) }
+            if draft.canIncreaseAttribute(.agility) { draft.increaseAttribute(.agility) }
+        }
+        draft.setSkillRank(catalogKey: "unarmed", displayName: "Unarmed", rank: 6)
+        draft.setSkillRank(catalogKey: "pistols", displayName: "Pistols", rank: 6)
+        draft.setSkillRank(catalogKey: "athletics", displayName: "Athletics", rank: 6)
+        draft.setSkillRank(catalogKey: "perception", displayName: "Perception", rank: 6)
+        draft.setSkillRank(catalogKey: "sneaking", displayName: "Sneaking", rank: 6)
+        // Spend remaining on nuyen.
+        draft.setNuyenForBuildPoints(
+            SR4BuildPointEngine.nuyenForBuildPoints(max(0, draft.budget.buildPointsRemaining))
+        )
+        XCTAssertGreaterThanOrEqual(draft.budget.buildPointsRemaining, 0)
+        XCTAssertFalse(draft.isBuildPointsOverBudget)
+
+        // Manually force ledger overspend path: set nuyen without guard by raw assignment then recompute.
+        draft.nuyen = 5_000_000
+        draft.recomputeBuildPoints()
+        XCTAssertTrue(draft.isBuildPointsOverBudget)
+        draft.step = .finish
+        XCTAssertFalse(draft.canGoNext)
+
+        // Fix overspend and save path.
+        draft.setNuyenForBuildPoints(0)
+        // setNuyen only applies if BP mode guard allows; force clear:
+        draft.nuyen = 0
+        draft.recomputeBuildPoints()
+        XCTAssertFalse(draft.isBuildPointsOverBudget)
+        XCTAssertTrue(draft.canGoNext)
+
+        let character = draft.buildCharacter()
+        XCTAssertEqual(character.generation.system, .buildPoints)
+        XCTAssertEqual(character.generation.buildPointBudget, 400)
+        XCTAssertEqual(character.generation.buildPointsSpent, draft.buildPointLedger.total)
+        XCTAssertLessThanOrEqual(character.generation.buildPointsSpent, 400)
+    }
+
+    func testSR4FullDraftToCharacterHappyPath() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectArchetype(.face)
+        draft.selectMetatype(.elf)
+        draft.setAwakenedPath(.mundane)
+        draft.applyRecommendedAttributes()
+        draft.applyRecommendedSkills()
+        draft.setNuyenForBuildPoints(25_000)
+        draft.name = "Glitter"
+        draft.streetName = "Chrome Smile"
+        XCTAssertFalse(draft.isBuildPointsOverBudget)
+        XCTAssertGreaterThanOrEqual(draft.budget.buildPointsRemaining, 0)
+        let character = draft.buildCharacter()
+        XCTAssertEqual(character.edition, .sr4)
+        XCTAssertEqual(character.metatype, .elf)
+        XCTAssertEqual(character.generation.buildPointBudget, 400)
+        XCTAssertEqual(character.generation.buildPointsSpent, draft.buildPointLedger.total)
+        XCTAssertEqual(character.nuyen, 25_000)
+        XCTAssertFalse(character.skills.isEmpty)
+    }
 }

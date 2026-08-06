@@ -14,18 +14,29 @@ struct AllocationCounterBar: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 if draft.generationSystem == .buildPoints {
-                    chip("BP", remaining: draft.budget.buildPointsRemaining, total: draft.budget.buildPointsTotal)
+                    // Real SR4 BP: single pool + cash bought with BP. No fake Attr/Skill pools.
+                    chip(
+                        "BP",
+                        remaining: draft.budget.buildPointsRemaining,
+                        total: draft.budget.buildPointsTotal,
+                        emphasizeOverspend: true
+                    )
+                    chip("¥", remaining: draft.nuyen, total: max(draft.nuyen, 1), isCurrency: true)
+                    if draft.budget.karmaTotal > 0 {
+                        chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
+                    }
+                } else {
+                    chip("Attributes", remaining: draft.budget.attributePointsRemaining, total: draft.budget.attributePointsTotal)
+                    if draft.budget.specialPointsTotal > 0 {
+                        chip("Special", remaining: draft.budget.specialPointsRemaining, total: draft.budget.specialPointsTotal)
+                    }
+                    chip("Skills", remaining: draft.budget.skillPointsRemaining, total: draft.budget.skillPointsTotal)
+                    if draft.budget.skillGroupPointsTotal > 0 {
+                        chip("Groups", remaining: draft.budget.skillGroupPointsRemaining, total: draft.budget.skillGroupPointsTotal)
+                    }
+                    chip("¥", remaining: draft.budget.nuyenRemaining, total: draft.budget.nuyenTotal, isCurrency: true)
+                    chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
                 }
-                chip("Attributes", remaining: draft.budget.attributePointsRemaining, total: draft.budget.attributePointsTotal)
-                if draft.budget.specialPointsTotal > 0 {
-                    chip("Special", remaining: draft.budget.specialPointsRemaining, total: draft.budget.specialPointsTotal)
-                }
-                chip("Skills", remaining: draft.budget.skillPointsRemaining, total: draft.budget.skillPointsTotal)
-                if draft.budget.skillGroupPointsTotal > 0 {
-                    chip("Groups", remaining: draft.budget.skillGroupPointsRemaining, total: draft.budget.skillGroupPointsTotal)
-                }
-                chip("¥", remaining: draft.budget.nuyenRemaining, total: draft.budget.nuyenTotal, isCurrency: true)
-                chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
                 if draft.freeKnowledgePool > 0 {
                     chip("Knowledge", remaining: draft.freeKnowledgePool, total: draft.freeKnowledgePool)
                 }
@@ -37,23 +48,41 @@ struct AllocationCounterBar: View {
         }
     }
 
-    private func chip(_ title: String, remaining: Int, total: Int, isCurrency: Bool = false) -> some View {
-        let exhausted = remaining <= 0 && total > 0
+    private func chip(
+        _ title: String,
+        remaining: Int,
+        total: Int,
+        isCurrency: Bool = false,
+        emphasizeOverspend: Bool = false
+    ) -> some View {
+        let overspent = emphasizeOverspend && remaining < 0
+        let exhausted = remaining <= 0 && total > 0 && !overspent
+        let valueText: String = {
+            if isCurrency { return "¥\(remaining)" }
+            if emphasizeOverspend {
+                return "\(remaining) left · \(total)"
+            }
+            return "\(remaining) left · \(total)"
+        }()
         return VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text(isCurrency ? "\(remaining) / \(total)" : "\(remaining) left · \(total)")
+            Text(valueText)
                 .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(exhausted ? Color.secondary : Color.primary)
+                .foregroundStyle(overspent ? Color.red : (exhausted ? Color.secondary : Color.primary))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(exhausted ? Color.secondary.opacity(0.08) : Color.accentColor.opacity(0.12))
+                .fill(
+                    overspent
+                        ? Color.red.opacity(0.12)
+                        : (exhausted ? Color.secondary.opacity(0.08) : Color.accentColor.opacity(0.12))
+                )
         )
-        .opacity(total == 0 ? 0.45 : 1)
+        .opacity(total == 0 && !overspent ? 0.45 : 1)
     }
 }
 
