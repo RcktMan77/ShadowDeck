@@ -1,10 +1,8 @@
 # README marquee screenshots
 
-Stills and short silent GIFs for [README.md](../../README.md). Regenerate with:
+Stills and short silent GIFs for [README.md](../../README.md).
 
-```bash
-Scripts/capture_readme_screenshots.sh
-```
+Maintainer capture automation (if used) is **local-only** and not part of the public repository. Assets in this folder are the source of truth for the README marquee.
 
 | File | View |
 |------|------|
