@@ -240,15 +240,8 @@ final class TableReadinessDomainTests: XCTestCase {
 
     // MARK: - Import fixtures edition coverage
 
-    func testImportFixturesAreSR5Only() throws {
-        let fixtures = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("Fixtures")
-        let json = fixtures.appendingPathComponent("minimal_sr5.json")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: json.path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fixtures.appendingPathComponent("minimal_sr4.json").path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fixtures.appendingPathComponent("minimal_sr6.json").path))
-        let data = try Data(contentsOf: json)
+    func testImportFixtureSR5LoadsFromBundle() throws {
+        let data = try TestFixtures.data(named: "minimal_sr5.json")
         let result = try CharacterImporter.importChummerJSON(data, fileName: "minimal_sr5.json")
         XCTAssertEqual(result.character.edition, .sr5)
     }

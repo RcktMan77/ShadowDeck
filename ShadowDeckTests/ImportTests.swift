@@ -8,20 +8,13 @@ import SwiftData
 @testable import ShadowDeck
 
 final class ImportTests: XCTestCase {
-    // MARK: - Fixture helpers
-
-    private var fixturesDirectory: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("Fixtures", isDirectory: true)
-    }
+    // MARK: - Fixture helpers (bundle-backed — no source-tree / Desktop paths)
 
     private func fixtureData(_ name: String) throws -> Data {
-        let url = fixturesDirectory.appendingPathComponent(name)
-        return try Data(contentsOf: url)
+        try TestFixtures.data(named: name)
     }
 
-    // MARK: - Synthetic fixtures (repo Fixtures/ only — no host-local paths)
+    // MARK: - Synthetic fixtures
 
     func testMinimalJSONImportCoreFields() throws {
         let data = try fixtureData("minimal_sr5.json")
@@ -103,7 +96,12 @@ final class ImportTests: XCTestCase {
             try PersistenceController.makeLibrary(container: container, avatarRoot: avatarRoot)
         }
 
-        let url = fixturesDirectory.appendingPathComponent("minimal_sr5.json")
+        // Write fixture to a temp URL so importAndSave can open a file path without Desktop.
+        let data = try fixtureData("minimal_sr5.json")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("minimal_sr5-\(UUID().uuidString).json")
+        try data.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
         let result = try await library.importAndSave(from: url)
         let count = try await MainActor.run { try library.count() }
         XCTAssertEqual(count, 1)
