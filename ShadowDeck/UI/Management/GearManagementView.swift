@@ -74,6 +74,7 @@ struct GearManagementView: View {
             CatalogBrowserView(
                 title: "Add Gear",
                 kinds: [.gear, .weapon, .armor],
+                edition: character.edition,
                 onPick: { entry in
                     addFromCatalog(entry)
                     showCatalog = false
