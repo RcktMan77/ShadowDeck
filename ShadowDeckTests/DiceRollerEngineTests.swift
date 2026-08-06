@@ -189,6 +189,71 @@ final class DiceRollerEngineTests: XCTestCase {
     func testPushTheLimitPoolAddsEdge() {
         XCTAssertEqual(DiceRollerEngine.pushTheLimitPool(basePool: 10, edgeRating: 3), 13)
         XCTAssertEqual(DiceRollerEngine.pushTheLimitPool(basePool: 0, edgeRating: 2), 2)
+        XCTAssertEqual(DiceRollerEngine.addEdgeDicePool(basePool: 10, edgeRating: 3), 13)
+    }
+
+    // MARK: - SR6 Edge Actions
+
+    func testBuyHitAddsOneHitAndSpendsEdge() {
+        let previous = DiceResult(
+            hits: 2,
+            ones: 0,
+            glitch: false,
+            criticalGlitch: false,
+            dice: [5, 6, 2],
+            pool: 3,
+            edition: .sr6,
+            edgeSpent: 0
+        )
+        let next = DiceRollerEngine.buyHit(previous: previous)
+        XCTAssertEqual(next.hits, 3)
+        XCTAssertEqual(next.dice, previous.dice)
+        XCTAssertEqual(next.edgeMode, .buyHit)
+        XCTAssertEqual(next.edgeSpent, 1)
+    }
+
+    func testCloseCallClearsGlitch() {
+        let previous = DiceResult(
+            hits: 1,
+            ones: 2,
+            glitch: true,
+            criticalGlitch: false,
+            dice: [5, 1, 1],
+            pool: 3,
+            edition: .sr6
+        )
+        let next = DiceRollerEngine.closeCall(previous: previous)
+        XCTAssertNotNil(next)
+        XCTAssertEqual(next?.hits, 1)
+        XCTAssertFalse(next?.glitch ?? true)
+        XCTAssertEqual(next?.edgeMode, .closeCall)
+        XCTAssertEqual(next?.edgeSpent, 1)
+        XCTAssertNil(DiceRollerEngine.closeCall(previous: DiceResult(
+            hits: 2,
+            ones: 0,
+            glitch: false,
+            criticalGlitch: false,
+            dice: [5, 6],
+            pool: 2,
+            edition: .sr6
+        )))
+    }
+
+    func testFullSR6EdgeIsDefaultAndSimplifiedIsHouseRule() {
+        XCTAssertFalse(DiceHouseRules.coreBook.simplifiedSR6Edge)
+        XCTAssertTrue(DiceHouseRules.coreBook.usesFullSR6EdgeActions(for: .sr6))
+        XCTAssertFalse(DiceHouseRules.coreBook.usesFullSR6EdgeActions(for: .sr5))
+        let simplified = DiceHouseRules(simplifiedSR6Edge: true)
+        XCTAssertFalse(simplified.usesFullSR6EdgeActions(for: .sr6))
+        XCTAssertTrue(simplified.isNonDefault)
+        XCTAssertEqual(
+            DiceEdgeMode.pushTheLimit.displayName(edition: .sr6, fullSR6Edge: true),
+            "Add Edge Dice"
+        )
+        XCTAssertEqual(
+            DiceEdgeMode.secondChance.displayName(edition: .sr6, fullSR6Edge: true),
+            "Reroll Failures"
+        )
     }
 
     func testCopyTextIncludesEditionAndHits() {

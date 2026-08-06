@@ -74,7 +74,8 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
     public var countExplodedDiceForGlitch: Bool
     /// When true, hits on 4–6 instead of 5–6. Ones still glitch.
     public var hitsOn4: Bool
-    /// SR6: treat Edge like SR5 Push / Second Chance (already the app default).
+    /// When true on SR6 characters, roller uses SR4/5 Push / Second Chance labels only
+    /// (house rule). **Default is false** — full SR6 Edge Actions path is normal play.
     public var simplifiedSR6Edge: Bool
 
     public init(
@@ -82,7 +83,7 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
         ruleOfSix: DiceRuleOfSixMode = .edgeOnly,
         countExplodedDiceForGlitch: Bool = true,
         hitsOn4: Bool = false,
-        simplifiedSR6Edge: Bool = true
+        simplifiedSR6Edge: Bool = false
     ) {
         self.glitchThreshold = glitchThreshold
         self.ruleOfSix = ruleOfSix
@@ -94,14 +95,19 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
     /// Strict core-book dice defaults (edition still chooses glitch mode via `.editionDefault`).
     public static let coreBook = Self()
 
-    /// Popular table: half-or-more glitches, count exploded dice.
+    /// Popular table: half-or-more glitches, count exploded dice; full SR6 Edge when applicable.
     public static let popularTable = Self(
         glitchThreshold: .halfOrMore,
         ruleOfSix: .edgeOnly,
         countExplodedDiceForGlitch: true,
         hitsOn4: false,
-        simplifiedSR6Edge: true
+        simplifiedSR6Edge: false
     )
+
+    /// Whether the roller should expose the full SR6 Edge Action set for this edition.
+    public func usesFullSR6EdgeActions(for edition: Edition) -> Bool {
+        edition == .sr6 && !simplifiedSR6Edge
+    }
 
     /// Resolve glitch mode for a concrete edition.
     public func resolvedGlitchThreshold(for edition: Edition) -> DiceGlitchThresholdMode {
@@ -131,7 +137,7 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
             || ruleOfSix != .edgeOnly
             || countExplodedDiceForGlitch != true
             || hitsOn4
-            || simplifiedSR6Edge != true
+            || simplifiedSR6Edge // house-rule simplification is non-default
     }
 
     /// Non-default overrides shown in the roller chrome (edition default glitch is resolved separately).
@@ -149,9 +155,8 @@ public struct DiceHouseRules: Codable, Sendable, Hashable {
         if hitsOn4 {
             lines.append("Hits on 4+")
         }
-        // simplifiedSR6Edge defaults true (matches the roller’s Edge model); omit from banner noise.
-        if !simplifiedSR6Edge {
-            lines.append("Full SR6 Edge (unsupported in v1 roller)")
+        if simplifiedSR6Edge {
+            lines.append("Simplified SR6 Edge (SR5-style Push / Second Chance only)")
         }
         return lines
     }
