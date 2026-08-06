@@ -68,7 +68,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 |---------|-----|-----|-----|
 | Default gen | Build Points (400) | Priority | Priority |
 | Limits | No | Physical/Mental/Social | No (Edge-centric) |
-| Edge | Attribute | Attribute | Session pool + attribute |
+| Edge | Attribute | Attribute | Session pool + **Edge Actions** (default) |
 | Sample starting karma | — | 25 | 50 |
 
 ### SR4 Build Points chargen (wizard v1)
@@ -94,6 +94,19 @@ UI  →  View models / observation  →  Domain models (Character, …)
 **Catalog:** Edition-aware packs via `ChummerCatalogLoader.load(edition:)` — `sr4_catalog.json` (SR4A), `sr5_catalog.json` (Chummer GPL), `sr6_catalog.json` (SR6 core gear listing with build-time exactness checks).
 
 **Not used for F1 remediation:** “Simplified/Beta” labels or fake Attr/Skill pools with “expands later” copy.
+
+### SR6 Edge Actions (dice roller)
+
+**Default:** full SR6 Edge path (`DiceHouseRules.simplifiedSR6Edge == false`). Session pool = Edge attribute; **Refresh Edge** restores between scenes.
+
+| ShadowDeck control | Book mapping (condensed) | Cost |
+|--------------------|--------------------------|------|
+| **Add Edge Dice** (pre-roll toggle) | Add Edge rating dice + exploding 6s (SR5 “Push the Limit” math) | 1 Edge |
+| **Reroll Failures** (post-roll) | Re-roll non-hits once | 1 Edge |
+| **Buy a Hit** | One automatic hit on the last result | 1 Edge |
+| **Close Call** | Clear glitch / critical glitch; keep faces and hits | 1 Edge |
+
+**House rule:** `simplifiedSR6Edge` limits the roller to Push / Second Chance labels only (SR5-style). Combat-only Edge Actions remain deferred with the combat tracker.
 
 ### Portable file format (`.shadowdeck`)
 
@@ -316,6 +329,7 @@ SR4 / SR6: PDF extract pipelines in `Scripts/build_sr4_catalog_from_pdf.py` and 
 | 2026-07-31 | Enriched contacts v1: tags, manual favor standing, interaction log (historical favor snapshots), optional soft Run link; relationship status from loyalty + recency; still character-scoped |
 | 2026-07-31 | Dice roller v1: inspector panel on character sheet; SR4/5/6 hits & glitches; Push the Limit + Second Chance with session Edge; one-click from skills/attributes; ⌘D |
 | 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
+| 2026-08-06 | Full SR6 Edge Actions default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call); `simplifiedSR6Edge` is house-rule off-by-default |
 | 2026-08-01 | Apply Run Awards v1: explicit Apply Awards… on terminal runs; equal floor split among available participants; remainder to first; `awardsAppliedAt` double-apply guard; advancement `runAward` ledger; no auto-apply |
 | 2026-08-01 | Rules Reference v1: structured cards + calculators + local PDF library + page-chip bridge; dedicated `Window` scene (⌘R); no bundled rulebook PDFs |
 | 2026-08-05 | SR4 Build Points chargen: real 400 BP ledger via `SR4BuildPointEngine` (metatype, attrs, skills, qualities, resources); no simplified-pool placeholder |
