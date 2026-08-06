@@ -12,7 +12,10 @@ enum AppPreferences {
     enum Key: String {
         // Launch / window
         case mainWindowFrame = "ShadowDeck.mainWindowFrame"
-        /// After first splash dismiss, later cold launches skip the splash.
+        /// When true, cold launches skip the splash and open the main deck directly.
+        /// Default is false (splash every launch). Controlled from Settings → General.
+        case skipLaunchSplash = "skipLaunchSplash"
+        /// Legacy: first-dismiss used to suppress splash forever. Migrated away on launch.
         case hasSeenLaunchSplash = "hasSeenLaunchSplash"
         /// Legacy revision counter (no longer used).
         case launchSplashRevision = "launchSplashRevision"

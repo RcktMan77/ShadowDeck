@@ -94,8 +94,18 @@ public final class GenerationDraft {
 
     /// Free knowledge ranks from house rules (auto or fixed).
     public private(set) var freeKnowledgePool: Int = 0
-    /// Contact points (CHA×3 + expanded extras).
+    /// Free contact-point pool total (CHA×3 + expanded extras). Used for **priority** chargen, not SR4 BP.
     public private(set) var contactPointPool: Int = 0
+
+    /// Free contact points spent (sum of Connection + Loyalty on draft contacts). Priority chargen only.
+    public var contactPointsSpent: Int {
+        contacts.reduce(0) { $0 + max(0, $1.connection) + max(0, $1.loyalty) }
+    }
+
+    /// Remaining free contact points for priority chargen (not used for SR4A BP accounting).
+    public var contactPointsRemaining: Int {
+        contactPointPool - contactPointsSpent
+    }
 
     public var rules: any EditionRules { RulesRegistry.rules(for: edition) }
 
@@ -313,6 +323,7 @@ public final class GenerationDraft {
             budget.karmaRemaining = budget.karmaTotal
             recomputeAttributeRemaining()
             recomputeSkillRemaining()
+            recomputeSkillGroupRemaining()
             refreshHouseRulePools()
             return
         }
@@ -354,6 +365,7 @@ public final class GenerationDraft {
         // Re-apply purchase spending to remaining counters.
         recomputeAttributeRemaining()
         recomputeSkillRemaining()
+        recomputeSkillGroupRemaining()
         refreshHouseRulePools()
     }
 
@@ -474,16 +486,46 @@ public final class GenerationDraft {
         lastRecommendationNote = rec.rationale
     }
 
+    /// Attribute-point budget for recommendations (stable if reapplied).
+    /// In BP mode, counts free BP as if physical/mental attributes were back at metatype minima
+    /// so a second click does not shrink the budget by the spend of the first apply.
+    /// **Pure** — must not mutate budget (called from SwiftUI view bodies for button subtitles).
+    public var recommendedAttributePointBudget: Int {
+        if generationSystem == .buildPoints {
+            let ledger = buildPointLedger
+            let total = budget.buildPointsTotal > 0
+                ? budget.buildPointsTotal
+                : SR4BuildPointEngine.defaultBudget
+            let remaining = total - ledger.total
+            let bpIfAttrsCleared = max(0, remaining) + ledger.attributes
+            let freePoints = bpIfAttrsCleared / SR4BuildPointEngine.attributePointCost
+            return min(20, freePoints)
+        }
+        return budget.attributePointsTotal
+    }
+
+    /// Active-skill rank budget for recommendations (stable if reapplied).
+    /// **Pure** — must not mutate budget (called from SwiftUI view bodies).
+    public var recommendedSkillPointBudget: Int {
+        if generationSystem == .buildPoints {
+            let ledger = buildPointLedger
+            let total = budget.buildPointsTotal > 0
+                ? budget.buildPointsTotal
+                : SR4BuildPointEngine.defaultBudget
+            let remaining = total - ledger.total
+            let bpIfSkillsCleared = max(0, remaining) + ledger.skills
+            let freeRanks = bpIfSkillsCleared / SR4BuildPointEngine.activeSkillRankCost
+            return min(36, freeRanks)
+        }
+        return budget.skillPointsTotal
+    }
+
     public func applyRecommendedAttributes() {
-        let pointBudget: Int
+        // Keep ledger remaining current before applying (mutation only on user action).
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
-            // Spend up to 20 attribute points (200 BP) or whatever free BP allows.
-            let freePoints = max(0, budget.buildPointsRemaining) / SR4BuildPointEngine.attributePointCost
-            pointBudget = min(20, freePoints)
-        } else {
-            pointBudget = budget.attributePointsTotal
         }
+        let pointBudget = recommendedAttributePointBudget
         let rec = ChargenRecommendations.attributes(
             archetype: archetype,
             metatype: metatype,
@@ -513,24 +555,32 @@ public final class GenerationDraft {
     }
 
     public func applyRecommendedSkills() {
-        let pointBudget: Int
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
-            // Convert free BP into active-skill ranks (4 BP each), leave some for resources.
-            let freeRanks = max(0, budget.buildPointsRemaining) / SR4BuildPointEngine.activeSkillRankCost
-            pointBudget = min(36, freeRanks)
-            skills.removeAll()
-            skillRanks.removeAll()
-        } else {
-            pointBudget = budget.skillPointsTotal
-            skills.removeAll()
-            skillRanks.removeAll()
+        }
+        let pointBudget = recommendedSkillPointBudget
+        skills.removeAll()
+        skillRanks.removeAll()
+        if generationSystem != .buildPoints {
             budget.skillPointsRemaining = budget.skillPointsTotal
+            // Reset groups so recommend can re-spend the full group pool.
+            skillGroupRatings.removeAll()
+            budget.skillGroupPointsRemaining = budget.skillGroupPointsTotal
         }
         let rec = ChargenRecommendations.skills(archetype: archetype, pointBudget: pointBudget)
         let names = Dictionary(uniqueKeysWithValues: ChargenSkillCatalog.active.map { ($0.key, $0.name) })
         for (key, rank) in rec.ranks.sorted(by: { $0.key < $1.key }) {
             setSkillRank(catalogKey: key, displayName: names[key] ?? key, rank: rank)
+        }
+        if generationSystem != .buildPoints, budget.skillGroupPointsTotal > 0 {
+            let groupRec = ChargenRecommendations.skillGroups(
+                archetype: archetype,
+                pointBudget: budget.skillGroupPointsTotal
+            )
+            for (group, rating) in groupRec.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                setSkillGroupRating(group, rating: rating)
+            }
+            recomputeSkillGroupRemaining()
         }
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
@@ -612,17 +662,25 @@ public final class GenerationDraft {
         (skillRanks[catalogKey] ?? 0) > 0
     }
 
-    // MARK: - SR4 skill groups / spells / contacts
+    // MARK: - Skill groups / spells / contacts
+
+    /// Max skill group rating at chargen (SR4A BP: 4; priority SR5-style: 6).
+    public var skillGroupMaxAtChargen: Int {
+        generationSystem == .buildPoints ? SR4BuildPointEngine.skillGroupMaxAtChargen : 6
+    }
 
     public func skillGroupRating(_ group: SkillGroupID) -> Int {
         skillGroupRatings[group] ?? 0
     }
 
     public func canIncreaseSkillGroup(_ group: SkillGroupID) -> Bool {
-        guard generationSystem == .buildPoints else { return false }
         let current = skillGroupRating(group)
-        guard current < SR4BuildPointEngine.skillGroupMaxAtChargen else { return false }
-        return budget.buildPointsRemaining >= SR4BuildPointEngine.skillGroupRankCost
+        guard current < skillGroupMaxAtChargen else { return false }
+        if generationSystem == .buildPoints {
+            return budget.buildPointsRemaining >= SR4BuildPointEngine.skillGroupRankCost
+        }
+        // Priority (SR5): one skill-group point per rating rank.
+        return budget.skillGroupPointsRemaining > 0
     }
 
     public func canDecreaseSkillGroup(_ group: SkillGroupID) -> Bool {
@@ -630,13 +688,20 @@ public final class GenerationDraft {
     }
 
     public func setSkillGroupRating(_ group: SkillGroupID, rating: Int) {
-        let clamped = max(0, min(rating, SR4BuildPointEngine.skillGroupMaxAtChargen))
+        let clamped = max(0, min(rating, skillGroupMaxAtChargen))
         let previous = skillGroupRating(group)
         let delta = clamped - previous
         guard delta != 0 else { return }
-        if generationSystem == .buildPoints, delta > 0 {
-            let need = delta * SR4BuildPointEngine.skillGroupRankCost
-            guard budget.buildPointsRemaining >= need else { return }
+        if generationSystem == .buildPoints {
+            if delta > 0 {
+                let need = delta * SR4BuildPointEngine.skillGroupRankCost
+                guard budget.buildPointsRemaining >= need else { return }
+            }
+        } else {
+            // Priority: spend/refund skill-group points 1:1 with rating.
+            if delta > 0 {
+                guard budget.skillGroupPointsRemaining >= delta else { return }
+            }
         }
         if clamped == 0 {
             skillGroupRatings.removeValue(forKey: group)
@@ -645,6 +710,8 @@ public final class GenerationDraft {
         }
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
+        } else {
+            recomputeSkillGroupRemaining()
         }
     }
 
@@ -860,6 +927,12 @@ public final class GenerationDraft {
     private func recomputeSkillRemaining() {
         let spent = skillRanks.values.reduce(0, +)
         budget.skillPointsRemaining = max(0, budget.skillPointsTotal - spent)
+    }
+
+    /// Priority skill-group points: 1 point per rating rank across all groups.
+    private func recomputeSkillGroupRemaining() {
+        let spent = skillGroupRatings.values.reduce(0, +)
+        budget.skillGroupPointsRemaining = max(0, budget.skillGroupPointsTotal - spent)
     }
 }
 

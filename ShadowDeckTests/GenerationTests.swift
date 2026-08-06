@@ -170,6 +170,79 @@ final class GenerationTests: XCTestCase {
         draft.applyRecommendedSkills()
         XCTAssertFalse(draft.skills.isEmpty)
         XCTAssertNotNil(draft.skillRanks["hacking"] ?? draft.skillRanks["electronics"])
+        // Skill recommend must exhaust the active skill pool when the catalog can absorb it.
+        XCTAssertEqual(
+            draft.budget.skillPointsRemaining,
+            0,
+            "Recommended skills should spend the full priority skill pool (had \(draft.budget.skillPointsTotal))"
+        )
+    }
+
+    func testSR6RecommendedSkillsExhaustPool() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr6)
+        draft.selectArchetype(.streetSamurai)
+        draft.selectMetatype(.human)
+        draft.applyRecommendedPriorities()
+        draft.applyRecommendedSkills()
+        XCTAssertEqual(draft.budget.skillPointsTotal, draft.budget.skillPointsSpent)
+        XCTAssertEqual(draft.budget.skillPointsRemaining, 0)
+        // Package + fill still prefers combat skills.
+        XCTAssertGreaterThan(draft.skillRanks["pistols"] ?? 0, 0)
+    }
+
+    func testSR5SkillGroupPointsSpendAndChip() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr5)
+        draft.selectArchetype(.decker)
+        draft.selectMetatype(.human)
+        draft.applyRecommendedPriorities()
+        // Skills A/B/C grant group points; ensure we have some.
+        XCTAssertGreaterThan(draft.budget.skillGroupPointsTotal, 0)
+        XCTAssertEqual(draft.budget.skillGroupPointsRemaining, draft.budget.skillGroupPointsTotal)
+        XCTAssertTrue(draft.canIncreaseSkillGroup(.electronics))
+        draft.setSkillGroupRating(.electronics, rating: 3)
+        XCTAssertEqual(draft.skillGroupRating(.electronics), 3)
+        XCTAssertEqual(draft.budget.skillGroupPointsRemaining, draft.budget.skillGroupPointsTotal - 3)
+        draft.setSkillGroupRating(.electronics, rating: 0)
+        XCTAssertEqual(draft.budget.skillGroupPointsRemaining, draft.budget.skillGroupPointsTotal)
+
+        draft.applyRecommendedSkills()
+        XCTAssertEqual(draft.budget.skillGroupPointsRemaining, 0, "Recommend should spend all group points")
+        let groupSpent = draft.skillGroupRatings.values.reduce(0, +)
+        XCTAssertEqual(groupSpent, draft.budget.skillGroupPointsTotal)
+    }
+
+    func testSkillRecommendationUsesFullBudget() {
+        let budget = 32
+        let rec = ChargenRecommendations.skills(archetype: .technomancer, pointBudget: budget)
+        let spent = rec.ranks.values.reduce(0, +)
+        XCTAssertEqual(spent, budget)
+        XCTAssertLessThanOrEqual(rec.ranks.values.max() ?? 0, 6)
+    }
+
+    /// BP recommend budgets must ignore current attribute/skill spends so re-apply is stable.
+    func testSR4RecommendedAttributesAndSkillsAreIdempotent() {
+        let draft = GenerationDraft()
+        draft.selectEdition(.sr4)
+        draft.selectArchetype(.technomancer)
+        draft.selectMetatype(.ork)
+        draft.setAwakenedPath(.technomancer)
+        draft.recomputeBuildPoints()
+
+        draft.applyRecommendedAttributes()
+        let attrsOnce = draft.attributes
+        let attrBudgetOnce = draft.recommendedAttributePointBudget
+        draft.applyRecommendedAttributes()
+        XCTAssertEqual(draft.attributes, attrsOnce, "Second Apply Recommended Attributes must not change values")
+        XCTAssertEqual(draft.recommendedAttributePointBudget, attrBudgetOnce)
+
+        draft.applyRecommendedSkills()
+        let skillsOnce = draft.skillRanks
+        let skillBudgetOnce = draft.recommendedSkillPointBudget
+        draft.applyRecommendedSkills()
+        XCTAssertEqual(draft.skillRanks, skillsOnce, "Second Apply Recommended Skills must not change ranks")
+        XCTAssertEqual(draft.recommendedSkillPointBudget, skillBudgetOnce)
     }
 
     func testHelpCatalogCoversCoreAttributes() {
