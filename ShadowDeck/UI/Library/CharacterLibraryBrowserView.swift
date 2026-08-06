@@ -140,11 +140,16 @@ struct CharacterLibraryBrowserView: View {
     @ViewBuilder
     private var libraryBody: some View {
         if summaries.isEmpty {
-            // Create/import via Create sidebar or Load Samples in the header (no duplicate empty-state CTAs).
             ContentUnavailableView {
                 Label("No Characters Yet", systemImage: "person.crop.rectangle.stack")
             } description: {
-                Text("Use Create → New Character or Import Character…, or Load Samples above, to add runners.")
+                Text("Create a runner, import from Chummer, or load the SR4/SR5/SR6 sample set.")
+            } actions: {
+                Button("Load Samples") { onLoadSamples() }
+                    .buttonStyle(.borderedProminent)
+                Text("Or use Create → New Character / Import Character…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredSummaries.isEmpty {
