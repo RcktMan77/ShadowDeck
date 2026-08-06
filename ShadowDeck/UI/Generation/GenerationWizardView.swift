@@ -534,7 +534,8 @@ struct GenerationWizardView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HelpCallout(text: """
                 SR4A Build Points: **\(total) BP** total. Metatype cost, attributes (10 BP/pt above min), \
-                active skills (4 BP/rank), knowledge (2 BP/rank), qualities (±BP, ±35 cap), \
+                active skills (4 BP/rank), skill groups (10 BP/rating), spells (3 BP each), \
+                contacts (Connection + Loyalty), knowledge (2 BP/rank), qualities (±BP, ±35 cap), \
                 and resources (**1 BP = ¥5,000**). The counter bar shows remaining BP as you spend.
                 """)
 
@@ -560,9 +561,9 @@ struct GenerationWizardView: View {
             }
 
             Text("""
-                Wizard v1 spends BP on metatype, attributes (incl. Edge/Magic/Resonance), active skills, \
-                qualities, and nuyen. Skill groups, spells, contacts, and initiate grades are out of scope \
-                for this wizard and are not free.
+                This wizard spends BP on metatype, attributes (incl. Edge/Magic/Resonance), active skills, \
+                skill groups, spells, contacts, qualities, and nuyen. Complex forms as full BP UI, \
+                initiate grades, and full gear shopping remain out of scope (buy nuyen with BP, then equip on the sheet).
                 """)
             .font(.caption)
             .foregroundStyle(.secondary)

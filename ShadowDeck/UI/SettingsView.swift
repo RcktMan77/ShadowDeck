@@ -48,7 +48,7 @@ struct SettingsView: View {
 
             Form {
                 Section {
-                    Text("ShadowDeck ships with a built-in SR5 reference catalog (gear, weapons, armor, cyberware, bioware, qualities, contact roles) derived from Chummer5a’s open data files. No Chummer install is required.")
+                    Text("ShadowDeck ships edition-scoped catalogs: SR4A and SR6 core packs extracted from the rulebooks for costs/names, plus a large SR5 reference catalog derived from Chummer5a’s open data. Management tabs load the catalog that matches the open character’s edition. No Chummer install is required.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
