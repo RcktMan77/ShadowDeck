@@ -56,6 +56,7 @@ struct QualitiesManagementView: View {
             CatalogBrowserView(
                 title: "Add Quality",
                 kinds: [.quality],
+                edition: character.edition,
                 onPick: { entry in
                     addFromCatalog(entry)
                     showCatalog = false

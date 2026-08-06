@@ -13,6 +13,9 @@ public struct SR4BuildPointLedger: Equatable, Sendable, Hashable {
     public var metatype: Int
     public var attributes: Int
     public var skills: Int
+    public var skillGroups: Int
+    public var spells: Int
+    public var contacts: Int
     public var qualities: Int
     public var resources: Int
 
@@ -20,18 +23,24 @@ public struct SR4BuildPointLedger: Equatable, Sendable, Hashable {
         metatype: Int = 0,
         attributes: Int = 0,
         skills: Int = 0,
+        skillGroups: Int = 0,
+        spells: Int = 0,
+        contacts: Int = 0,
         qualities: Int = 0,
         resources: Int = 0
     ) {
         self.metatype = metatype
         self.attributes = attributes
         self.skills = skills
+        self.skillGroups = skillGroups
+        self.spells = spells
+        self.contacts = contacts
         self.qualities = qualities
         self.resources = resources
     }
 
     public var total: Int {
-        metatype + attributes + skills + qualities + resources
+        metatype + attributes + skills + skillGroups + spells + contacts + qualities + resources
     }
 
     public var lines: [(label: String, bp: Int)] {
@@ -39,13 +48,16 @@ public struct SR4BuildPointLedger: Equatable, Sendable, Hashable {
             ("Metatype", metatype),
             ("Attributes", attributes),
             ("Skills", skills),
+            ("Skill groups", skillGroups),
+            ("Spells", spells),
+            ("Contacts", contacts),
             ("Qualities", qualities),
             ("Resources", resources)
         ]
     }
 }
 
-/// SR4A Build Point costs for the ShadowDeck generation wizard (v1 scope).
+/// SR4A Build Point costs for the ShadowDeck generation wizard.
 public enum SR4BuildPointEngine {
     public static let defaultBudget = 400
 
@@ -58,8 +70,38 @@ public enum SR4BuildPointEngine {
     /// BP per rank of an active skill.
     public static let activeSkillRankCost = 4
 
-    /// BP per rank of knowledge / language skills.
+    /// BP per rank of knowledge / language skills (extra points beyond free pool).
     public static let knowledgeSkillRankCost = 2
+
+    /// BP per skill group rating (chargen max 4).
+    public static let skillGroupRankCost = 10
+
+    public static let skillGroupMaxAtChargen = 4
+
+    /// BP to learn one spell at chargen.
+    public static let spellCost = 3
+
+    /// BP per rating point of a complex form at chargen.
+    public static let complexFormBPPerRating = 1
+
+    public static let positiveQualityCap = 35
+    public static let negativeQualityCap = 35
+
+    /// Skill groups offered in the SR4A core chargen wizard.
+    public static let chargenSkillGroups: [SkillGroupID] = [
+        .athletics,
+        .biotech,
+        .closeCombat,
+        .conjuring,
+        .cracking,
+        .electronics,
+        .fireArarms,
+        .influence,
+        .outdoors,
+        .sorcery,
+        .stealth,
+        .tasking
+    ]
 
     // MARK: - Metatype (SR4A)
 
@@ -89,17 +131,13 @@ public enum SR4BuildPointEngine {
             let purchased = max(0, attributes[id] - min)
             bp += purchased * attributePointCost
         }
-        // Edge
         let edgeMin = profile.bounds(for: .edge).minimum
         bp += max(0, attributes.edge - edgeMin) * attributePointCost
-        // Magic / Resonance above path floor
         if awakened.usesMagic {
-            let magicMin = 1
-            bp += max(0, attributes.magic - magicMin) * attributePointCost
+            bp += max(0, attributes.magic - 1) * attributePointCost
         }
         if awakened.usesResonance {
-            let resMin = 1
-            bp += max(0, attributes.resonance - resMin) * attributePointCost
+            bp += max(0, attributes.resonance - 1) * attributePointCost
         }
         return bp
     }
@@ -118,12 +156,37 @@ public enum SR4BuildPointEngine {
     }
 
     public static func skillCost(ranks: [String: Int], skills: [SkillRating]) -> Int {
-        // Prefer structured skills list when present; ranks map is source during wizard.
         if !skills.isEmpty {
             return skillCost(skills.filter { $0.rating > 0 })
         }
-        // Fallback: treat all ranks as active (wizard chargen catalog is active).
         return ranks.values.reduce(0) { $0 + max(0, $1) * activeSkillRankCost }
+    }
+
+    public static func skillGroupCost(_ groups: [SkillGroupRating]) -> Int {
+        groups.reduce(0) { $0 + max(0, $1.rating) * skillGroupRankCost }
+    }
+
+    public static func skillGroupCost(ratings: [SkillGroupID: Int]) -> Int {
+        ratings.values.reduce(0) { $0 + max(0, $1) * skillGroupRankCost }
+    }
+
+    // MARK: - Spells & contacts
+
+    public static func spellCost(count: Int) -> Int {
+        max(0, count) * spellCost
+    }
+
+    public static func spellCost(_ spells: [SpellInstance]) -> Int {
+        spellCost(count: spells.count)
+    }
+
+    /// SR4A: contact BP = Connection + Loyalty (each 1–6).
+    public static func contactCost(connection: Int, loyalty: Int) -> Int {
+        max(0, connection) + max(0, loyalty)
+    }
+
+    public static func contactCost(_ contacts: [Contact]) -> Int {
+        contacts.reduce(0) { $0 + contactCost(connection: $1.connection, loyalty: $1.loyalty) }
     }
 
     // MARK: - Qualities
@@ -146,7 +209,6 @@ public enum SR4BuildPointEngine {
 
     public static func resourceCost(nuyen: Int) -> Int {
         guard nuyen > 0 else { return 0 }
-        // Ceiling division: partial 5k blocks still cost a BP.
         return (nuyen + nuyenPerBuildPoint - 1) / nuyenPerBuildPoint
     }
 
@@ -162,10 +224,20 @@ public enum SR4BuildPointEngine {
         awakened: AwakenedPath,
         skills: [SkillRating],
         skillRanks: [String: Int] = [:],
+        skillGroups: [SkillGroupRating] = [],
+        skillGroupRatings: [SkillGroupID: Int] = [:],
+        spells: [SpellInstance] = [],
+        contacts: [Contact] = [],
         qualities: [QualityInstance],
         nuyen: Int,
         budget: Int = defaultBudget
     ) -> (ledger: SR4BuildPointLedger, remaining: Int) {
+        let groupBP: Int
+        if !skillGroups.isEmpty {
+            groupBP = skillGroupCost(skillGroups)
+        } else {
+            groupBP = skillGroupCost(ratings: skillGroupRatings)
+        }
         let led = SR4BuildPointLedger(
             metatype: metatypeCost(metatype),
             attributes: attributeCost(
@@ -174,6 +246,9 @@ public enum SR4BuildPointEngine {
                 awakened: awakened
             ),
             skills: skillCost(ranks: skillRanks, skills: skills),
+            skillGroups: groupBP,
+            spells: spellCost(spells),
+            contacts: contactCost(contacts),
             qualities: qualityNetCost(qualities),
             resources: resourceCost(nuyen: nuyen)
         )
@@ -182,5 +257,17 @@ public enum SR4BuildPointEngine {
 
     public static func isOverBudget(remaining: Int) -> Bool {
         remaining < 0
+    }
+
+    /// Max spells at chargen = 2 × highest of Spellcasting / Ritual Spellcasting.
+    public static func maxSpellsAtChargen(skillRanks: [String: Int], skills: [SkillRating]) -> Int {
+        let spellcasting = skillRanks["spellcasting"]
+            ?? skills.first { $0.catalogKey == "spellcasting" }?.rating
+            ?? 0
+        let ritual = skillRanks["ritual_spellcasting"]
+            ?? skills.first { $0.catalogKey == "ritual_spellcasting" }?.rating
+            ?? 0
+        let peak = max(spellcasting, ritual)
+        return max(0, peak * 2)
     }
 }

@@ -18,6 +18,11 @@ struct GenerationWizardView: View {
     @State private var scrollAnchor = UUID()
     @State private var showHouseRulesBrowser = false
     @State private var confirmCancel = false
+    @State private var showSpellCatalog = false
+    @State private var draftContactName = ""
+    @State private var draftContactRole = "Fixer"
+    @State private var draftContactConnection = 2
+    @State private var draftContactLoyalty = 2
     var onFinished: (() -> Void)?
     /// Leave the wizard without saving (any step).
     var onCancel: (() -> Void)?
@@ -764,6 +769,78 @@ struct GenerationWizardView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            if draft.generationSystem == .buildPoints, draft.awakened.usesMagic {
+                sr4SpellsSection
+            }
+        }
+        .sheet(isPresented: $showSpellCatalog) {
+            CatalogBrowserView(
+                title: "Learn Spell (3 BP)",
+                kinds: [.gear],
+                edition: .sr4,
+                matching: { $0.category.localizedCaseInsensitiveContains("spell") },
+                onPick: { entry in
+                    draft.addSpell(
+                        SpellInstance(
+                            catalogKey: entry.name.lowercased().replacingOccurrences(of: " ", with: "_"),
+                            name: entry.name,
+                            category: entry.category
+                        )
+                    )
+                    showSpellCatalog = false
+                },
+                onCustom: nil,
+                onCancel: { showSpellCatalog = false }
+            )
+        }
+    }
+
+    private var sr4SpellsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+            Text("Spells (SR4A Build Points)")
+                .font(.headline)
+            HelpCallout(text: """
+                Each spell costs **3 BP**. Maximum at chargen is **2 ×** the higher of Spellcasting or \
+                Ritual Spellcasting (currently max \(draft.maxSpellsAtChargen)). \
+                Raise Spellcasting on the Skills step first if you need more slots.
+                """)
+            LabeledContent("Spells", value: "\(draft.spells.count) / \(draft.maxSpellsAtChargen)")
+            LabeledContent("Spell BP", value: "\(draft.buildPointLedger.spells) BP")
+
+            if draft.spells.isEmpty {
+                Text("No spells yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(draft.spells) { spell in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(spell.name).font(.body.weight(.medium))
+                            if !spell.category.isEmpty {
+                                Text(spell.category).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Text("3 BP").font(.caption.monospacedDigit())
+                        Button(role: .destructive) {
+                            draft.removeSpell(id: spell.id)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            AppChromeButton.title(
+                "Add Spell from Catalog…",
+                help: "Browse SR4A spells (3 BP each)",
+                isEnabled: draft.canAddSpell()
+            ) {
+                showSpellCatalog = true
+            }
         }
     }
 
@@ -774,7 +851,7 @@ struct GenerationWizardView: View {
             Text("Skills")
                 .font(.title3.weight(.semibold))
             if draft.generationSystem == .buildPoints {
-                HelpCallout(text: "Active skills cost **4 BP per rank** (max 6 at chargen). Knowledge/language would cost 2 BP/rank if ranked here later.")
+                HelpCallout(text: "Active skills cost **4 BP per rank** (max 6 at chargen). Skill groups cost **10 BP per rating** (max 4).")
             } else {
                 HelpCallout(text: "Skills plus linked attributes form dice pools. Recommendations match your role; adjust any rank afterward.")
             }
@@ -801,6 +878,32 @@ struct GenerationWizardView: View {
                 }()
             ) {
                 draft.applyRecommendedSkills()
+            }
+
+            if draft.generationSystem == .buildPoints {
+                GroupBox("Skill groups (10 BP × rating, max 4)") {
+                    Text("Buying a group is cheaper than raising every member skill separately. Groups cannot take specializations at chargen.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(SR4BuildPointEngine.chargenSkillGroups, id: \.self) { group in
+                        PointStepperRow(
+                            title: group.displayName,
+                            value: draft.skillGroupRating(group),
+                            subtitle: "\(SR4BuildPointEngine.skillGroupRankCost) BP per rating",
+                            canIncrease: draft.canIncreaseSkillGroup(group),
+                            canDecrease: draft.canDecreaseSkillGroup(group),
+                            onIncrease: {
+                                draft.setSkillGroupRating(group, rating: draft.skillGroupRating(group) + 1)
+                            },
+                            onDecrease: {
+                                draft.setSkillGroupRating(group, rating: draft.skillGroupRating(group) - 1)
+                            }
+                        )
+                        Divider()
+                    }
+                    LabeledContent("Skill group BP", value: "\(draft.buildPointLedger.skillGroups) BP")
+                }
             }
 
             GroupBox {
@@ -905,6 +1008,79 @@ struct GenerationWizardView: View {
         }
     }
 
+    private var sr4ContactsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+            Text("Contacts (SR4A Build Points)")
+                .font(.headline)
+            HelpCallout(text: """
+                Contact cost is **Connection + Loyalty** (each 1–6). \
+                Example: Connection 3 + Loyalty 5 = **8 BP**.
+                """)
+            LabeledContent("Contact BP", value: "\(draft.buildPointLedger.contacts) BP")
+
+            if draft.contacts.isEmpty {
+                Text("No contacts yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(draft.contacts) { contact in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(contact.name).font(.body.weight(.medium))
+                            Text("\(contact.role) · C\(contact.connection) / L\(contact.loyalty)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text("\(draft.contactBPCost(contact)) BP")
+                            .font(.caption.monospacedDigit())
+                        Button(role: .destructive) {
+                            draft.removeContact(id: contact.id)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            GroupBox("Add contact") {
+                TextField("Name", text: $draftContactName)
+                    .textFieldStyle(.roundedBorder)
+                TextField("Role", text: $draftContactRole)
+                    .textFieldStyle(.roundedBorder)
+                Stepper("Connection: \(draftContactConnection)", value: $draftContactConnection, in: 1...6)
+                Stepper("Loyalty: \(draftContactLoyalty)", value: $draftContactLoyalty, in: 1...6)
+                let cost = SR4BuildPointEngine.contactCost(
+                    connection: draftContactConnection,
+                    loyalty: draftContactLoyalty
+                )
+                LabeledContent("Cost", value: "\(cost) BP")
+                AppChromeButton.title(
+                    "Add Contact",
+                    help: "Spend BP for this contact",
+                    isEnabled: !draftContactName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && draft.canAddContact(
+                            connection: draftContactConnection,
+                            loyalty: draftContactLoyalty
+                        )
+                ) {
+                    let name = draftContactName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    draft.addContact(
+                        Contact(
+                            name: name,
+                            role: draftContactRole.trimmingCharacters(in: .whitespacesAndNewlines),
+                            loyalty: draftContactLoyalty,
+                            connection: draftContactConnection
+                        )
+                    )
+                    draftContactName = ""
+                }
+            }
+        }
+    }
+
     private func toggleQuality(_ item: (String, String, QualityKind, Int), on: Bool) {
         if on {
             guard draft.canAddQuality(kind: item.2, karmaValue: item.3) else { return }
@@ -971,6 +1147,8 @@ struct GenerationWizardView: View {
                 ) {
                     Text("Cash on hand: ¥\(draft.nuyen) (\(SR4BuildPointEngine.resourceCost(nuyen: draft.nuyen)) BP)")
                 }
+
+                sr4ContactsSection
             } else {
                 HelpCallout(text: ChargenHelpCatalog.resourcesHelp)
                 LabeledContent("Nuyen from Resources priority", value: "¥\(draft.budget.nuyenTotal)")
