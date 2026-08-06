@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Screenshots/00-hero-macbook.jpg" alt="ShadowDeck on a MacBook Pro" width="920" />
+  <img src="Screenshots/01-splash.jpg" alt="ShadowDeck splash" width="920" />
 </p>
 
 <h1 align="center">ShadowDeck</h1>
