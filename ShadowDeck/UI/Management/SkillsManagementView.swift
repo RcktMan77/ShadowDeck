@@ -62,6 +62,7 @@ struct SkillsManagementView: View {
             CatalogBrowserView(
                 title: "Add Skill",
                 kinds: [.skill],
+                edition: character.edition,
                 onPick: { entry in
                     addFromCatalog(entry)
                     showCatalog = false
