@@ -103,8 +103,6 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Built-in catalogs")
-                } footer: {
-                    Text("SR5 data is GPL-3.0-derived from Chummer5a (see Resources/Catalog/NOTICE.txt). SR4A/SR6 packs are mechanical name/cost tables only. Shadowrun remains a trademark of its owners; this is an unofficial fan tool.")
                 }
 
                 Section {
