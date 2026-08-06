@@ -21,7 +21,16 @@ struct AllocationCounterBar: View {
                         total: draft.budget.buildPointsTotal,
                         emphasizeOverspend: true
                     )
-                    chip("¥", remaining: draft.nuyen, total: max(draft.nuyen, 1), isCurrency: true)
+                    chip("Cash", remaining: draft.nuyen, total: max(draft.nuyen, 1), isCurrency: true)
+                    // Contacts in BP mode cost Connection+Loyalty BP (no free CHA×3 pool).
+                    // Show count + BP spent so the chip tracks adds; do not show a fake "3 free" pool.
+                    let contactBP = draft.buildPointLedger.contacts
+                    valueChip(
+                        "Contacts",
+                        value: draft.contacts.isEmpty
+                            ? "0 · 0 BP"
+                            : "\(draft.contacts.count) · \(contactBP) BP"
+                    )
                     if draft.budget.karmaTotal > 0 {
                         chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
                     }
@@ -34,14 +43,20 @@ struct AllocationCounterBar: View {
                     if draft.budget.skillGroupPointsTotal > 0 {
                         chip("Groups", remaining: draft.budget.skillGroupPointsRemaining, total: draft.budget.skillGroupPointsTotal)
                     }
-                    chip("¥", remaining: draft.budget.nuyenRemaining, total: draft.budget.nuyenTotal, isCurrency: true)
+                    // Priority: cash is always the full Resources grant (wizard does not underspend).
+                    chip(
+                        "Cash",
+                        remaining: draft.nuyen,
+                        total: max(draft.budget.nuyenTotal, draft.nuyen, 1),
+                        isCurrency: true
+                    )
                     chip("Karma", remaining: draft.budget.karmaRemaining, total: draft.budget.karmaTotal)
+                    // No Contacts chip for priority (SR5/SR6): the wizard does not buy contacts
+                    // during chargen. Free CHA×3 contact points are a book rule for post-gen /
+                    // future UI, not a live allocation counter here.
                 }
                 if draft.freeKnowledgePool > 0 {
                     chip("Knowledge", remaining: draft.freeKnowledgePool, total: draft.freeKnowledgePool)
-                }
-                if draft.houseRules.isEnabled(.expandedContacts) || draft.contactPointPool > 0 {
-                    chip("Contacts", remaining: draft.contactPointPool, total: draft.contactPointPool)
                 }
             }
             .padding(.horizontal, 4)
@@ -58,13 +73,37 @@ struct AllocationCounterBar: View {
         let overspent = emphasizeOverspend && remaining < 0
         let exhausted = remaining <= 0 && total > 0 && !overspent
         let valueText: String = {
-            if isCurrency { return "¥\(remaining)" }
-            if emphasizeOverspend {
-                return "\(remaining) left · \(total)"
+            if isCurrency {
+                // remaining = cash on hand; total = grant/max when it differs (priority Resources).
+                if total > remaining {
+                    return "¥\(remaining.formatted()) / \(total.formatted())"
+                }
+                return "¥\(remaining.formatted())"
             }
             return "\(remaining) left · \(total)"
         }()
-        return VStack(alignment: .leading, spacing: 2) {
+        return chipChrome(
+            title: title,
+            valueText: valueText,
+            overspent: overspent,
+            exhausted: exhausted,
+            dimmed: total == 0 && !overspent
+        )
+    }
+
+    /// Freeform value chip (e.g. SR4 "2 · 14 BP" for contacts).
+    private func valueChip(_ title: String, value: String) -> some View {
+        chipChrome(title: title, valueText: value, overspent: false, exhausted: false, dimmed: false)
+    }
+
+    private func chipChrome(
+        title: String,
+        valueText: String,
+        overspent: Bool,
+        exhausted: Bool,
+        dimmed: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -82,7 +121,7 @@ struct AllocationCounterBar: View {
                         : (exhausted ? Color.secondary.opacity(0.08) : Color.accentColor.opacity(0.12))
                 )
         )
-        .opacity(total == 0 && !overspent ? 0.45 : 1)
+        .opacity(dimmed ? 0.45 : 1)
     }
 }
 

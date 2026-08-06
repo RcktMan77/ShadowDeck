@@ -184,19 +184,25 @@ struct EmphasizedHelpText: View {
     let text: String
 
     var body: some View {
+        // Apply font/color per segment. A single outer `.font` / `.foregroundStyle` on the
+        // concatenated Text can strip weight and leave `**…**` looking unstyled (or odd) on macOS.
         segments.reduce(Text("")) { partial, segment in
-            if segment.emphasized {
-                return partial + Text(segment.value)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-            } else {
-                return partial + Text(segment.value)
-            }
+            partial + styledSegment(segment)
         }
-        .font(.callout)
-        .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
         .help(helpSummary)
+    }
+
+    private func styledSegment(_ segment: Segment) -> Text {
+        let base = Text(segment.value)
+        if segment.emphasized {
+            return base
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(Color.primary)
+        }
+        return base
+            .font(.callout)
+            .foregroundStyle(Color.secondary)
     }
 
     private var helpSummary: String {
@@ -312,8 +318,9 @@ struct ProfileArtChrome: View {
                         .joined(separator: " · ")
                     summaryLine("Skills", top.isEmpty ? "—" : top)
                 }
-                if draft.step >= .qualities, !draft.qualities.isEmpty {
-                    summaryLine("Qualities", "\(draft.qualities.count) selected")
+                if draft.step >= .qualities {
+                    let n = draft.qualities.count
+                    summaryLine("Qualities", n == 0 ? "0 selected" : "\(n) selected")
                 }
                 if draft.step >= .resources {
                     summaryLine("Nuyen", "¥\(draft.nuyen)")
@@ -471,10 +478,8 @@ struct HelpCallout: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        // Parse **term** markers (same as EmphasizedHelpText) so callouts never show raw asterisks.
+        EmphasizedHelpText(text: text)
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
