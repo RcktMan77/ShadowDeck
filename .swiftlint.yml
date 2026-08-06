@@ -1,7 +1,7 @@
 # Comprehensive SwiftLint configuration for ShadowDeck.
 # Based on SwiftLint defaults + widely adopted opt-in rules (community / Apple-aligned style).
 # Install: brew install swiftlint
-# Run: Scripts/lint.sh
+# Run: swiftlint (optional local install)
 
 # Defaults stay on; enable recommended opt-in rules rather than a tiny only_rules set.
 opt_in_rules:

@@ -30,7 +30,7 @@ final class CatalogEditionTests: XCTestCase {
             result.entries.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
         }
 
-        // Spot-checks aligned with Scripts/build_sr6_catalog_from_pdf.py EXACT_CHECKS.
+        // Spot-checks for known SR6 core gear rows (names/costs).
         XCTAssertEqual(entry("Combat Axe")?.costNuyen, 500)
         XCTAssertEqual(entry("Combat Axe")?.kind, .weapon)
         XCTAssertEqual(entry("Katana")?.costNuyen, 350)
@@ -54,6 +54,21 @@ final class CatalogEditionTests: XCTestCase {
         let result = ChummerCatalogLoader.load(edition: .sr5)
         XCTAssertFalse(result.entries.isEmpty)
         XCTAssertTrue(result.loadedFiles.contains { $0.contains("sr5_catalog") })
+    }
+
+    @MainActor
+    func testCatalogStoreSummarizesAllEditionsAscending() {
+        let store = CatalogStore.shared
+        store.reload()
+        XCTAssertEqual(store.editionSummaries.map(\.edition), [.sr4, .sr5, .sr6])
+        XCTAssertGreaterThan(store.totalEntriesAcrossEditions, 0)
+        for row in store.editionSummaries {
+            XCTAssertGreaterThan(row.entryCount, 0, "\(row.edition.shortName) should have entries")
+        }
+        // Total is the sum of per-edition counts (not a single edition only).
+        let sum = store.editionSummaries.reduce(0) { $0 + $1.entryCount }
+        XCTAssertEqual(store.totalEntriesAcrossEditions, sum)
+        XCTAssertGreaterThan(sum, store.editionSummaries.first(where: { $0.edition == .sr5 })?.entryCount ?? 0)
     }
 
     func testCatalogLookupEditionScoped() {
