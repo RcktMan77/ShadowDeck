@@ -155,6 +155,31 @@ final class AdvancementEngineTests: XCTestCase {
         XCTAssertFalse(AdvancementEngine.canRaiseAttribute(character: human, attribute: .body, rules: r))
     }
 
+    // MARK: - Plan affordability
+
+    func testCanAffordPlanAddBlocksOverspend() {
+        XCTAssertTrue(AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: 20,
+            currentPlanTotal: 10,
+            itemCost: 10
+        ))
+        XCTAssertFalse(AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: 20,
+            currentPlanTotal: 15,
+            itemCost: 10
+        ))
+        XCTAssertFalse(AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: 5,
+            currentPlanTotal: 0,
+            itemCost: 10
+        ))
+        XCTAssertTrue(AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: 0,
+            currentPlanTotal: 0,
+            itemCost: 0
+        ))
+    }
+
     // MARK: - Previews
 
     func testSkillPreviewProgressSummaryIncludesMax() {
