@@ -10,7 +10,11 @@ import SwiftUI
 struct CatalogBrowserView: View {
     let title: String
     let kinds: Set<CatalogKind>
+    /// Which edition’s bundled catalog to load (`sr4_catalog` / `sr5_catalog` / `sr6_catalog`).
+    var edition: Edition = .sr5
     var allowCustom: Bool = true
+    /// Optional extra filter (e.g. spells stored as gear with category containing “Spell”).
+    var matching: ((CatalogEntry) -> Bool)?
     var onPick: (CatalogEntry) -> Void
     var onCustom: (() -> Void)?
     var onCancel: () -> Void
@@ -19,7 +23,15 @@ struct CatalogBrowserView: View {
     @State private var query = ""
 
     private var rows: [CatalogEntry] {
-        catalog.entries(kinds: kinds, query: query)
+        catalog.entries(kinds: kinds, query: query, edition: edition, matching: matching)
+    }
+
+    private var editionBadge: String {
+        switch edition {
+        case .sr4: "SR4A catalog"
+        case .sr5: "SR5 reference catalog"
+        case .sr6: "SR6 catalog"
+        }
     }
 
     var body: some View {
@@ -27,10 +39,24 @@ struct CatalogBrowserView: View {
             HStack {
                 Text(title)
                     .font(.title2.weight(.semibold))
+                Text(editionBadge)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.secondary.opacity(0.14), in: Capsule())
+                    .foregroundStyle(.secondary)
+                    .help(
+                        edition == .sr5
+                            ? "Bundled SR5 catalog from Chummer GPL data — table reference for costs/names."
+                            : "Edition-scoped bundled catalog (\(editionBadge))."
+                    )
                 Spacer()
                 AppChromeButton.title("Cancel", help: "Close catalog browser") {
                     onCancel()
                 }
+            }
+            .onAppear {
+                catalog.ensureLoaded(for: edition)
             }
 
             if catalog.isLoaded && catalog.result.isEmpty {

@@ -160,6 +160,7 @@ struct AdvancementPlannerView: View {
             CatalogBrowserView(
                 title: "New Skill (rank 1)",
                 kinds: [.skill],
+                edition: character.edition,
                 onPick: { entry in
                     addNewSkillToCart(entry)
                     showNewSkill = false
@@ -249,7 +250,7 @@ struct AdvancementPlannerView: View {
                 }
 
                 if remainingAfterPlan < 0, !cart.isEmpty {
-                    Text("Short by \(-remainingAfterPlan) karma — plan is saved as a goal.")
+                    Text("Short by \(-remainingAfterPlan) karma — remove items or earn more before Apply. New adds are blocked while over budget.")
                         .font(.caption)
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
@@ -567,11 +568,21 @@ struct AdvancementPlannerView: View {
             }
             Spacer(minLength: 8)
             if preview.canRaise {
+                let canAddToPlan = AdvancementEngine.canAffordPlanAdd(
+                    karmaAvailable: character.karmaAvailable,
+                    currentPlanTotal: planTotal,
+                    itemCost: preview.karmaCost
+                )
                 Button(inCart ? "In Plan" : "Add") {
                     addPreviewToCart(preview)
                 }
-                .disabled(inCart)
+                .disabled(inCart || !canAddToPlan)
                 .controlSize(.small)
+                .help(
+                    inCart
+                        ? "Already in plan"
+                        : (canAddToPlan ? "Add to plan" : "Not enough karma for plan")
+                )
                 .modifier(MarketingHighlightPulse(active: marketingHighlight == highlightID && !inCart))
 
                 Button("Buy") {
@@ -651,6 +662,14 @@ struct AdvancementPlannerView: View {
         guard preview.canRaise else { return }
         guard !cartTargetKeys.contains(preview.targetKey) else { return }
         guard let item = planItem(from: preview) else { return }
+        guard AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: character.karmaAvailable,
+            currentPlanTotal: planTotal,
+            itemCost: item.karmaCost
+        ) else {
+            errorMessage = "Not enough karma to add \(item.displayName) to the plan (need \(item.karmaCost), available after plan \(max(0, remainingAfterPlan)))."
+            return
+        }
         setCart(cart + [item])
     }
 
@@ -675,6 +694,14 @@ struct AdvancementPlannerView: View {
             category: category,
             rules: rules
         )
+        guard AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: character.karmaAvailable,
+            currentPlanTotal: planTotal,
+            itemCost: item.karmaCost
+        ) else {
+            errorMessage = "Not enough karma to add \(entry.name) to the plan."
+            return
+        }
         setCart(cart + [item])
     }
 
@@ -688,6 +715,14 @@ struct AdvancementPlannerView: View {
             category: .active,
             rules: rules
         )
+        guard AdvancementEngine.canAffordPlanAdd(
+            karmaAvailable: character.karmaAvailable,
+            currentPlanTotal: planTotal,
+            itemCost: item.karmaCost
+        ) else {
+            errorMessage = "Not enough karma to add a new skill to the plan."
+            return
+        }
         setCart(cart + [item])
         onStatus?("Added custom skill placeholder to plan (rename after apply via Skills tab if needed).")
     }

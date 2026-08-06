@@ -25,6 +25,9 @@ struct DiceRollerPanel: View {
                     if let result = controller.lastResult {
                         resultSection(result)
                         secondChanceSection
+                        if controller.usesFullSR6Edge {
+                            sr6PostRollEdgeActions
+                        }
                     }
                     historySection
                 }
@@ -97,6 +100,9 @@ struct DiceRollerPanel: View {
             Text("Glitch: \(glitch.displayName) · Hits on \(controller.diceRules.hitMinimum)+")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            Text(controller.edgeModelCaption)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(controller.usesFullSR6Edge ? Color.accentColor : .secondary)
             if !lines.isEmpty {
                 Text(lines.joined(separator: " · "))
                     .font(.caption2)
@@ -106,7 +112,27 @@ struct DiceRollerPanel: View {
         .help("From this character’s House Rules. Change them on the sheet’s House Rules browser.")
     }
 
+    private var preRollEdgeActionTitle: String {
+        DiceEdgeMode.pushTheLimit.displayName(
+            edition: controller.edition,
+            fullSR6Edge: controller.usesFullSR6Edge
+        )
+    }
+
+    private var postRollRerollTitle: String {
+        DiceEdgeMode.secondChance.displayName(
+            edition: controller.edition,
+            fullSR6Edge: controller.usesFullSR6Edge
+        )
+    }
+
     private var pushTheLimitSubtitle: String {
+        if controller.usesFullSR6Edge {
+            if controller.diceRules.ruleOfSix == .always {
+                return "Spend 1 Edge · +\(controller.edgeRating) dice (6s already explode)"
+            }
+            return "Spend 1 Edge · +\(controller.edgeRating) dice · exploding 6s (SR6 Add Edge Dice)"
+        }
         if controller.diceRules.ruleOfSix == .always {
             return "Spend 1 Edge · +\(controller.edgeRating) dice (6s already explode)"
         }
@@ -163,12 +189,12 @@ struct DiceRollerPanel: View {
 
             // Visually distinct card for pre-roll spend
             VStack(alignment: .leading, spacing: 6) {
-                Text("Before the roll")
+                Text(controller.usesFullSR6Edge ? "Edge Actions · before the roll" : "Before the roll")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.tertiary)
                 Toggle(isOn: $controller.pushTheLimit) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Push the Limit")
+                        Text(preRollEdgeActionTitle)
                             .font(.body.weight(.medium))
                         Text(pushTheLimitSubtitle)
                             .font(.caption)
@@ -241,7 +267,13 @@ struct DiceRollerPanel: View {
                     outcomeChip("Clean", tone: .ok)
                 }
                 if result.edgeMode != .none {
-                    outcomeChip(result.edgeMode.displayName, tone: .neutral)
+                    outcomeChip(
+                        result.edgeMode.displayName(
+                            edition: controller.edition,
+                            fullSR6Edge: controller.usesFullSR6Edge
+                        ),
+                        tone: .neutral
+                    )
                 }
             }
 
@@ -304,9 +336,13 @@ struct DiceRollerPanel: View {
                 .foregroundStyle(.tertiary)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Second Chance")
+                Text(postRollRerollTitle)
                     .font(.body.weight(.medium))
-                Text("Spend 1 Edge to re-roll all non-hits. Preview before committing.")
+                Text(
+                    controller.usesFullSR6Edge
+                        ? "Spend 1 Edge to re-roll all non-hits (SR6 Reroll Failures). Preview before committing."
+                        : "Spend 1 Edge to re-roll all non-hits. Preview before committing."
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -321,12 +357,12 @@ struct DiceRollerPanel: View {
                         }
                         diceFaceRow(preview.dice)
                         HStack {
-                            AppChromeButton.title("Cancel", help: "Discard Second Chance preview") {
+                            AppChromeButton.title("Cancel", help: "Discard reroll preview") {
                                 controller.cancelSecondChancePreview()
                             }
                             AppChromeButton.title(
                                 "Commit Edge",
-                                help: "Spend Edge and apply Second Chance",
+                                help: "Spend Edge and apply \(postRollRerollTitle)",
                                 style: .prominent
                             ) {
                                 controller.commitSecondChance()
@@ -337,7 +373,7 @@ struct DiceRollerPanel: View {
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 } else {
                     AppChromeButton.title(
-                        "Preview Second Chance…",
+                        "Preview \(postRollRerollTitle)…",
                         help: "Preview re-rolling non-hits for 1 Edge",
                         isEnabled: controller.canSecondChance
                     ) {
@@ -351,6 +387,57 @@ struct DiceRollerPanel: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
+            }
+        }
+    }
+
+    // MARK: - SR6 post-roll Edge Actions
+
+    private var sr6PostRollEdgeActions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Edge Actions · after the roll")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Buy a Hit")
+                        .font(.body.weight(.medium))
+                    Text("Spend 1 Edge to add one automatic hit to this result.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    AppChromeButton.title(
+                        "Buy a Hit (1 Edge)",
+                        help: "Spend 1 Edge for +1 hit",
+                        isEnabled: controller.canBuyHit
+                    ) {
+                        controller.buyHit()
+                    }
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Close Call")
+                        .font(.body.weight(.medium))
+                    Text("Spend 1 Edge to clear a glitch or critical glitch (hits and faces stay).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    AppChromeButton.title(
+                        "Close Call (1 Edge)",
+                        help: "Spend 1 Edge to remove glitch flags",
+                        isEnabled: controller.canCloseCall
+                    ) {
+                        controller.closeCall()
+                    }
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.purple.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.purple.opacity(0.28), lineWidth: 1)
             }
         }
     }
