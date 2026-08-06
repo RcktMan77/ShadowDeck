@@ -137,7 +137,13 @@ struct SettingsView: View {
                 } header: {
                     Text("Developer override")
                 } footer: {
+                    // Grouped Form footers default to centered; force natural leading wrap.
                     Text("Optional live Chummer data XML for SR5-oriented loads. End users should leave this off.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if !status.isEmpty {
