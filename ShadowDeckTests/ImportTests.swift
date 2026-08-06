@@ -16,6 +16,39 @@ final class ImportTests: XCTestCase {
 
     // MARK: - Synthetic fixtures
 
+    func testMinimalSR4JSONImportCoreFields() throws {
+        let data = try fixtureData("minimal_sr4.json")
+        let result = try CharacterImporter.importChummerJSON(data, fileName: "minimal_sr4.json")
+        let c = result.character
+
+        XCTAssertEqual(result.sourceFormat, .chummerJSON)
+        XCTAssertEqual(c.name, "SR4 Fixture")
+        XCTAssertEqual(c.streetName, "Marcus-Mock")
+        XCTAssertEqual(c.edition, .sr4)
+        XCTAssertEqual(c.metatype, .ork)
+        XCTAssertEqual(c.awakened, .mundane)
+        XCTAssertEqual(c.attributes.body, 5)
+        XCTAssertEqual(c.nuyen, 15_000)
+        XCTAssertTrue(c.skills.contains { $0.displayName == "Pistols" && $0.rating == 4 })
+        XCTAssertEqual(c.generation.system, .buildPoints)
+    }
+
+    func testMinimalSR6JSONImportCoreFields() throws {
+        let data = try fixtureData("minimal_sr6.json")
+        let result = try CharacterImporter.importChummerJSON(data, fileName: "minimal_sr6.json")
+        let c = result.character
+
+        XCTAssertEqual(result.sourceFormat, .chummerJSON)
+        XCTAssertEqual(c.name, "SR6 Fixture")
+        XCTAssertEqual(c.streetName, "Jordan-Mock")
+        XCTAssertEqual(c.edition, .sr6)
+        XCTAssertEqual(c.metatype, .human)
+        XCTAssertEqual(c.attributes.edge, 4)
+        XCTAssertEqual(c.karmaAvailable, 50)
+        XCTAssertEqual(c.generation.system, .priority)
+        XCTAssertTrue(c.skills.contains { $0.rating == 5 })
+    }
+
     func testMinimalJSONImportCoreFields() throws {
         let data = try fixtureData("minimal_sr5.json")
         let result = try CharacterImporter.importChummerJSON(data, fileName: "minimal_sr5.json")
