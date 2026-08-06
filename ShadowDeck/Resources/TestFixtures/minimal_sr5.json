@@ -1,0 +1,119 @@
+{
+  "characters": {
+    "character": {
+      "name": "Test Runner",
+      "alias": "Fixture",
+      "metatype": "Elf",
+      "gameedition": "SR5",
+      "buildmethod": "Priority",
+      "prioritymetatype": "D",
+      "priorityattributes": "B",
+      "priorityspecial": "A",
+      "priorityskills": "C",
+      "priorityresources": "E",
+      "nuyen": "6000",
+      "karma": "25",
+      "totalkarma": "25",
+      "adept": "False",
+      "magician": "True",
+      "technomancer": "False",
+      "mysticadept": "False",
+      "totaless": "6.0",
+      "concept": "Fixture combat mage",
+      "attributes": [
+        "0",
+        {
+          "attributecategory_english": "Standard",
+          "attribute": [
+            { "name": "BOD", "base": "3", "total": "3" },
+            { "name": "AGI", "base": "5", "total": "5" },
+            { "name": "REA", "base": "4", "total": "4" },
+            { "name": "STR", "base": "2", "total": "2" },
+            { "name": "CHA", "base": "5", "total": "5" },
+            { "name": "INT", "base": "4", "total": "4" },
+            { "name": "LOG", "base": "5", "total": "5" },
+            { "name": "WIL", "base": "5", "total": "5" },
+            { "name": "EDG", "base": "2", "total": "2" },
+            { "name": "MAG", "base": "6", "total": "6" },
+            { "name": "RES", "base": "0", "total": "0" },
+            { "name": "ESS", "base": "6", "total": "6" }
+          ]
+        }
+      ],
+      "skills": {
+        "skill": [
+          {
+            "name": "Spellcasting",
+            "base": "6",
+            "karma": "0",
+            "rating": "6",
+            "total": "11",
+            "knowledge": "False",
+            "skillgroup": "Sorcery",
+            "skillcategory": "Magical Active",
+            "spec": ""
+          },
+          {
+            "name": "Perception",
+            "base": "3",
+            "karma": "0",
+            "rating": "3",
+            "total": "7",
+            "knowledge": "False",
+            "skillcategory": "Physical Active"
+          },
+          {
+            "name": "Arcana",
+            "base": "4",
+            "karma": "0",
+            "rating": "4",
+            "total": "9",
+            "knowledge": "True",
+            "skillcategory": "Academic"
+          }
+        ],
+        "skillgroup": []
+      },
+      "qualities": {
+        "quality": [
+          { "name": "Focused Concentration", "qualitytype": "Positive", "karma": "4", "source": "SR5" },
+          { "name": "SINner (National)", "qualitytype": "Negative", "karma": "5", "source": "SR5" }
+        ]
+      },
+      "cyberwares": { "cyberware": [] },
+      "gears": {
+        "gear": [
+          { "name": "Commlink", "qty": "1", "cost": "1000", "equipped": "True" }
+        ]
+      },
+      "weapons": {
+        "weapon": [
+          { "name": "Unarmed Attack", "damage": "({STR})S" },
+          { "name": "Defiance EX Shocker", "damage": "8S(e)", "cost": "340" }
+        ]
+      },
+      "armors": {
+        "armor": [
+          { "name": "Armor Jacket", "armor": "12", "cost": "1000", "equipped": "True" }
+        ]
+      },
+      "powers": { "power": [] },
+      "spells": {
+        "spell": [
+          { "name": "Manabolt", "category": "Combat" },
+          { "name": "Heal", "category": "Health" }
+        ]
+      },
+      "contacts": {
+        "contact": [
+          { "name": "Talismonger Wren", "role": "Talismonger", "loyalty": "3", "connection": "3" }
+        ]
+      },
+      "lifestyles": {
+        "lifestyle": [
+          { "name": "Primary", "baselifestyle": "Middle", "cost": "5000", "months": "1" }
+        ]
+      }
+    }
+  }
+}
