@@ -133,5 +133,7 @@ Then: full re-audit → `Docs/TABLE_READINESS_REAUDIT.md`.
 | Item | Status |
 |------|--------|
 | Remediation plan doc | **This file** |
-| PR-1 Real SR4 BP | **In progress** — `SR4BuildPointEngine`, draft/wizard wiring, DESIGN note, tests |
-| PR-2 … PR-7 | Not started |
+| PR-1 Real SR4 BP | **Done** — engine + wizard BP + groups/spells/contacts + `sr4_catalog` + edition-aware catalog load |
+| PR-2 Full SR6 Edge | Not started |
+| PR-2b SR6 catalog from core PDF | Not started (after Edge) |
+| PR-3 … PR-7 | Not started |

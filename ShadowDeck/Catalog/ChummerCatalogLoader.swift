@@ -2,14 +2,24 @@
 //  ChummerCatalogLoader.swift
 //  ShadowDeck
 //
-//  Primary: load bundled `sr5_catalog.json` shipped with the app (derived from
-//  Chummer5a GPL data — see Resources/Catalog/NOTICE.txt).
-//  Optional: developer override to load live Chummer `data/` XML.
+//  Bundled catalogs: `sr4_catalog.json` (SR4A PDF extract) and `sr5_catalog.json`
+//  (Chummer5a GPL). Optional developer override to load live Chummer `data/` XML.
+//  See Resources/Catalog/NOTICE.txt.
 //
 
 import Foundation
 
 public enum ChummerCatalogLoader {
+    /// Resource stem for an edition’s bundled catalog (without `.json`).
+    public static func bundledResourceName(for edition: Edition) -> String {
+        switch edition {
+        case .sr4: "sr4_catalog"
+        case .sr5, .sr6:
+            // SR6 pack not yet curated; use SR5 catalog as reference until sr6_catalog ships.
+            "sr5_catalog"
+        }
+    }
+
     public static func resolvedExternalDataDirectory(
         override: String? = CatalogSettings.chummerDataPath
     ) -> URL? {
@@ -18,41 +28,65 @@ public enum ChummerCatalogLoader {
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
-    /// Load catalog for the app. Prefers the **bundled** JSON unless the user
-    /// explicitly enables an external Chummer data folder override.
-    public static func load() -> CatalogLoadResult {
-        if CatalogSettings.preferExternalCatalog,
+    /// Load catalog for the app. Prefers the **bundled** JSON for `edition`
+    /// unless the user enables an external Chummer data folder override (SR5 XML).
+    public static func load(edition: Edition = .sr5) -> CatalogLoadResult {
+        // External Chummer XML is SR5-oriented; only use when requesting SR5/SR6.
+        if edition != .sr4,
+           CatalogSettings.preferExternalCatalog,
            let dir = resolvedExternalDataDirectory() {
             let external = loadFromChummerXML(directory: dir)
             if !external.entries.isEmpty {
                 return external
             }
         }
-        return loadBundledJSON()
+        return loadBundledJSON(edition: edition)
     }
 
     // MARK: - Bundled JSON
 
-    private static func loadBundledJSON() -> CatalogLoadResult {
+    private static func loadBundledJSON(edition: Edition) -> CatalogLoadResult {
+        let primary = bundledResourceName(for: edition)
+        let fallback = edition == .sr4 ? "sr5_catalog" : primary
+        let names = primary == fallback ? [primary] : [primary, fallback]
+
+        var lastError: String?
+        for name in names {
+            if let result = tryLoadBundled(resourceName: name) {
+                if name != primary {
+                    var r = result
+                    r.errors.append(
+                        "Preferred catalog \(primary).json missing; loaded \(name).json."
+                    )
+                    return r
+                }
+                return result
+            }
+            lastError = "Bundled catalog (\(name).json) not found or failed to decode."
+        }
+
+        return CatalogLoadResult(
+            entries: [],
+            sourceDirectory: nil,
+            loadedFiles: [],
+            errors: [lastError ?? "Bundled catalog not found in app resources."]
+        )
+    }
+
+    private static func tryLoadBundled(resourceName: String) -> CatalogLoadResult? {
         let candidates: [URL?] = [
-            Bundle.main.url(forResource: "sr5_catalog", withExtension: "json", subdirectory: "Catalog"),
-            Bundle.main.url(forResource: "sr5_catalog", withExtension: "json"),
-            // Source-tree fallback (unit tests / unbundled runs)
+            Bundle.main.url(forResource: resourceName, withExtension: "json", subdirectory: "Catalog"),
+            Bundle.main.url(forResource: resourceName, withExtension: "json"),
             URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent() // Catalog/
                 .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Catalog/sr5_catalog.json")
+                .appendingPathComponent("Resources/Catalog/\(resourceName).json")
         ]
 
         guard let url = candidates.compactMap({ $0 }).first(where: {
             FileManager.default.fileExists(atPath: $0.path)
         }) else {
-            return CatalogLoadResult(
-                entries: [],
-                sourceDirectory: nil,
-                loadedFiles: [],
-                errors: ["Bundled catalog (sr5_catalog.json) not found in app resources."]
-            )
+            return nil
         }
 
         do {
@@ -62,7 +96,7 @@ public enum ChummerCatalogLoader {
             return CatalogLoadResult(
                 entries: entries,
                 sourceDirectory: url.deletingLastPathComponent(),
-                loadedFiles: ["Bundled sr5_catalog.json (\(entries.count) entries)"],
+                loadedFiles: ["Bundled \(resourceName).json (\(entries.count) entries)"],
                 errors: []
             )
         } catch {
@@ -70,7 +104,7 @@ public enum ChummerCatalogLoader {
                 entries: [],
                 sourceDirectory: url.deletingLastPathComponent(),
                 loadedFiles: [],
-                errors: ["Failed to load bundled catalog: \(error.localizedDescription)"]
+                errors: ["Failed to load \(resourceName).json: \(error.localizedDescription)"]
             )
         }
     }
@@ -516,41 +550,37 @@ public enum CatalogSettings {
     }
 }
 
-/// Process-wide shared catalog entries (single load path for UI + import).
-/// Thread-safe; filled once on first access or via `CatalogStore.reload()`.
+/// Process-wide shared catalog entries, keyed by edition.
+/// Thread-safe; filled on first access per edition or via `CatalogStore.reload()`.
 enum CatalogCache {
     private static let lock = NSLock()
     /// Guarded by `lock`; marked unsafe for Swift 6 global-state rules.
-    nonisolated(unsafe) private static var cachedEntries: [CatalogEntry]?
-    nonisolated(unsafe) private static var cachedResult: CatalogLoadResult?
+    nonisolated(unsafe) private static var cache: [Edition: CatalogLoadResult] = [:]
 
-    static func loadResult() -> CatalogLoadResult {
+    static func loadResult(edition: Edition = .sr5) -> CatalogLoadResult {
         lock.lock()
         defer { lock.unlock() }
-        if let cachedResult { return cachedResult }
-        let loaded = ChummerCatalogLoader.load()
-        cachedResult = loaded
-        cachedEntries = loaded.entries
+        if let hit = cache[edition] { return hit }
+        let loaded = ChummerCatalogLoader.load(edition: edition)
+        cache[edition] = loaded
         return loaded
     }
 
-    static func entries() -> [CatalogEntry] {
-        loadResult().entries
+    static func entries(edition: Edition = .sr5) -> [CatalogEntry] {
+        loadResult(edition: edition).entries
     }
 
-    /// Replace cache after an explicit reload (Settings → refresh catalog).
-    static func replace(with result: CatalogLoadResult) {
+    /// Replace cache for one edition after an explicit reload.
+    static func replace(edition: Edition, with result: CatalogLoadResult) {
         lock.lock()
         defer { lock.unlock() }
-        cachedResult = result
-        cachedEntries = result.entries
+        cache[edition] = result
     }
 
     static func reset() {
         lock.lock()
         defer { lock.unlock() }
-        cachedEntries = nil
-        cachedResult = nil
+        cache.removeAll()
     }
 }
 
@@ -559,6 +589,7 @@ enum CatalogCache {
 public final class CatalogStore: ObservableObject {
     public static let shared = CatalogStore()
 
+    @Published public private(set) var edition: Edition = .sr5
     @Published public private(set) var result: CatalogLoadResult = .init(
         entries: [],
         sourceDirectory: nil,
@@ -571,53 +602,69 @@ public final class CatalogStore: ObservableObject {
         // Intentionally empty: decode on first browser/settings access, not at launch.
     }
 
-    /// Load catalog if needed (idempotent). Call from Catalog browser / Settings appear.
-    public func ensureLoaded() {
-        guard !isLoaded else { return }
-        reload()
+    /// Load catalog if needed for the current edition (idempotent).
+    public func ensureLoaded(for edition: Edition = .sr5) {
+        if isLoaded, self.edition == edition { return }
+        reload(for: edition)
     }
 
-    public func reload() {
-        let loaded = ChummerCatalogLoader.load()
-        CatalogCache.replace(with: loaded)
+    public func reload(for edition: Edition = .sr5) {
+        let loaded = ChummerCatalogLoader.load(edition: edition)
+        CatalogCache.replace(edition: edition, with: loaded)
+        self.edition = edition
         result = loaded
         isLoaded = true
     }
 
-    public func entries(kinds: Set<CatalogKind>, query: String) -> [CatalogEntry] {
-        ensureLoaded()
-        let scoped = result.entries.filter { kinds.contains($0.kind) }
+    /// Settings / default reload keeps the active edition.
+    public func reload() {
+        reload(for: edition)
+    }
+
+    public func entries(
+        kinds: Set<CatalogKind>,
+        query: String,
+        edition: Edition? = nil,
+        matching: ((CatalogEntry) -> Bool)? = nil
+    ) -> [CatalogEntry] {
+        let ed = edition ?? self.edition
+        ensureLoaded(for: ed)
+        var scoped = result.entries.filter { kinds.contains($0.kind) }
+        if let matching {
+            scoped = scoped.filter(matching)
+        }
         return CatalogSearch.filter(scoped, query: query)
     }
 
     /// Case-insensitive exact name match (first hit). Used when attaching catalog mods on import.
-    public func entry(named name: String) -> CatalogEntry? {
-        ensureLoaded()
+    public func entry(named name: String, edition: Edition? = nil) -> CatalogEntry? {
+        let ed = edition ?? self.edition
+        ensureLoaded(for: ed)
         let key = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !key.isEmpty else { return nil }
         return result.entries.first { $0.name.lowercased() == key }
     }
 
-    public func modifiers(named name: String) -> [StatModifier] {
-        entry(named: name)?.modifiers ?? []
+    public func modifiers(named name: String, edition: Edition? = nil) -> [StatModifier] {
+        entry(named: name, edition: edition)?.modifiers ?? []
     }
 }
 
 /// Non-UI catalog lookup for import / rules (shares `CatalogCache` with `CatalogStore`).
 public enum CatalogLookup {
-    public static func allEntries() -> [CatalogEntry] {
-        CatalogCache.entries()
+    public static func allEntries(edition: Edition = .sr5) -> [CatalogEntry] {
+        CatalogCache.entries(edition: edition)
     }
 
-    public static func entry(named name: String) -> CatalogEntry? {
+    public static func entry(named name: String, edition: Edition = .sr5) -> CatalogEntry? {
         let key = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !key.isEmpty else { return nil }
-        return allEntries().first { $0.name.lowercased() == key }
+        return allEntries(edition: edition).first { $0.name.lowercased() == key }
     }
 
-    public static func modifiers(named name: String) -> [StatModifier] {
+    public static func modifiers(named name: String, edition: Edition = .sr5) -> [StatModifier] {
         // Fresh UUIDs so each instance is independently identifiable.
-        (entry(named: name)?.modifiers ?? []).map {
+        (entry(named: name, edition: edition)?.modifiers ?? []).map {
             StatModifier(
                 target: $0.target,
                 amount: $0.amount,

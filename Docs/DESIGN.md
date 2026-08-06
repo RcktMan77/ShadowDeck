@@ -85,9 +85,13 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | Resources | 1 BP = ¥5,000 | Resources step |
 | Qualities | Positive cost BP; negative refund BP; **±35** caps | Qualities step |
 
-**Budget:** 400 BP (`SR4Rules.standardBuildPointBudget`). Overspend blocks Continue/Save. Live ledger: metatype, attributes, skills, qualities, resources.
+**Budget:** 400 BP (`SR4Rules.standardBuildPointBudget`). Overspend blocks Continue/Save. Live ledger: metatype, attributes, skills, skill groups, spells, contacts, qualities, resources.
 
-**Out of wizard v1 (not free):** skill groups, spells, complex forms, contacts BP, initiate grades. Omitted from the wizard rather than given free.
+**In wizard (SR4A BP, extended):** skill groups (10 BP × rating, max 4), spells (3 BP each; max 2 × Spellcasting/Ritual Spellcasting), contacts (Connection + Loyalty BP).
+
+**Still out of wizard (not free):** complex forms as full BP UI, initiate grades, full gear shopping (use BP → nuyen → sheet catalog).
+
+**Catalog:** `Resources/Catalog/sr4_catalog.json` (SR4A core extract). Management tabs and chargen spell picker load **edition-aware** catalogs via `ChummerCatalogLoader.load(edition:)` — SR4 uses `sr4_catalog`, SR5/SR6 use `sr5_catalog` until an SR6 pack ships.
 
 **Not used for F1 remediation:** “Simplified/Beta” labels or fake Attr/Skill pools with “expands later” copy.
 
