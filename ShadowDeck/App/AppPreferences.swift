@@ -12,9 +12,9 @@ enum AppPreferences {
     enum Key: String {
         // Launch / window
         case mainWindowFrame = "ShadowDeck.mainWindowFrame"
-        /// Legacy once-per-install flag; removed on launch.
+        /// After first splash dismiss, later cold launches skip the splash.
         case hasSeenLaunchSplash = "hasSeenLaunchSplash"
-        /// Legacy revision counter; removed on launch (splash always shows).
+        /// Legacy revision counter (no longer used).
         case launchSplashRevision = "launchSplashRevision"
 
         // Catalog
