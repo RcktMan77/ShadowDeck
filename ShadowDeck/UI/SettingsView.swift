@@ -11,12 +11,25 @@ import SwiftUI
 struct SettingsView: View {
     @State private var preferExternal = CatalogSettings.preferExternalCatalog
     @State private var externalPath: String = CatalogSettings.chummerDataPath ?? ""
+    /// Inverse of `AppPreferences.skipLaunchSplash` (default: show splash).
+    @State private var showSplashOnStartup = !AppPreferences.bool(.skipLaunchSplash)
     @State private var status: String = ""
     @ObservedObject private var catalog = CatalogStore.shared
 
     var body: some View {
         TabView {
             Form {
+                Section {
+                    Toggle("Show splash screen on startup", isOn: $showSplashOnStartup)
+                        .onChange(of: showSplashOnStartup) { _, show in
+                            AppPreferences.set(!show, for: .skipLaunchSplash)
+                        }
+                } header: {
+                    Text("Launch")
+                } footer: {
+                    Text("When on, ShadowDeck shows the launch splash on each cold start. Turn off to open the library window directly.")
+                }
+
                 Section("About") {
                     LabeledContent("Application", value: "ShadowDeck")
                     LabeledContent("Version", value: Bundle.main.shortVersionString)
@@ -131,6 +144,7 @@ struct SettingsView: View {
         .onAppear {
             preferExternal = CatalogSettings.preferExternalCatalog
             externalPath = CatalogSettings.chummerDataPath ?? ""
+            showSplashOnStartup = !AppPreferences.bool(.skipLaunchSplash)
             catalog.ensureLoaded()
         }
     }
