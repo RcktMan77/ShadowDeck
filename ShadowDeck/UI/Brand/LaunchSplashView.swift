@@ -148,10 +148,24 @@ struct LaunchSplashView: View {
 
                         Spacer(minLength: 12)
 
-                        Text("Click or any key to skip")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.4))
-                            .transaction { $0.animation = nil }
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Text("Skip splash")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.9))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.12), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Skip the splash and open the library (won’t show again on later launches)")
+                            Text("Click or any key also skips")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                        .transaction { $0.animation = nil }
                     }
                     .padding(.horizontal, 36)
                     .padding(.bottom, 28)
