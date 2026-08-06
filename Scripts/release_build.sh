@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Build a Release configuration of ShadowDeck and optionally zip / sign / notarize.
 #
+# Maintainer docs: Docs/RELEASE.md
+#
 #   Scripts/release_build.sh                 # unsigned app → build/Release/ShadowDeck.app
 #   Scripts/release_build.sh --zip           # also → dist/ShadowDeck-<version>-macos.zip
 #   Scripts/release_build.sh --zip --sign    # Developer ID sign + hardened runtime
 #   Scripts/release_build.sh --zip --sign --notarize
+#   Scripts/release_build.sh --notarize      # implies --zip --sign; staple + re-zip
 #
 # Signing / notarization read local env only (not hard-coded personal identity):
 #   CODESIGN_IDENTITY          Full "Developer ID Application: …" string (required for --sign)
@@ -14,6 +17,9 @@
 # Store notary credentials once (profile name must match SHADOWDECK_NOTARY_PROFILE):
 #   xcrun notarytool store-credentials "$SHADOWDECK_NOTARY_PROFILE" \
 #     --apple-id YOU@example.com --team-id YOUR_TEAM_ID --password app-specific-password
+#
+# Done when: with credentials present, --sign --notarize produces a stapled .app
+# inside dist/ShadowDeck-<version>-macos.zip (spctl assess should succeed).
 #
 set -euo pipefail
 
