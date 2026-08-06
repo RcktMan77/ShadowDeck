@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.1.0-0A7EA4?style=flat-square" alt="Version 1.1.0" /></a>
+  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.2.0-0A7EA4?style=flat-square" alt="Version 1.2.0" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
   <img src="https://img.shields.io/badge/platform-Mac-lightgrey?style=flat-square" alt="Mac" />
@@ -161,10 +161,11 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 Create a new character for SR4, SR5, or SR6 with a guided flow from concept through attributes, skills, and resources.
 
-- Chargen for all three supported editions
+- **SR4A Build Points** chargen (real 400 BP ledger: metatype, attributes, skills, skill groups, spells, contacts, qualities, nuyen)
+- **SR5 / SR6** priority (and house-rule Sum-to-Ten / karmagen) chargen
 - Optional house rules for priorities, contacts, dice math, and more
 - Role suggestions with archetype and metatype art
-- Import existing runners from Chummer or a portable package
+- Import existing runners from Chummer (SR4 / SR5 / SR6 fixtures in tests) or a portable package
 
 ### Character library & play sheet
 
@@ -183,7 +184,8 @@ Keep a stable of runners ready for the next session — open a sheet, see the nu
 - Play sheet for attributes, condition, karma, nuyen, pools, and gear-backed bonuses
 - Skills, gear, contacts, lifestyle, magic, and advancement in one place
 - Still or animated portraits
-- Dice from the sheet with Edge options and optional house-rule dice math
+- Dice from the sheet with Edge: SR4/5 Push the Limit & Second Chance; **SR6 Edge Actions** by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call), or simplified SR5-style Edge as a house rule
+- Edition-aware gear/quality catalogs (SR4A core pack, large SR5 Chummer-derived reference, SR6 core pack with book spot-checks)
 
     </td>
   </tr>
@@ -293,6 +295,7 @@ Focus: deepen solo campaign tools before multi-user play.
 | Branching | [Docs/BRANCHING.md](Docs/BRANCHING.md) |
 | Design | [Docs/DESIGN.md](Docs/DESIGN.md) |
 | Chummer import | [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md) |
+| Signed / notarized release | [Docs/RELEASE.md](Docs/RELEASE.md) |
 | Screenshot pipeline | [Screenshots/README.md](Screenshots/README.md) |
 
 ```bash
@@ -306,8 +309,9 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 
 # Release app → build/Release/ShadowDeck.app (optional --zip, --sign, --notarize)
 Scripts/release_build.sh --zip
-# Sign / notarize need local env (not committed): CODESIGN_IDENTITY and
-# SHADOWDECK_NOTARY_PROFILE (notarytool keychain profile). Then:
+# Signed + notarized distribution (see Docs/RELEASE.md). Local env only:
+#   export CODESIGN_IDENTITY="Developer ID Application: …"
+#   export SHADOWDECK_NOTARY_PROFILE="your-notary-profile"
 #   Scripts/release_build.sh --zip --sign --notarize
 
 # Refresh README marquees (stills, GIFs, posters → Screenshots/)

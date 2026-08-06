@@ -10,19 +10,13 @@ import SwiftUI
 import AppKit
 
 enum ChargenArtLoader {
-    /// Resolve a bundled ChargenArt JPEG URL (app bundle or dev tree).
+    /// Resolve a bundled ChargenArt JPEG URL (app bundle only — no source-tree probe / Desktop TCC).
     static func resourceURL(named name: String) -> URL? {
         let bundle = Bundle.main
-        if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
+        // Flattened Resources root is the normal layout from the synchronized group.
+        return bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/ChargenArt")
-            ?? bundle.url(forResource: name, withExtension: "jpg") {
-            return url
-        }
-        let dev = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/ChargenArt/\(name).jpg")
-        return FileManager.default.fileExists(atPath: dev.path) ? dev : nil
+            ?? bundle.url(forResource: name, withExtension: "jpg")
     }
 
     static func nsImage(named name: String) -> NSImage? {
@@ -190,19 +184,25 @@ struct EmphasizedHelpText: View {
     let text: String
 
     var body: some View {
+        // Apply font/color per segment. A single outer `.font` / `.foregroundStyle` on the
+        // concatenated Text can strip weight and leave `**…**` looking unstyled (or odd) on macOS.
         segments.reduce(Text("")) { partial, segment in
-            if segment.emphasized {
-                return partial + Text(segment.value)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-            } else {
-                return partial + Text(segment.value)
-            }
+            partial + styledSegment(segment)
         }
-        .font(.callout)
-        .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
         .help(helpSummary)
+    }
+
+    private func styledSegment(_ segment: Segment) -> Text {
+        let base = Text(segment.value)
+        if segment.emphasized {
+            return base
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(Color.primary)
+        }
+        return base
+            .font(.callout)
+            .foregroundStyle(Color.secondary)
     }
 
     private var helpSummary: String {
@@ -318,8 +318,9 @@ struct ProfileArtChrome: View {
                         .joined(separator: " · ")
                     summaryLine("Skills", top.isEmpty ? "—" : top)
                 }
-                if draft.step >= .qualities, !draft.qualities.isEmpty {
-                    summaryLine("Qualities", "\(draft.qualities.count) selected")
+                if draft.step >= .qualities {
+                    let n = draft.qualities.count
+                    summaryLine("Qualities", n == 0 ? "0 selected" : "\(n) selected")
                 }
                 if draft.step >= .resources {
                     summaryLine("Nuyen", "¥\(draft.nuyen)")
@@ -477,10 +478,8 @@ struct HelpCallout: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        // Parse **term** markers (same as EmphasizedHelpText) so callouts never show raw asterisks.
+        EmphasizedHelpText(text: text)
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))

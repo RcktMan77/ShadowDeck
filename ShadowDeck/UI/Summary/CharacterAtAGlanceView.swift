@@ -642,7 +642,11 @@ struct CharacterAtAGlanceView: View {
                     statRow("Armor", "\(derived.armor)")
                     statRow("Walk / Run", "\(derived.movementWalk) / \(derived.movementRun)")
                     if c.edition.usesSessionEdgePool {
-                        Text("SR6: Edge is a session pool that refreshes between encounters.")
+                        Text(
+                            c.houseRules.resolvedDice.usesFullSR6EdgeActions(for: .sr6)
+                                ? "SR6: Edge Actions from the dice panel (session pool; Refresh between scenes)."
+                                : "SR6: simplified session Edge (house rule) — Push / Second Chance only."
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
