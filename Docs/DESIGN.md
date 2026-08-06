@@ -91,7 +91,7 @@ UI  →  View models / observation  →  Domain models (Character, …)
 
 **Still out of wizard (not free):** complex forms as full BP UI, initiate grades, full gear shopping (use BP → nuyen → sheet catalog).
 
-**Catalog:** `Resources/Catalog/sr4_catalog.json` (SR4A core extract). Management tabs and chargen spell picker load **edition-aware** catalogs via `ChummerCatalogLoader.load(edition:)` — SR4 uses `sr4_catalog`, SR5/SR6 use `sr5_catalog` until an SR6 pack ships.
+**Catalog:** Edition-aware packs via `ChummerCatalogLoader.load(edition:)` — `sr4_catalog.json` (SR4A), `sr5_catalog.json` (Chummer GPL), `sr6_catalog.json` (SR6 core gear listing with build-time exactness checks).
 
 **Not used for F1 remediation:** “Simplified/Beta” labels or fake Attr/Skill pools with “expands later” copy.
 
@@ -299,7 +299,7 @@ Add flows use a **searchable browser**; **Custom…** always works offline witho
 
 **Not done / not planned as scrape:** Shadowrun Wiki scraping is brittle, incomplete for costs, and a poor ToS fit. Named street-contact art DBs do not exist officially — contacts stay freeform (+ role archetypes from catalog).
 
-SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs are curated.
+SR4 / SR6: PDF extract pipelines in `Scripts/build_sr4_catalog_from_pdf.py` and `Scripts/build_sr6_catalog_from_pdf.py` (exactness spot-checks fail the build).
 
 ## Changelog of Decisions
 

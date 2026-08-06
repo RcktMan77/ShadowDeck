@@ -51,10 +51,7 @@ final class ExportSheetTests: XCTestCase {
     }
 
     func testOriginalPayloadExportIsByteFaithful() throws {
-        // Use the CI-stable fixture — never a developer-machine absolute path.
-        let source = try Data(contentsOf: URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("Fixtures/minimal_sr5.chum5"))
+        let source = try TestFixtures.data(named: "minimal_sr5.chum5")
         let imported = try CharacterImporter.importChummerXML(source, fileName: "minimal_sr5.chum5")
         let character = imported.character
         XCTAssertNotNil(character.importProvenance?.originalPayload)

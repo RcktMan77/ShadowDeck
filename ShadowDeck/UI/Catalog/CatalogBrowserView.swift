@@ -10,7 +10,7 @@ import SwiftUI
 struct CatalogBrowserView: View {
     let title: String
     let kinds: Set<CatalogKind>
-    /// Which edition’s bundled catalog to load (SR4 → `sr4_catalog`, else SR5 pack).
+    /// Which edition’s bundled catalog to load (`sr4_catalog` / `sr5_catalog` / `sr6_catalog`).
     var edition: Edition = .sr5
     var allowCustom: Bool = true
     /// Optional extra filter (e.g. spells stored as gear with category containing “Spell”).
@@ -29,8 +29,8 @@ struct CatalogBrowserView: View {
     private var editionBadge: String {
         switch edition {
         case .sr4: "SR4A catalog"
-        case .sr5: "SR5 catalog"
-        case .sr6: "SR6 uses SR5 catalog until dedicated pack ships"
+        case .sr5: "SR5 reference catalog"
+        case .sr6: "SR6 catalog"
         }
     }
 
