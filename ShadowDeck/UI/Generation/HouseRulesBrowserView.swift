@@ -286,8 +286,11 @@ struct HouseRulesBrowserView: View {
                 }
             )) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Simplified SR6 Edge")
-                    Text("Push the Limit + Second Chance style (SR5-like). Recommended for SR6 tables.")
+                    Text("Simplified SR6 Edge (house rule)")
+                    Text("""
+                        Off by default. When on, SR6 uses only SR5-style Push the Limit + Second Chance. \
+                        When off, the roller offers full SR6 Edge Actions (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call).
+                        """)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

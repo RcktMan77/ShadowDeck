@@ -156,18 +156,14 @@ enum MarketingPDFLibrarySeeder {
 
     private static func loadCoverImage(named name: String) -> NSImage? {
         let bundle = Bundle.main
+        // Bundle only — no source-tree #filePath (Desktop TCC when the repo lives under Desktop).
         let candidates: [URL?] = [
             bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Brand/MarketingPDFCovers"),
             bundle.url(forResource: name, withExtension: "jpg", subdirectory: "MarketingPDFCovers"),
             bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Brand"),
-            bundle.url(forResource: name, withExtension: "jpg"),
-            URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("Resources/Brand/MarketingPDFCovers/\(name).jpg")
+            bundle.url(forResource: name, withExtension: "jpg")
         ]
-        for url in candidates.compactMap({ $0 }) where FileManager.default.fileExists(atPath: url.path) {
+        for url in candidates.compactMap({ $0 }) {
             if let image = NSImage(contentsOf: url) { return image }
         }
         return nil

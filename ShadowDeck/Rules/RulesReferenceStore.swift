@@ -64,17 +64,12 @@ public final class RulesReferenceStore: @unchecked Sendable {
     }
 
     public static func loadSeedFile() throws -> RulesSeedFile {
+        // Bundle only — avoid source-tree #filePath probes (Desktop TCC).
         let candidates: [URL?] = [
             Bundle.main.url(forResource: "RulesSeed", withExtension: "json", subdirectory: "Rules"),
-            Bundle.main.url(forResource: "RulesSeed", withExtension: "json"),
-            URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent() // Rules/
-                .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Rules/RulesSeed.json")
+            Bundle.main.url(forResource: "RulesSeed", withExtension: "json")
         ]
-        guard let url = candidates.compactMap({ $0 }).first(where: {
-            FileManager.default.fileExists(atPath: $0.path)
-        }) else {
+        guard let url = candidates.compactMap({ $0 }).first else {
             throw RulesReferenceStoreError.seedNotFound
         }
         do {

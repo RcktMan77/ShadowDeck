@@ -19,16 +19,21 @@ struct ShadowDeckApp: App {
     @State private var showLaunchVeil: Bool
 
     init() {
-        // Splash on every cold launch (skip with click or any key).
-        _showSplash = State(initialValue: true)
-        _showLaunchVeil = State(initialValue: true)
-        // Legacy once-per-install flag from older builds.
+        // Splash on every cold launch unless Settings disables it (`skipLaunchSplash`).
+        // Drop legacy first-dismiss / revision keys so older installs no longer suppress splash forever.
         AppPreferences.remove(.hasSeenLaunchSplash)
         AppPreferences.remove(.launchSplashRevision)
+        let skipSplash = AppPreferences.bool(.skipLaunchSplash)
+            && !MarketingScreenshotExporter.isEnabled
+        _showSplash = State(initialValue: !skipSplash)
+        _showLaunchVeil = State(initialValue: !skipSplash)
         do {
             // Marketing captures never open the on-disk personal library.
+            // SHADOWDECK_IN_MEMORY_LIBRARY=1: empty ephemeral store for QA (never touches live disk).
             if MarketingScreenshotExporter.isEnabled {
                 libraryEnvironment = try LibraryEnvironment.marketingCapture()
+            } else if ProcessInfo.processInfo.environment["SHADOWDECK_IN_MEMORY_LIBRARY"] == "1" {
+                libraryEnvironment = try LibraryEnvironment.ephemeral()
             } else {
                 libraryEnvironment = try LibraryEnvironment.live()
             }
@@ -87,6 +92,10 @@ struct ShadowDeckApp: App {
             .onAppear {
                 if showSplash {
                     AppLaunchWindowPolicy.promoteMainWindowForSplash()
+                } else {
+                    // Returning launches that skip splash still start a cold-launch guard in AppDelegate.
+                    AppLaunchWindowPolicy.endColdLaunchGuard()
+                    AppLaunchWindowPolicy.revealMainWindowChrome()
                 }
                 guard MarketingScreenshotExporter.isEnabled else { return }
                 Task { @MainActor in
@@ -201,6 +210,7 @@ struct ShadowDeckApp: App {
     /// and reveal window chrome as soon as the next frame is committed.
     @MainActor
     private func dismissSplashWithVeil() {
+        // Dismiss only ends this launch’s splash; persistence is Settings → skipLaunchSplash.
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) {

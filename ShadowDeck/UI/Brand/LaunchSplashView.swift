@@ -148,10 +148,24 @@ struct LaunchSplashView: View {
 
                         Spacer(minLength: 12)
 
-                        Text("Click or any key to skip")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.4))
-                            .transaction { $0.animation = nil }
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Text("Skip splash")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.9))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.12), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Skip the splash and open the library (won’t show again on later launches)")
+                            Text("Click or any key also skips")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                        .transaction { $0.animation = nil }
                     }
                     .padding(.horizontal, 36)
                     .padding(.bottom, 28)
@@ -259,16 +273,12 @@ enum BrandFonts {
         let names = ["Orbitron.ttf", "Rajdhani-Bold.ttf"]
         for name in names {
             let base = name.replacingOccurrences(of: ".ttf", with: "")
+            // Bundle only — never probe source tree (Desktop TCC when repo is under ~/Desktop).
             let candidates: [URL?] = [
                 Bundle.main.url(forResource: base, withExtension: "ttf", subdirectory: "Fonts"),
-                Bundle.main.url(forResource: base, withExtension: "ttf"),
-                URL(fileURLWithPath: #filePath)
-                    .deletingLastPathComponent()
-                    .deletingLastPathComponent()
-                    .deletingLastPathComponent()
-                    .appendingPathComponent("Resources/Fonts/\(name)")
+                Bundle.main.url(forResource: base, withExtension: "ttf")
             ]
-            for url in candidates.compactMap({ $0 }) where FileManager.default.fileExists(atPath: url.path) {
+            for url in candidates.compactMap({ $0 }) {
                 var error: Unmanaged<CFError>?
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
                 break
@@ -303,18 +313,13 @@ enum BrandArtLoader {
     static var splashImage: NSImage? {
         let name = "launch_splash"
         let bundle = Bundle.main
-        // Xcode may flatten Resources/Brand into the Resources root.
+        // Xcode may flatten Resources/Brand into the Resources root. Bundle only (no source-tree probe).
         if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Brand")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/Brand")
             ?? bundle.url(forResource: name, withExtension: "jpg") {
             return NSImage(contentsOf: url)
         }
-        let dev = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/Brand/\(name).jpg")
-        return NSImage(contentsOf: dev)
+        return nil
     }
 }
 
