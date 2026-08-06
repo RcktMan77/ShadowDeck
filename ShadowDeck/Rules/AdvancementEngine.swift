@@ -214,6 +214,17 @@ public enum AdvancementEngine {
         )
     }
 
+    /// Whether adding `itemCost` to the plan would exceed available karma
+    /// (plan is a spend cart — unaffordable adds are blocked).
+    public static func canAffordPlanAdd(
+        karmaAvailable: Int,
+        currentPlanTotal: Int,
+        itemCost: Int
+    ) -> Bool {
+        guard itemCost >= 0 else { return false }
+        return currentPlanTotal + itemCost <= karmaAvailable
+    }
+
     public static func makeNewSkillItem(
         catalogKey: String,
         displayName: String,
