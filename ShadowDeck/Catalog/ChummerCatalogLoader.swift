@@ -14,9 +14,8 @@ public enum ChummerCatalogLoader {
     public static func bundledResourceName(for edition: Edition) -> String {
         switch edition {
         case .sr4: "sr4_catalog"
-        case .sr5, .sr6:
-            // SR6 pack not yet curated; use SR5 catalog as reference until sr6_catalog ships.
-            "sr5_catalog"
+        case .sr5: "sr5_catalog"
+        case .sr6: "sr6_catalog"
         }
     }
 
@@ -74,18 +73,13 @@ public enum ChummerCatalogLoader {
     }
 
     private static func tryLoadBundled(resourceName: String) -> CatalogLoadResult? {
+        // Bundle only — never probe source-tree paths (repo on Desktop triggers TCC).
         let candidates: [URL?] = [
             Bundle.main.url(forResource: resourceName, withExtension: "json", subdirectory: "Catalog"),
-            Bundle.main.url(forResource: resourceName, withExtension: "json"),
-            URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent() // Catalog/
-                .deletingLastPathComponent() // ShadowDeck/
-                .appendingPathComponent("Resources/Catalog/\(resourceName).json")
+            Bundle.main.url(forResource: resourceName, withExtension: "json")
         ]
 
-        guard let url = candidates.compactMap({ $0 }).first(where: {
-            FileManager.default.fileExists(atPath: $0.path)
-        }) else {
+        guard let url = candidates.compactMap({ $0 }).first else {
             return nil
         }
 
