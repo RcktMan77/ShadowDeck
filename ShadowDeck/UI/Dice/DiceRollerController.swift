@@ -42,12 +42,37 @@ final class DiceRollerController: ObservableObject {
         diceRules.ruleOfSixEnabled(pushingTheLimit: pushTheLimit && canPushTheLimit)
     }
 
+    /// Full SR6 Edge Actions (default for SR6 when house rule simplifiedSR6Edge is off).
+    var usesFullSR6Edge: Bool {
+        diceRules.usesFullSR6EdgeActions(for: edition)
+    }
+
     var canPushTheLimit: Bool {
         edgeRemaining > 0 && edgeRating > 0
     }
 
     var canSecondChance: Bool {
         lastResult != nil && edgeRemaining > 0
+    }
+
+    var canBuyHit: Bool {
+        usesFullSR6Edge && lastResult != nil && edgeRemaining > 0
+    }
+
+    var canCloseCall: Bool {
+        usesFullSR6Edge
+            && edgeRemaining > 0
+            && (lastResult?.glitch == true || lastResult?.criticalGlitch == true)
+    }
+
+    var edgeModelCaption: String {
+        if edition == .sr6 {
+            if usesFullSR6Edge {
+                return "SR6 Edge Actions · session pool (Refresh between scenes)"
+            }
+            return "Simplified Edge (SR5-style Push / Second Chance) · house rule"
+        }
+        return "Session Edge · \(edition.shortName)"
     }
 
     // MARK: - Presentation
@@ -148,6 +173,24 @@ final class DiceRollerController: ObservableObject {
 
     func cancelSecondChancePreview() {
         secondChancePreview = nil
+    }
+
+    /// SR6: spend 1 Edge for one automatic hit on the last result.
+    func buyHit() {
+        guard let last = lastResult, canBuyHit else { return }
+        let next = DiceRollerEngine.buyHit(previous: last, diceRules: diceRules)
+        edgeRemaining = max(0, edgeRemaining - 1)
+        secondChancePreview = nil
+        commitResult(next)
+    }
+
+    /// SR6: spend 1 Edge to clear glitch flags on the last result.
+    func closeCall() {
+        guard let last = lastResult, canCloseCall,
+              let next = DiceRollerEngine.closeCall(previous: last) else { return }
+        edgeRemaining = max(0, edgeRemaining - 1)
+        secondChancePreview = nil
+        commitResult(next)
     }
 
     func loadFromHistory(_ result: DiceResult) {
