@@ -23,7 +23,7 @@ Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; st
 
 **Layout:** The README keeps a **lean top marquee** (splash + character thumbs + mission/advance GIFs). Rules Reference and PDF Library stills live **next to their feature copy** so the page does not stack every screenshot at the top.
 
-**Play sheet still:** Capture uses a **taller main window** (`1180×980` content) for `04-character-sheet` so the Summary fills the README feature table cell next to multi-line copy. Other stills restore the default deck size.
+**Play sheet still:** Capture uses a **tall main window** (`1080×1900` content) for `04-character-sheet` so Summary content (through lifestyle / condition / skills previews) fills the README feature table cell next to multi-line copy. After long-edge normalize (~1800px) the still is roughly twice as tall as a default-deck capture when shown at 420pt width. Other stills restore the default deck size. `SHADOWDECK_CAPTURE_SHEET_ONLY=1` rebuilds only this still.
 
 **Dark appearance (optional):** `SHADOWDECK_CAPTURE_DARK=1` forces `darkAqua` for the capture process. The app’s normal UI follows the system appearance (`NSAppearance` nil on the main deck).
 
