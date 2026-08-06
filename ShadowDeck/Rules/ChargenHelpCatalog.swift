@@ -108,7 +108,7 @@ public enum ChargenHelpCatalog {
     }
 
     public static var skillPointsHelp: String {
-        "Skill points buy ranks in individual skills. Higher ranks cost more of the pool (one point per rank at chargen in this wizard’s simplified model). Skill groups train a bundle of related skills at once when available."
+        "Under priority chargen, skill points buy ranks one-for-one at creation. Under SR4A Build Points, active skills cost 4 BP per rank and skill groups cost 10 BP per rating (max 4). Skill groups train a bundle of related skills when available."
     }
 
     public static var magicResonancePriorityHelp: String {
