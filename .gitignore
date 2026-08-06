@@ -76,3 +76,6 @@ Containers/
 SampleAssets/ghostwire_portrait.jpg
 SampleAssets/ghostwire_portrait_animated.gif
 SampleAssets/ghostwire_portrait_animated_still.jpg
+
+# Local table-readiness re-audit snapshots (not product docs)
+Docs/TABLE_READINESS_REAUDIT.md
