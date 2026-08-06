@@ -37,3 +37,18 @@ unofficial fan tool and is not affiliated with Catalyst Game Labs or WizKids.
 Spot-check known table values (e.g. Ares Predator IV ¥350, Armor Vest ¥600,
 Datajack ¥500 / 0.1 ESS, spell chargen 3 BP) run at build time
 (`manifest.exactnessChecks`).
+
+## SR6 (`sr6_catalog.json`)
+
+Mechanical tables extracted from the **Shadowrun Sixth World Core Rulebook
+(City Edition Seattle)** gear listing, via:
+
+  python3 Scripts/build_sr6_catalog_from_pdf.py \
+    "/path/to/Shadowrun 6th World Core Rulebook- City Edition Seattle.pdf"
+
+Build **fails** if exactness spot-checks fail (e.g. Combat Axe ¥500, Ares
+Predator VI ¥750, Datajack ¥1,000 / ESS 0.1, Armor Jacket ¥1,000). Verified
+seed rows from the book override parse ambiguities for those items.
+
+Full rule text is not redistributed. Game content remains property of its
+rights holders. ShadowDeck is unofficial and unaffiliated with Catalyst Game Labs.

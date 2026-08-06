@@ -14,9 +14,8 @@ public enum ChummerCatalogLoader {
     public static func bundledResourceName(for edition: Edition) -> String {
         switch edition {
         case .sr4: "sr4_catalog"
-        case .sr5, .sr6:
-            // SR6 pack not yet curated; use SR5 catalog as reference until sr6_catalog ships.
-            "sr5_catalog"
+        case .sr5: "sr5_catalog"
+        case .sr6: "sr6_catalog"
         }
     }
 
