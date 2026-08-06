@@ -37,13 +37,19 @@ struct CatalogBrowserView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.title2.weight(.semibold))
-                    Text(editionBadge)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(title)
+                    .font(.title2.weight(.semibold))
+                Text(editionBadge)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.secondary.opacity(0.14), in: Capsule())
+                    .foregroundStyle(.secondary)
+                    .help(
+                        edition == .sr5
+                            ? "Bundled SR5 catalog from Chummer GPL data — table reference for costs/names."
+                            : "Edition-scoped bundled catalog (\(editionBadge))."
+                    )
                 Spacer()
                 AppChromeButton.title("Cancel", help: "Close catalog browser") {
                     onCancel()
