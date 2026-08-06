@@ -71,6 +71,30 @@ UI  →  View models / observation  →  Domain models (Character, …)
 | Edge | Attribute | Attribute | Session pool + attribute |
 | Sample starting karma | — | 25 | 50 |
 
+### SR4 Build Points chargen (wizard v1)
+
+**Source of truth for remediation:** `Docs/TABLE_READINESS_REMEDIATION.md`. Implementation: `SR4BuildPointEngine` + `GenerationDraft` (no placeholder attribute/skill point pools in BP mode).
+
+| Category | BP cost | Wizard |
+|----------|---------|--------|
+| Metatype | Human 0, Ork 20, Dwarf 25, Elf 30, Troll 40 | Metatype step |
+| BOD–WIL attributes | 10 BP per point above racial minimum | Attributes step |
+| Edge / Magic / Resonance | 10 BP per point above path/metatype minimum | Attributes step |
+| Active skills | 4 BP × rating | Skills step |
+| Knowledge / language | 2 BP × rating | If ranked (catalog is active-first) |
+| Resources | 1 BP = ¥5,000 | Resources step |
+| Qualities | Positive cost BP; negative refund BP; **±35** caps | Qualities step |
+
+**Budget:** 400 BP (`SR4Rules.standardBuildPointBudget`). Overspend blocks Continue/Save. Live ledger: metatype, attributes, skills, skill groups, spells, contacts, qualities, resources.
+
+**In wizard (SR4A BP, extended):** skill groups (10 BP × rating, max 4), spells (3 BP each; max 2 × Spellcasting/Ritual Spellcasting), contacts (Connection + Loyalty BP).
+
+**Still out of wizard (not free):** complex forms as full BP UI, initiate grades, full gear shopping (use BP → nuyen → sheet catalog).
+
+**Catalog:** `Resources/Catalog/sr4_catalog.json` (SR4A core extract). Management tabs and chargen spell picker load **edition-aware** catalogs via `ChummerCatalogLoader.load(edition:)` — SR4 uses `sr4_catalog`, SR5/SR6 use `sr5_catalog` until an SR6 pack ships.
+
+**Not used for F1 remediation:** “Simplified/Beta” labels or fake Attr/Skill pools with “expands later” copy.
+
 ### Portable file format (`.shadowdeck`)
 
 User sees **one file/object**. On disk it is a **directory package** (Mac-native):
@@ -294,6 +318,7 @@ SR4 / SR6: same pipeline; add `sr4_catalog.json` / `sr6_catalog.json` when packs
 | 2026-07-31 | Dice house rules on `HouseRules.dice`: glitch threshold, Rule of Six always/edge-only, exploded dice vs glitch, hits on 4+, simplified SR6 Edge flag; roller reads character house rules |
 | 2026-08-01 | Apply Run Awards v1: explicit Apply Awards… on terminal runs; equal floor split among available participants; remainder to first; `awardsAppliedAt` double-apply guard; advancement `runAward` ledger; no auto-apply |
 | 2026-08-01 | Rules Reference v1: structured cards + calculators + local PDF library + page-chip bridge; dedicated `Window` scene (⌘R); no bundled rulebook PDFs |
+| 2026-08-05 | SR4 Build Points chargen: real 400 BP ledger via `SR4BuildPointEngine` (metatype, attrs, skills, qualities, resources); no simplified-pool placeholder |
 
 
 ## Rules Reference (v1)

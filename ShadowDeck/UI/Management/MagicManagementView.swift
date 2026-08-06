@@ -13,6 +13,7 @@ struct MagicManagementView: View {
     var onStatus: ((String) -> Void)?
 
     @State private var isAddingSpell = false
+    @State private var showCustomSpell = false
     @State private var showPowerCatalog = false
     @State private var isCustomPower = false
     @State private var isAddingForm = false
@@ -48,21 +49,52 @@ struct MagicManagementView: View {
             }
             .padding(20)
         }
-        .sheet(isPresented: $isAddingSpell) { addNamedSheet(title: "Add Spell", categoryField: true) { name, cat in
-            character.spells.append(
-                SpellInstance(
-                    catalogKey: ManagementSupport.catalogKey(from: name),
-                    name: name,
-                    category: cat
-                )
+        .sheet(isPresented: $isAddingSpell) {
+            CatalogBrowserView(
+                title: "Add Spell",
+                kinds: [.gear],
+                edition: character.edition,
+                matching: { $0.category.localizedCaseInsensitiveContains("spell") },
+                onPick: { entry in
+                    character.spells.append(
+                        SpellInstance(
+                            catalogKey: ManagementSupport.catalogKey(from: entry.name),
+                            name: entry.name,
+                            category: entry.category
+                        )
+                    )
+                    onPersist()
+                    isAddingSpell = false
+                },
+                onCustom: {
+                    isAddingSpell = false
+                    draftName = ""
+                    draftCategory = ""
+                    // Fall through to custom via second sheet
+                    DispatchQueue.main.async {
+                        showCustomSpell = true
+                    }
+                },
+                onCancel: { isAddingSpell = false }
             )
-            onPersist()
         }
+        .sheet(isPresented: $showCustomSpell) {
+            addNamedSheet(title: "Add Spell", categoryField: true) { name, cat in
+                character.spells.append(
+                    SpellInstance(
+                        catalogKey: ManagementSupport.catalogKey(from: name),
+                        name: name,
+                        category: cat
+                    )
+                )
+                onPersist()
+            }
         }
         .sheet(isPresented: $showPowerCatalog) {
             CatalogBrowserView(
                 title: "Add Adept Power",
                 kinds: [.adeptPower],
+                edition: character.edition,
                 onPick: { entry in
                     addPowerFromCatalog(entry)
                     showPowerCatalog = false
