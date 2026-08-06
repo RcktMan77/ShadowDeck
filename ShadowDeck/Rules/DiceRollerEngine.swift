@@ -186,11 +186,47 @@ public enum DiceRollerEngine {
         )
     }
 
+    // MARK: - SR6 Edge Actions (post-roll)
+
+    /// Spend 1 Edge to add one automatic hit (does not change faces).
+    public static func buyHit(previous: DiceResult, diceRules: DiceHouseRules = .coreBook) -> DiceResult {
+        var next = previous
+        next.id = UUID()
+        next.hits = previous.hits + 1
+        next.edgeSpent = previous.edgeSpent + 1
+        next.edgeMode = .buyHit
+        next.timestamp = Date()
+        // Buying a hit after a critical glitch: still a glitch unless Close Call is used.
+        // Critical glitch requires 0 hits — if we now have hits, drop critical flag.
+        if next.hits > 0 {
+            next.criticalGlitch = false
+        }
+        return next
+    }
+
+    /// Spend 1 Edge to clear glitch / critical glitch while keeping hits and faces.
+    public static func closeCall(previous: DiceResult) -> DiceResult? {
+        guard previous.glitch || previous.criticalGlitch else { return nil }
+        var next = previous
+        next.id = UUID()
+        next.glitch = false
+        next.criticalGlitch = false
+        next.edgeSpent = previous.edgeSpent + 1
+        next.edgeMode = .closeCall
+        next.timestamp = Date()
+        return next
+    }
+
     // MARK: - Push the Limit helpers
 
     /// Pool size when spending Edge pre-roll: base pool + Edge rating.
+    /// SR6 full mode uses the same math as “Add Edge Dice”.
     public static func pushTheLimitPool(basePool: Int, edgeRating: Int) -> Int {
         max(0, basePool) + max(0, edgeRating)
+    }
+
+    public static func addEdgeDicePool(basePool: Int, edgeRating: Int) -> Int {
+        pushTheLimitPool(basePool: basePool, edgeRating: edgeRating)
     }
 
     // MARK: - Internals

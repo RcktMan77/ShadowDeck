@@ -9,17 +9,41 @@ import Foundation
 
 public enum DiceEdgeMode: String, Codable, Sendable, Hashable, CaseIterable {
     case none
-    /// Pre-roll: add Edge rating dice + Rule of Six.
+    /// Pre-roll: add Edge rating dice + Rule of Six (SR4/5 Push the Limit; SR6 Add Edge Dice).
     case pushTheLimit
-    /// Post-roll: re-roll non-hits once.
+    /// Post-roll: re-roll non-hits once (SR4/5 Second Chance; SR6 Reroll Failures).
     case secondChance
+    /// Post-roll: spend 1 Edge for one automatic hit (SR6 Edge Action).
+    case buyHit
+    /// Post-roll: spend 1 Edge to clear a glitch / critical glitch flag (SR6 Close Call–style).
+    case closeCall
 
     public var displayName: String {
         switch self {
         case .none: "None"
         case .pushTheLimit: "Push the Limit"
         case .secondChance: "Second Chance"
+        case .buyHit: "Buy a Hit"
+        case .closeCall: "Close Call"
         }
+    }
+
+    /// Labels used when the roller is in full SR6 Edge Action mode.
+    public var sr6DisplayName: String {
+        switch self {
+        case .none: "None"
+        case .pushTheLimit: "Add Edge Dice"
+        case .secondChance: "Reroll Failures"
+        case .buyHit: "Buy a Hit"
+        case .closeCall: "Close Call"
+        }
+    }
+
+    public func displayName(edition: Edition, fullSR6Edge: Bool) -> String {
+        if edition == .sr6, fullSR6Edge {
+            return sr6DisplayName
+        }
+        return displayName
     }
 }
 
