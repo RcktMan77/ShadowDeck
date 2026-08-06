@@ -87,6 +87,7 @@ struct ContactsManagementView: View {
             CatalogBrowserView(
                 title: "Contact Role Archetype",
                 kinds: [.contactRole],
+                edition: character.edition,
                 onPick: { entry in
                     draftRole = entry.name
                     draftName = ""

@@ -102,6 +102,7 @@ struct AugmentationsManagementView: View {
             CatalogBrowserView(
                 title: "Add Augmentation",
                 kinds: [.cyberware, .bioware],
+                edition: character.edition,
                 onPick: { entry in
                     addFromCatalog(entry)
                     showCatalog = false

@@ -10,7 +10,11 @@ import SwiftUI
 struct CatalogBrowserView: View {
     let title: String
     let kinds: Set<CatalogKind>
+    /// Which edition’s bundled catalog to load (SR4 → `sr4_catalog`, else SR5 pack).
+    var edition: Edition = .sr5
     var allowCustom: Bool = true
+    /// Optional extra filter (e.g. spells stored as gear with category containing “Spell”).
+    var matching: ((CatalogEntry) -> Bool)?
     var onPick: (CatalogEntry) -> Void
     var onCustom: (() -> Void)?
     var onCancel: () -> Void
@@ -19,18 +23,34 @@ struct CatalogBrowserView: View {
     @State private var query = ""
 
     private var rows: [CatalogEntry] {
-        catalog.entries(kinds: kinds, query: query)
+        catalog.entries(kinds: kinds, query: query, edition: edition, matching: matching)
+    }
+
+    private var editionBadge: String {
+        switch edition {
+        case .sr4: "SR4A catalog"
+        case .sr5: "SR5 catalog"
+        case .sr6: "SR6 uses SR5 catalog until dedicated pack ships"
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title)
-                    .font(.title2.weight(.semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.title2.weight(.semibold))
+                    Text(editionBadge)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 AppChromeButton.title("Cancel", help: "Close catalog browser") {
                     onCancel()
                 }
+            }
+            .onAppear {
+                catalog.ensureLoaded(for: edition)
             }
 
             if catalog.isLoaded && catalog.result.isEmpty {
