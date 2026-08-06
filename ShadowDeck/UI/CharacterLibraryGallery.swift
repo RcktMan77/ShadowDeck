@@ -61,9 +61,20 @@ struct CharacterLibraryGalleryView: View {
                     )
                 }
             }
-            .padding(.vertical, 4)
+            .padding(16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // Gallery-only content well: frames cards away from the library title/toolbar row.
+        // List mode keeps a plain List like Runs / Campaigns and does not use this chrome.
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.secondary.opacity(0.22), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func toggleFlip(_ id: UUID) {
