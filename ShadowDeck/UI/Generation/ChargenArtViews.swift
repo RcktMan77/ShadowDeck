@@ -10,19 +10,13 @@ import SwiftUI
 import AppKit
 
 enum ChargenArtLoader {
-    /// Resolve a bundled ChargenArt JPEG URL (app bundle or dev tree).
+    /// Resolve a bundled ChargenArt JPEG URL (app bundle only — no source-tree probe / Desktop TCC).
     static func resourceURL(named name: String) -> URL? {
         let bundle = Bundle.main
-        if let url = bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
+        // Flattened Resources root is the normal layout from the synchronized group.
+        return bundle.url(forResource: name, withExtension: "jpg", subdirectory: "ChargenArt")
             ?? bundle.url(forResource: name, withExtension: "jpg", subdirectory: "Resources/ChargenArt")
-            ?? bundle.url(forResource: name, withExtension: "jpg") {
-            return url
-        }
-        let dev = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/ChargenArt/\(name).jpg")
-        return FileManager.default.fileExists(atPath: dev.path) ? dev : nil
+            ?? bundle.url(forResource: name, withExtension: "jpg")
     }
 
     static func nsImage(named name: String) -> NSImage? {
