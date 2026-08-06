@@ -6,8 +6,7 @@ Maintainer capture automation (if used) is **local-only** and not part of the pu
 
 | File | View |
 |------|------|
-| `00-hero-macbook.jpg` | README top marquee — MacBook product hero (composited UI) |
-| `01-splash.jpg` | Launch splash (still available) |
+| `01-splash.jpg` | README top marquee — launch splash |
 | `02-library.jpg` | Character Library |
 | `03-generation-role.jpg` | Wizard · Concept & Role |
 | `04-character-sheet.jpg` | Character play sheet (Summary) |
@@ -22,7 +21,7 @@ Maintainer capture automation (if used) is **local-only** and not part of the pu
 
 Full UI stills ~1800px long edge; thumbs ~960px. GIFs are silent and looping; storyboards use settled keyframes plus short crossfades.
 
-**Layout:** The README keeps a **lean top marquee** (MacBook hero + character thumbs + mission/advance GIFs). Rules Reference and PDF Library stills live **next to their feature copy** so the page does not stack every screenshot at the top.
+**Layout:** The README keeps a **lean top marquee** (splash + character thumbs + mission/advance GIFs). Rules Reference and PDF Library stills live **next to their feature copy** so the page does not stack every screenshot at the top.
 
 **Play sheet still:** Capture uses a **taller main window** (`1180×980` content) for `04-character-sheet` so the Summary fills the README feature table cell next to multi-line copy. Other stills restore the default deck size.
 
