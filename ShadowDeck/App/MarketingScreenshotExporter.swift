@@ -70,7 +70,11 @@ enum MarketingScreenshotExporter {
     private static let libraryReturnSettleNanoseconds: UInt64 = 1_400_000_000
     /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
     private static let gifMaxLongEdge: CGFloat = 800
-
+    /// Tall content size for README feature-table stills (generation Role + play sheet).
+    /// Matches max practical height on a typical display (~1415pt visible); requested
+    /// 1900 is clamped by the screen. After long-edge normalize (~1800px) both stills
+    /// share the same portrait-ish aspect for side-by-side feature sections.
+    private static let featureTableCaptureContentSize = NSSize(width: 1080, height: 1900)
     private struct TimedFrame {
         let image: NSImage
         let delaySeconds: Double
@@ -89,21 +93,65 @@ enum MarketingScreenshotExporter {
 
         fputs("Marketing screenshots → \(dir.path)\n", stderr)
 
+        // Optional dark appearance for the whole capture run (README marquee / product shots).
+        // SHADOWDECK_CAPTURE_DARK=1 · useful when compositing a MacBook hero in dark UI.
+        let captureDark = ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_DARK"] == "1"
+        if captureDark {
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+            for w in NSApp.windows { w.appearance = NSAppearance(named: .darkAqua) }
+            fputs("Marketing capture: forced darkAqua appearance\n", stderr)
+        }
+
+        // SHADOWDECK_CAPTURE_SHEET_ONLY=1 — play sheet only.
+        // SHADOWDECK_CAPTURE_ROLE_ONLY=1 — generation Role still only (same tall size).
+        let sheetOnly = ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_SHEET_ONLY"] == "1"
+        let roleOnly = ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_ROLE_ONLY"] == "1"
+
         // —— Stills (no separate Run Library still — covered by mission GIF) ——
         try? await Task.sleep(nanoseconds: 900_000_000)
-        await captureStill(named: "01-splash", to: dir)
+        if !sheetOnly && !roleOnly {
+            await captureStill(named: "01-splash", to: dir)
 
-        post(.library)
-        try? await Task.sleep(nanoseconds: 1_100_000_000)
-        await captureStill(named: "02-library", to: dir)
+            post(.library)
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            await captureStill(named: "02-library", to: dir)
+        }
 
-        post(.generationRole)
-        try? await Task.sleep(nanoseconds: 1_200_000_000)
-        await captureStill(named: "03-generation-role", to: dir)
+        if !sheetOnly {
+            // Same tall window as the play-sheet feature still (README table parity).
+            post(.generationRole)
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            resizePrimaryMainWindow(contentSize: featureTableCaptureContentSize)
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            await captureStill(named: "03-generation-role", to: dir)
+            resizePrimaryMainWindow(contentSize: LaunchWindowGeometry.mainContentSize)
+        }
 
+        if roleOnly {
+            post(.finished)
+            fputs("Marketing screenshots complete (role only).\n", stderr)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            NSApp.terminate(nil)
+            return
+        }
+
+        // Open Summary first (splash dismiss resets the deck to default size), then grow
+        // the window tall so the play sheet fills README table height.
         post(.characterSheet)
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        resizePrimaryMainWindow(contentSize: featureTableCaptureContentSize)
         try? await Task.sleep(nanoseconds: 1_400_000_000)
         await captureStill(named: "04-character-sheet", to: dir)
+        // Restore default deck size for subsequent stills / GIFs.
+        resizePrimaryMainWindow(contentSize: LaunchWindowGeometry.mainContentSize)
+
+        if sheetOnly {
+            post(.finished)
+            fputs("Marketing screenshots complete (sheet only).\n", stderr)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            NSApp.terminate(nil)
+            return
+        }
 
         post(.diceRoller)
         // Skills tab + open roller + perform roll + paint Edge chrome.
@@ -294,6 +342,27 @@ enum MarketingScreenshotExporter {
             object: phase.rawValue,
             userInfo: info.isEmpty ? nil : info
         )
+    }
+
+    /// Resize the primary deck window for a capture (no animation).
+    @MainActor
+    private static func resizePrimaryMainWindow(contentSize: NSSize) {
+        let mains = NSApp.windows.filter {
+            $0.isVisible
+                && $0.identifier?.rawValue != RulesReferenceOpener.windowID
+                && $0.contentView != nil
+        }
+        guard let main = mains.max(by: {
+            ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height)
+        }) else { return }
+        main.setContentSize(contentSize)
+        if let screen = main.screen ?? NSScreen.main {
+            let vf = screen.visibleFrame
+            var f = main.frame
+            f.origin = LaunchWindowGeometry.centerOrigin(windowFrame: f, visibleFrame: vf)
+            main.setFrame(f, display: true, animate: false)
+        }
+        main.layoutIfNeeded()
     }
 
     @MainActor
