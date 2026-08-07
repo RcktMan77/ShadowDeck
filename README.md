@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Screenshots/01-splash.jpg" alt="ShadowDeck launch splash" width="920" />
+  <img src="Screenshots/01-splash.jpg" alt="ShadowDeck splash" width="920" />
 </p>
 
 <h1 align="center">ShadowDeck</h1>
@@ -171,12 +171,12 @@ Create a new character for SR4, SR5, or SR6 with a guided flow from concept thro
 
 <table>
   <tr>
-    <td width="42%" valign="top">
+    <td width="46%" valign="top">
       <a href="Screenshots/04-character-sheet.jpg">
-        <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet" width="360" />
+        <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet — attributes, portrait, and resources" width="420" style="width:100%; max-width:420px; height:auto;" />
       </a>
     </td>
-    <td width="58%" valign="top">
+    <td width="54%" valign="top">
 
 Keep a stable of runners ready for the next session — open a sheet, see the numbers that matter, and roll when it counts.
 
@@ -290,13 +290,6 @@ Focus: deepen solo campaign tools before multi-user play.
 
 ## For developers
 
-| Doc | |
-|-----|--|
-| Branching | [Docs/BRANCHING.md](Docs/BRANCHING.md) |
-| Design | [Docs/DESIGN.md](Docs/DESIGN.md) |
-| Chummer import | [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md) |
-| Screenshot assets | [Screenshots/README.md](Screenshots/README.md) |
-
 ```bash
 # Debug build
 xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
@@ -311,7 +304,7 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
   -configuration Release -destination 'platform=macOS' build
 ```
 
-Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`). Maintainer tooling for packaging and catalog maintenance is **local-only** (not in the public repository).
+Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`).
 
 ---
 
