@@ -84,7 +84,7 @@ excluded:
   - build
   - DerivedData
   - Scripts
-  - Docs/Screenshots
+  - Screenshots
 
 line_length:
   warning: 160
