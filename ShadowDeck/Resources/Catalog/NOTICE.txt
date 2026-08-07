@@ -20,7 +20,16 @@ if performed by maintainers, uses local tooling outside this public repository.
 
 Mechanical tables (item names, nuyen costs, availability, Essence, chargen BP
 rules for spells/contacts/skills, quality BP costs) extracted for companion use
-from the **Shadowrun 20th Anniversary Core Rulebook** (SR4A).
+from the **Shadowrun 20th Anniversary Core Rulebook** (SR4A) plus SR4
+supplement gear/ware tables (e.g. Arsenal, Augmentation, Street Magic,
+Runner’s Companion, Unwired, War, Spy Games, Gun Heaven, and related books).
+
+Maintainer regeneration (local):
+
+  python3 Scripts/build_sr4_catalog_from_books.py
+
+Book PDFs are expected under `~/Desktop/books/` (not shipped). Entries are
+deduplicated by **kind + name** (core `source=SR4A` wins on collisions).
 
 **Edition note:** This is **SR4A** (20th Anniversary Edition, 2009), fully
 compatible with Shadowrun Fourth Edition books. It is **not** a separate product
