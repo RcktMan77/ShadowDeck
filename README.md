@@ -290,13 +290,6 @@ Focus: deepen solo campaign tools before multi-user play.
 
 ## For developers
 
-| Doc | |
-|-----|--|
-| Branching | [Docs/BRANCHING.md](Docs/BRANCHING.md) |
-| Design | [Docs/DESIGN.md](Docs/DESIGN.md) |
-| Chummer import | [Docs/CHUMMER_IMPORT.md](Docs/CHUMMER_IMPORT.md) |
-| Screenshot assets | [Screenshots/README.md](Screenshots/README.md) |
-
 ```bash
 # Debug build
 xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
