@@ -61,9 +61,62 @@ struct CharacterLibraryGalleryView: View {
                     )
                 }
             }
-            .padding(.vertical, 4)
+            .padding(16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // Gallery well: inset “cutout” tray — recessed field so cards float above.
+        // No outer drop shadow (cards carry elevation); no accent wash.
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.055))
+        }
+        .overlay {
+            // Outer rim
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+        }
+        .overlay {
+            // Inner top/left highlight: reads as light catching the cut edge
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.35),
+                            Color.white.opacity(0.06),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+                .blendMode(.plusLighter)
+                .padding(0.5)
+        }
+        .overlay(alignment: .top) {
+            // Soft inner shadow along the top edge of the tray
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.12),
+                    Color.black.opacity(0.04),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 14)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 12,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 12,
+                    style: .continuous
+                )
+            )
+            .allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func toggleFlip(_ id: UUID) {
@@ -175,10 +228,7 @@ private struct CharacterLibraryCard: View {
             }
             .padding(10)
         }
-        .background(cardBackground)
-        .clipShape(cardShape)
-        .overlay { cardShape.strokeBorder(Color.secondary.opacity(0.18), lineWidth: 1) }
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+        .modifier(LibraryCardChrome(shape: cardShape, background: cardBackground))
     }
 
     // MARK: Back
@@ -228,10 +278,7 @@ private struct CharacterLibraryCard: View {
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .background(cardBackground)
-        .clipShape(cardShape)
-        .overlay { cardShape.strokeBorder(Color.secondary.opacity(0.18), lineWidth: 1) }
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+        .modifier(LibraryCardChrome(shape: cardShape, background: cardBackground))
     }
 
     // MARK: Shared chrome
@@ -339,5 +386,22 @@ private struct CharacterLibraryCard: View {
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// Stronger border + elevation for gallery cards sitting on an accent wash.
+private struct LibraryCardChrome<Background: View>: ViewModifier {
+    let shape: RoundedRectangle
+    let background: Background
+
+    func body(content: Content) -> some View {
+        content
+            .background(background)
+            .clipShape(shape)
+            .overlay {
+                shape.strokeBorder(Color.secondary.opacity(0.28), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.14), radius: 10, y: 4)
+            .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
     }
 }
