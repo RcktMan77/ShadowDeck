@@ -3,7 +3,7 @@
 //  ShadowDeck
 //
 //  SR4A-oriented Build Points accounting for character generation (400 BP).
-//  Pure costs — no UI. See Docs/TABLE_READINESS_REMEDIATION.md and DESIGN.md.
+//  Pure costs — no UI. See local design notes (Docs/).
 //
 
 import Foundation
