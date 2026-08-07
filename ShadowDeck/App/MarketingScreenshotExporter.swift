@@ -70,12 +70,11 @@ enum MarketingScreenshotExporter {
     private static let libraryReturnSettleNanoseconds: UInt64 = 1_400_000_000
     /// Long-edge cap for GIF frames (aspect preserved; matches window proportions).
     private static let gifMaxLongEdge: CGFloat = 800
-    /// Content size for the play-sheet still. Much taller than the default deck so the
-    /// Summary (portrait → vitals → lifestyle → condition → skills) is visible without
-    /// a short landscape crop, and so the README feature-table cell next to multi-line
-    /// copy is roughly filled when the still is shown at ~420pt width.
-    /// Aspect ≈ 1:1.75 → after long-edge normalize to 1800px, display height ≈ 2× the old 980-tall still.
-    private static let characterSheetCaptureContentSize = NSSize(width: 1080, height: 1900)
+    /// Tall content size for README feature-table stills (generation Role + play sheet).
+    /// Matches max practical height on a typical display (~1415pt visible); requested
+    /// 1900 is clamped by the screen. After long-edge normalize (~1800px) both stills
+    /// share the same portrait-ish aspect for side-by-side feature sections.
+    private static let featureTableCaptureContentSize = NSSize(width: 1080, height: 1900)
     private struct TimedFrame {
         let image: NSImage
         let delaySeconds: Double
@@ -103,28 +102,44 @@ enum MarketingScreenshotExporter {
             fputs("Marketing capture: forced darkAqua appearance\n", stderr)
         }
 
-        // SHADOWDECK_CAPTURE_SHEET_ONLY=1 — rebuild just the tall play-sheet still (no GIFs).
+        // SHADOWDECK_CAPTURE_SHEET_ONLY=1 — play sheet only.
+        // SHADOWDECK_CAPTURE_ROLE_ONLY=1 — generation Role still only (same tall size).
         let sheetOnly = ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_SHEET_ONLY"] == "1"
+        let roleOnly = ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_ROLE_ONLY"] == "1"
 
         // —— Stills (no separate Run Library still — covered by mission GIF) ——
         try? await Task.sleep(nanoseconds: 900_000_000)
-        if !sheetOnly {
+        if !sheetOnly && !roleOnly {
             await captureStill(named: "01-splash", to: dir)
 
             post(.library)
             try? await Task.sleep(nanoseconds: 1_100_000_000)
             await captureStill(named: "02-library", to: dir)
+        }
 
+        if !sheetOnly {
+            // Same tall window as the play-sheet feature still (README table parity).
             post(.generationRole)
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            resizePrimaryMainWindow(contentSize: featureTableCaptureContentSize)
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             await captureStill(named: "03-generation-role", to: dir)
+            resizePrimaryMainWindow(contentSize: LaunchWindowGeometry.mainContentSize)
+        }
+
+        if roleOnly {
+            post(.finished)
+            fputs("Marketing screenshots complete (role only).\n", stderr)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            NSApp.terminate(nil)
+            return
         }
 
         // Open Summary first (splash dismiss resets the deck to default size), then grow
         // the window tall so the play sheet fills README table height.
         post(.characterSheet)
         try? await Task.sleep(nanoseconds: 900_000_000)
-        resizePrimaryMainWindow(contentSize: characterSheetCaptureContentSize)
+        resizePrimaryMainWindow(contentSize: featureTableCaptureContentSize)
         try? await Task.sleep(nanoseconds: 1_400_000_000)
         await captureStill(named: "04-character-sheet", to: dir)
         // Restore default deck size for subsequent stills / GIFs.
