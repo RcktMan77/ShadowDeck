@@ -311,7 +311,7 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
   -configuration Release -destination 'platform=macOS' build
 ```
 
-Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`). Maintainer tooling for packaging and catalog maintenance is **local-only** (not in the public repository).
+Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`).
 
 ---
 
