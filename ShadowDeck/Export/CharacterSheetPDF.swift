@@ -88,7 +88,7 @@ public enum CharacterSheetPDF {
 
         // Vital chips
         let vitals: [(String, String)] = [
-            ("NUYEN", "¥\(c.nuyen)"),
+            ("NUYEN", NuyenFormat.format(c.nuyen)),
             ("KARMA", "\(c.karmaAvailable)/\(c.karmaTotal)"),
             ("ESSENCE", formatEssence(report.derived.currentEssence)),
             ("ARMOR", "\(report.derived.armor)"),

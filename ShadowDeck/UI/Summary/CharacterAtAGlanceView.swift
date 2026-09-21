@@ -1043,11 +1043,6 @@ struct CharacterAtAGlanceView: View {
         return n == 1 ? "1 Initiative Die" : "\(n) Initiative Dice"
     }
 
-    private func formatInt(_ value: Int) -> String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
 }
 
 // MARK: - Chips

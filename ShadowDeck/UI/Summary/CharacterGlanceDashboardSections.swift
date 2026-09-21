@@ -182,11 +182,11 @@ struct CharacterGlanceLifestyleBanner: View {
             let message: String = {
                 switch status {
                 case .covered:
-                    return "Lifestyle covered — min \(burn.minimumPrepaidMonths) prepaid month(s). Burn ¥\(formatInt(burn.monthlyBurn))/mo."
+                    return "Lifestyle covered — min \(burn.minimumPrepaidMonths) prepaid month(s). Burn \(NuyenFormat.format(burn.monthlyBurn))/mo."
                 case .due:
-                    return "Lifestyle due — ¥\(formatInt(burn.cashDue)) cash this process (reserve used first). Open the Lifestyle tab."
+                    return "Lifestyle due — \(NuyenFormat.format(burn.cashDue)) cash this process (reserve used first). Open the Lifestyle tab."
                 case .underfunded:
-                    return "Lifestyle underfunded — need ¥\(formatInt(burn.cashDue)), have ¥\(formatInt(burn.liquidity)) (nuyen + reserve)."
+                    return "Lifestyle underfunded — need \(NuyenFormat.format(burn.cashDue)), have \(NuyenFormat.format(burn.liquidity)) (nuyen + reserve)."
                 case .inactive:
                     return "Lifestyle inactive."
                 }
@@ -207,11 +207,6 @@ struct CharacterGlanceLifestyleBanner: View {
         }
     }
 
-    private func formatInt(_ value: Int) -> String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
 }
 
 // MARK: - Vitals grid
@@ -238,18 +233,18 @@ struct CharacterGlanceVitalsGrid: View {
                     onUndo: onUndoKarma
                 )
                 vital("Karma Total", "\(character.karmaTotal)", "chart.line.uptrend.xyaxis")
-                vital("Nuyen", "¥\(formatInt(character.nuyen))", "yensign.circle.fill")
+                vital("Nuyen", NuyenFormat.format(character.nuyen), "yensign.circle.fill")
                 vital("Street Cred", "\(character.streetCred)", "star.circle")
                 vital("Notoriety", "\(character.notoriety)", "exclamationmark.triangle")
                 vital("Pub. Awareness", "\(character.publicAwareness)", "eye")
                 vital(
                     "Lifestyle /mo",
-                    "¥\(formatInt(LifestyleTracker.burnSummary(for: character).monthlyBurn))",
+                    NuyenFormat.format(LifestyleTracker.burnSummary(for: character).monthlyBurn),
                     "house"
                 )
                 vital(
                     "Life. Reserve",
-                    "¥\(formatInt(character.lifestyleNuyenReserve))",
+                    NuyenFormat.format(character.lifestyleNuyenReserve),
                     "building.columns"
                 )
                 vital("Essence", essenceString, "heart.fill")
@@ -284,12 +279,6 @@ struct CharacterGlanceVitalsGrid: View {
 
     private var initiativeString: String {
         "\(derived.initiativeBase) + \(derived.initiativeDice)D6"
-    }
-
-    private func formatInt(_ value: Int) -> String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     private func vital(_ title: String, _ value: String, _ systemImage: String) -> some View {

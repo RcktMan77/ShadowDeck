@@ -148,7 +148,7 @@ public enum PrioritySummaryBuilder {
                     }
                 case .resources:
                     if let nuyen = rules.resourceNuyen(for: letter) {
-                        lines.append(formatNuyen(nuyen))
+                        lines.append(NuyenFormat.format(nuyen))
                     }
                 }
                 result.append(
@@ -175,10 +175,4 @@ public enum PrioritySummaryBuilder {
         }
     }
 
-    private static func formatNuyen(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let n = formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "¥\(n)"
-    }
 }
