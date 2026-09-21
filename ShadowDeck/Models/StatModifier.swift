@@ -149,7 +149,13 @@ public struct StatModifier: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
-// MARK: - Codable (catalog JSON may omit id / optional fields)
+// MARK: - Codable
+//
+// Catalog JSON may omit `id` and the optional fields.
+// Missing `id` becomes a new UUID on each decode.
+// usesRating → false, ratingOffset → 0.
+// ratingTable, skillKey, and condition stay nil.
+// `target` and `amount` are required.
 
 extension StatModifier {
     private enum CodingKeys: String, CodingKey {

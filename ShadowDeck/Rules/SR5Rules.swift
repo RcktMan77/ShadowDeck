@@ -35,8 +35,8 @@ public struct SR5Rules: EditionRules {
     }
 
     public func specialAttributePoints(for priority: PriorityLetter, metatype: MetatypeID) -> Int? {
-        // Simplified from SR5 Metatype column (special attribute points in parentheses).
-        // Full table is data-driven later; these cover core metatype × priority peers.
+        // Special-attribute points for the five core metatypes (human, elf, dwarf, ork, troll)
+        // at each priority letter. Metavariants are not in this switch.
         switch metatype {
         case .human:
             switch priority {

@@ -24,7 +24,7 @@ public struct SR6Rules: EditionRules {
     }
 
     public func attributePoints(for priority: PriorityLetter) -> Int? {
-        // SR6 core Attributes column (approximate core table).
+        // Fixed A–E attribute-point table shipped by ShadowDeck.
         switch priority {
         case .a: 24
         case .b: 16
