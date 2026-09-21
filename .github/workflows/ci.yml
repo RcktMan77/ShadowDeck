@@ -16,7 +16,8 @@ jobs:
   build-and-test:
     name: Build & Test (macOS)
     # Project uses Xcode project format 77 (file-system synchronized groups),
-    # which requires Xcode 16+; we pin Xcode 26.3 to match local tooling.
+    # which requires Xcode 16+. Local development is Xcode 27; CI stays on the
+    # newest Xcode 26 image GitHub provides until a 27 runner exists.
     runs-on: macos-15
     timeout-minutes: 45
 
