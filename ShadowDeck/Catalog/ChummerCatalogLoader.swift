@@ -45,10 +45,10 @@ public enum ChummerCatalogLoader {
 
     // MARK: - Bundled JSON
 
-    private static func loadBundledJSON(edition: Edition) -> CatalogLoadResult {
+    static func loadBundledJSON(edition: Edition, resourceNames: [String]? = nil) -> CatalogLoadResult {
         let primary = bundledResourceName(for: edition)
         let fallback = edition == .sr4 ? "sr5_catalog" : primary
-        let names = primary == fallback ? [primary] : [primary, fallback]
+        let names = resourceNames ?? (primary == fallback ? [primary] : [primary, fallback])
 
         var lastError: String?
         for name in names {
@@ -551,11 +551,20 @@ enum CatalogCache {
     private static let lock = NSLock()
     /// Guarded by `lock`; marked unsafe for Swift 6 global-state rules.
     nonisolated(unsafe) private static var cache: [Edition: CatalogLoadResult] = [:]
+    /// Guarded by `lock`. Counts bundle/XML reads caused by a cache miss.
+    nonisolated(unsafe) private static var jsonReadCount = 0
+
+    static var bundledJSONReadCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return jsonReadCount
+    }
 
     static func loadResult(edition: Edition = .sr5) -> CatalogLoadResult {
         lock.lock()
         defer { lock.unlock() }
         if let hit = cache[edition] { return hit }
+        jsonReadCount += 1
         let loaded = ChummerCatalogLoader.load(edition: edition)
         cache[edition] = loaded
         return loaded
@@ -637,16 +646,26 @@ public final class CatalogStore: ObservableObject {
     }
 
     /// Settings / default reload keeps the active edition and refreshes all bundles.
+    /// Clears the process cache first so an explicit reload re-reads disk.
     public func reload() {
+        CatalogCache.reset()
         reload(for: edition)
     }
 
+    /// Forget in-memory summaries so tests can observe a cold `ensureLoaded`.
+    func resetForTesting() {
+        edition = .sr5
+        result = CatalogLoadResult(entries: [], sourceDirectory: nil, loadedFiles: [], errors: [])
+        isLoaded = false
+        editionSummaries = []
+    }
+
     /// Load every edition into the cache and rebuild ordered summaries (SR4, SR5, SR6).
+    /// A warm `CatalogCache` entry is reused instead of parsing JSON again.
     public func refreshAllEditionSummaries() {
         var rows: [CatalogEditionSummary] = []
         for ed in Edition.allCases {
-            let loaded = ChummerCatalogLoader.load(edition: ed)
-            CatalogCache.replace(edition: ed, with: loaded)
+            let loaded = CatalogCache.loadResult(edition: ed)
             rows.append(CatalogEditionSummary(edition: ed, result: loaded))
         }
         editionSummaries = rows
