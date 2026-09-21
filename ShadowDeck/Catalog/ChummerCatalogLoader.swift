@@ -2,8 +2,9 @@
 //  ChummerCatalogLoader.swift
 //  ShadowDeck
 //
-//  Bundled catalogs: `sr4_catalog.json` (SR4A PDF extract) and `sr5_catalog.json`
-//  (Chummer5a GPL). Optional developer override to load live Chummer `data/` XML.
+//  Bundled catalogs: `sr4_catalog.json` (SR4A supplement pack), `sr5_catalog.json`
+//  (Chummer5a GPL), and `sr6_catalog.json` (SR6 core pack).
+//  Optional developer override to load live Chummer `data/` XML.
 //  See Resources/Catalog/NOTICE.txt.
 //
 

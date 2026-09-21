@@ -60,6 +60,11 @@ public struct Campaign: Codable, Sendable, Hashable, Identifiable {
     }
 
     // MARK: Codable
+    //
+    // Older campaign JSON may omit keys. Defaults:
+    // name / notes / houseRuleHints → "", edition → .sr5, isArchived → false,
+    // schemaVersion → current, createdAt / modifiedAt → Date() when absent.
+    // `id` is required. Missing keys do not fail decode.
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, name, edition, notes, houseRuleHints, isArchived

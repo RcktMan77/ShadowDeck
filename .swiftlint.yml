@@ -60,7 +60,7 @@ opt_in_rules:
 
 disabled_rules:
   # Solo app; many public APIs are intentional for tests / future modules.
-  # Tracked in CODE_AUDIT; allow intentional TODOs without noise.
+  # Allow intentional TODOs without noise. See Docs/CODE_HEALTH_AUDIT.md.
   - todo
   # Large SwiftUI feature files still exist; split over time without blocking CI.
   - file_length

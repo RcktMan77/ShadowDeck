@@ -2,7 +2,7 @@
 //  HouseRulesBrowserView.swift
 //  ShadowDeck
 //
-//  Searchable multi-select house-rules catalog for chargen (and later play).
+//  Searchable multi-select house-rules catalog for chargen and the play sheet.
 //  Design: individual rules stack; presets only seed the set. Karma-gen and
 //  Sum-to-Ten are mutually exclusive.
 //

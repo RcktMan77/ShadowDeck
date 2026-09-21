@@ -185,7 +185,7 @@ Keep a stable of runners ready for the next session — open a sheet, see the nu
 - Skills, gear, contacts, lifestyle, magic, and advancement in one place
 - Still or animated portraits
 - Dice from the sheet with Edge: SR4/5 Push the Limit & Second Chance; **SR6 Edge Actions** by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call), or simplified SR5-style Edge as a house rule
-- Edition-aware gear/quality catalogs (SR4A core pack, large SR5 Chummer-derived reference, SR6 core pack with book spot-checks)
+- Edition-aware gear/quality catalogs (SR4A supplement pack, 2,445 entries; large SR5 Chummer-derived reference, 4,197 entries; SR6 core pack, 195 entries, with book spot-checks)
 
     </td>
   </tr>
