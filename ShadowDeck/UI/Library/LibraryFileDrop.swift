@@ -10,6 +10,9 @@ import UniformTypeIdentifiers
 
 enum LibraryFileDrop {
     /// Load the first file URL from drag-and-drop providers (async).
+    /// Main actor: Swift 6.4 treats a nonisolated async method as `@concurrent`,
+    /// and the callers pass a main-actor `NSItemProvider` array.
+    @MainActor
     static func firstFileURL(from providers: [NSItemProvider]) async -> URL? {
         guard let provider = providers.first else { return nil }
         return await withCheckedContinuation { continuation in
