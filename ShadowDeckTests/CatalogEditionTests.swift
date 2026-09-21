@@ -71,6 +71,40 @@ final class CatalogEditionTests: XCTestCase {
         XCTAssertGreaterThan(sum, store.editionSummaries.first(where: { $0.edition == .sr5 })?.entryCount ?? 0)
     }
 
+    func testMissingSR4ResourceFallsBackToSR5AndRecordsTheError() {
+        let result = ChummerCatalogLoader.loadBundledJSON(
+            edition: .sr4,
+            resourceNames: ["no_such_sr4_catalog", "sr5_catalog"]
+        )
+        XCTAssertFalse(result.entries.isEmpty, "The SR5 fallback still supplies entries.")
+        XCTAssertTrue(
+            result.errors.contains { $0.contains("sr5_catalog.json") },
+            result.errors.joined(separator: "; ")
+        )
+        XCTAssertTrue(
+            result.loadedFiles.contains { $0.contains("sr5_catalog") }
+        )
+    }
+
+    @MainActor
+    func testEnsureLoadedTwiceDoesNotRereadJSON() {
+        CatalogCache.reset()
+        let before = CatalogCache.bundledJSONReadCount
+        let store = CatalogStore.shared
+        store.resetForTesting()
+        store.ensureLoaded(for: .sr5)
+        let afterFirst = CatalogCache.bundledJSONReadCount
+        XCTAssertEqual(afterFirst - before, Edition.allCases.count)
+        store.ensureLoaded(for: .sr5)
+        XCTAssertEqual(CatalogCache.bundledJSONReadCount, afterFirst)
+
+        store.reload()
+        XCTAssertEqual(
+            CatalogCache.bundledJSONReadCount - afterFirst,
+            Edition.allCases.count
+        )
+    }
+
     func testCatalogLookupEditionScoped() {
         let sr6 = CatalogLookup.entry(named: "Ares Predator VI", edition: .sr6)
         XCTAssertNotNil(sr6)
