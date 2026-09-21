@@ -493,22 +493,24 @@ final class RulesReferenceController: ObservableObject {
                         guard FileManager.default.fileExists(atPath: url.path) else {
                             return (false, true, [])
                         }
-                        guard let doc = PDFDocument(url: url) else {
-                            return (false, true, [])
+                        return autoreleasepool {
+                            guard let doc = PDFDocument(url: url) else {
+                                return (false, true, [])
+                            }
+                            let pageHits = PDFLibrarySearchEngine.rankDocument(doc, query: q)
+                            let hits = pageHits.prefix(15).map { hit in
+                                LibraryTextSearchHit(
+                                    itemID: id,
+                                    bookTitle: title,
+                                    page: hit.page,
+                                    snippet: hit.snippet,
+                                    score: hit.score,
+                                    matchedTokenCount: hit.matchedTokens,
+                                    queryTokenCount: hit.tokenCount
+                                )
+                            }
+                            return (true, false, Array(hits))
                         }
-                        let pageHits = PDFLibrarySearchEngine.rankDocument(doc, query: q)
-                        let hits = pageHits.prefix(15).map { hit in
-                            LibraryTextSearchHit(
-                                itemID: id,
-                                bookTitle: title,
-                                page: hit.page,
-                                snippet: hit.snippet,
-                                score: hit.score,
-                                matchedTokenCount: hit.matchedTokens,
-                                queryTokenCount: hit.tokenCount
-                            )
-                        }
-                        return (true, false, Array(hits))
                     }
                     return true
                 }
