@@ -82,3 +82,6 @@ Docs/
 
 # Local maintainer tooling (not published in the public repository)
 Scripts/
+
+# Local screenshot capture notes (not published in the public repository)
+Screenshots/README.md
