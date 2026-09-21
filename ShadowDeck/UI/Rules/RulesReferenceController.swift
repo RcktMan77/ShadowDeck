@@ -670,7 +670,9 @@ final class RulesReferenceController: ObservableObject {
 
     func persistUIState() {
         // Capture runs must not overwrite the interactive user's Rules Reference prefs.
+#if DEBUG
         guard !MarketingScreenshotExporter.isEnabled else { return }
+#endif
         AppPreferences.set(mode.rawValue, for: .rulesRefMode)
         AppPreferences.set(query, for: .rulesRefQuery)
         AppPreferences.set(selectedCategory?.rawValue, for: .rulesRefCategory)
