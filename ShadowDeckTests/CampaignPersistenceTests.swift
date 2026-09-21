@@ -38,6 +38,18 @@ final class CampaignPersistenceTests: XCTestCase {
         try super.tearDownWithError()
     }
 
+    func testSparseCampaignJSONUsesDocumentedDefaults() throws {
+        let json = Data("""
+        { "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE" }
+        """.utf8)
+        let campaign = try JSONDecoder().decode(Campaign.self, from: json)
+        XCTAssertEqual(campaign.name, "")
+        XCTAssertEqual(campaign.notes, "")
+        XCTAssertEqual(campaign.houseRuleHints, "")
+        XCTAssertEqual(campaign.edition, .sr5)
+        XCTAssertFalse(campaign.isArchived)
+    }
+
     func testCampaignCRUDRoundTrip() throws {
         var campaign = Campaign.makeDraft(name: "Seattle Shadows", edition: .sr5)
         campaign.houseRuleHints = "Edge on glitches"

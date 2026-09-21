@@ -3,7 +3,7 @@
 //  ShadowDeck
 //
 //  Core domain character — pure value type, Codable, edition-aware.
-//  Persistence (SwiftData) will wrap or mirror this in Phase 2.
+//  The library stores this JSON on CharacterRecord.payload. Avatar bytes live in AvatarStore.
 //
 
 import Foundation
@@ -294,8 +294,8 @@ public struct CharacterReputation: Codable, Sendable, Hashable {
     }
 }
 
-/// Avatar storage reference. Binary data is optional here for portable documents;
-/// the library database may store data separately in Phase 2.
+/// Avatar storage reference. Binary data is optional here for portable documents.
+/// The library keeps bytes in AvatarStore (inline blob or an Application Support file).
 public struct AvatarRef: Codable, Sendable, Hashable {
     public var fileName: String?
     public var mimeType: String?

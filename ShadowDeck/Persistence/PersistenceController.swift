@@ -9,7 +9,7 @@
 //  2. Additive SwiftData fields get defaults; avoid renames without a versioned migration plan.
 //  3. Breaking payload changes: decode with VersionedPayload migrators before save.
 //  4. Always keep .shadowdeck export working so users can rebuild the library.
-//  5. Phase 2 stores schemaVersion on the record for future lightweight migration hooks.
+//  5. CharacterRecord.schemaVersion is stored for lightweight migration hooks.
 //
 
 import Foundation
