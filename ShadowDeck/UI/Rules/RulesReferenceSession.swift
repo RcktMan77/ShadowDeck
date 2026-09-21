@@ -16,7 +16,9 @@ final class RulesReferenceSession: ObservableObject {
     static let shared = RulesReferenceSession()
 
     let controller = RulesReferenceController()
+#if DEBUG
     private var didInstallMarketingPDFLibrary = false
+#endif
 
     private init() {}
 
@@ -40,6 +42,7 @@ final class RulesReferenceSession: ObservableObject {
         prepare(mode: .library)
     }
 
+#if DEBUG
     // MARK: - Marketing marquees
 
     /// Ephemeral sample PDFs only — never the user's Application Support shelf.
@@ -65,8 +68,10 @@ final class RulesReferenceSession: ObservableObject {
         installMarketingPDFLibraryIfNeeded()
         controller.applyMarketingLibraryShelf()
     }
+#endif
 }
 
+#if DEBUG
 // MARK: - Marketing sample PDFs
 
 /// Synthetic multi-page PDFs for README captures (covers from bundled original art;
@@ -283,6 +288,7 @@ enum MarketingPDFLibrarySeeder {
         return image
     }
 }
+#endif
 
 // MARK: - Open helper
 

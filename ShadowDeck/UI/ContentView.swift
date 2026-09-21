@@ -211,6 +211,7 @@ struct ContentView: View {
                 Task { await importShadowDeckPackage(from: url) }
             }
         }
+#if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: MarketingScreenshotExporter.phaseNotification)) { note in
             guard let raw = note.object as? String,
                   let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
@@ -218,6 +219,7 @@ struct ContentView: View {
             let step = note.userInfo?["step"] as? Int
             handleMarketingPhase(phase, step: step)
         }
+#endif
         .onReceive(NotificationCenter.default.publisher(for: AppCommand.openCharacterForScreenshots)) { note in
             if let id = note.object as? UUID {
                 selection = .characters

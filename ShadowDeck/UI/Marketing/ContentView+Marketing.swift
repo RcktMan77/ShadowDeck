@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+#if DEBUG
 extension ContentView {
     /// Drive UI into known-good states for README marquee captures.
     /// Capture launches with an in-memory sample-only library (`LibraryEnvironment.marketingCapture()`).
@@ -384,3 +385,4 @@ extension ContentView {
         }
     }
 }
+#endif

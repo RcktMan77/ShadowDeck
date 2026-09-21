@@ -23,14 +23,18 @@ struct ShadowDeckApp: App {
         // Drop legacy first-dismiss / revision keys so older installs no longer suppress splash forever.
         AppPreferences.remove(.hasSeenLaunchSplash)
         AppPreferences.remove(.launchSplashRevision)
-        let skipSplash = AppPreferences.bool(.skipLaunchSplash)
-            && !MarketingScreenshotExporter.isEnabled
+#if DEBUG
+        let capture = MarketingScreenshotExporter.isEnabled
+#else
+        let capture = false
+#endif
+        let skipSplash = AppPreferences.bool(.skipLaunchSplash) && !capture
         _showSplash = State(initialValue: !skipSplash)
         _showLaunchVeil = State(initialValue: !skipSplash)
         do {
-            // Marketing captures never open the on-disk personal library.
             // SHADOWDECK_IN_MEMORY_LIBRARY=1: empty ephemeral store for QA (never touches live disk).
-            if MarketingScreenshotExporter.isEnabled {
+            // Marketing captures (Debug only) never open the on-disk personal library.
+            if capture {
                 libraryEnvironment = try LibraryEnvironment.marketingCapture()
             } else if ProcessInfo.processInfo.environment["SHADOWDECK_IN_MEMORY_LIBRARY"] == "1" {
                 libraryEnvironment = try LibraryEnvironment.ephemeral()
@@ -97,11 +101,14 @@ struct ShadowDeckApp: App {
                     AppLaunchWindowPolicy.endColdLaunchGuard()
                     AppLaunchWindowPolicy.revealMainWindowChrome()
                 }
+#if DEBUG
                 guard MarketingScreenshotExporter.isEnabled else { return }
                 Task { @MainActor in
                     await MarketingScreenshotExporter.runSequence()
                 }
+#endif
             }
+#if DEBUG
             .onReceive(NotificationCenter.default.publisher(for: MarketingScreenshotExporter.phaseNotification)) { note in
                 guard let raw = note.object as? String,
                       let phase = MarketingScreenshotExporter.Phase(rawValue: raw)
@@ -120,6 +127,7 @@ struct ShadowDeckApp: App {
                     }
                 }
             }
+#endif
         }
         // Open at splash size so the first painted frame is already correct
         // (avoids a visible downsize from the library default into splash).

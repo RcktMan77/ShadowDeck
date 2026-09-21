@@ -17,6 +17,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+#if DEBUG
 enum MarketingScreenshotExporter {
     static var isEnabled: Bool {
         ProcessInfo.processInfo.environment["SHADOWDECK_CAPTURE_SCREENSHOTS"] == "1"
@@ -595,3 +596,4 @@ enum MarketingScreenshotExporter {
         return image.cgImage(forProposedRect: &rect, context: nil, hints: nil)
     }
 }
+#endif
