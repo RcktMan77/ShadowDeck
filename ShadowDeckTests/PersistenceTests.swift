@@ -3,9 +3,41 @@
 //  ShadowDeckTests
 //
 
+import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
 import XCTest
 import SwiftData
 @testable import ShadowDeck
+
+private final class CountingAvatarStore: AvatarStoreProtocol, @unchecked Sendable {
+    let inner: AvatarStore
+    var loadCount = 0
+
+    init(inner: AvatarStore) { self.inner = inner }
+
+    func store(
+        characterID: UUID,
+        data: Data,
+        mimeType: String?,
+        isAnimated: Bool
+    ) throws -> ResolvedAvatar {
+        try inner.store(characterID: characterID, data: data, mimeType: mimeType, isAnimated: isAnimated)
+    }
+
+    func load(characterID: UUID, record: AvatarRecordSnapshot) throws -> Data? {
+        loadCount += 1
+        return try inner.load(characterID: characterID, record: record)
+    }
+
+    func delete(characterID: UUID) throws {
+        try inner.delete(characterID: characterID)
+    }
+
+    func fileURL(characterID: UUID, fileName: String) -> URL {
+        inner.fileURL(characterID: characterID, fileName: fileName)
+    }
+}
 
 @MainActor
 final class PersistenceTests: XCTestCase {
@@ -66,6 +98,51 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(try library.count(), 3)
         let editions = Set(try library.listSummaries().compactMap(\.edition))
         XCTAssertEqual(editions, Set(Edition.allCases))
+    }
+
+    func testListSummariesUsesStoredThumbnailWithoutLoadingAvatar() throws {
+        let inner = AvatarStore(rootDirectory: avatarRoot)
+        let counting = CountingAvatarStore(inner: inner)
+        library = CharacterLibrary(modelContext: container.mainContext, avatarStore: counting)
+
+        var character = SampleCharacters.sr4StreetSamurai()
+        let jpeg = Self.solidJPEG()
+        character.avatar.mimeType = "image/jpeg"
+        character.avatar.isAnimated = false
+        try library.save(character, avatarData: jpeg)
+
+        let loadsAfterSave = counting.loadCount
+        let first = try library.listSummaries()
+        let second = try library.listSummaries()
+        XCTAssertEqual(counting.loadCount, loadsAfterSave)
+        XCTAssertEqual(first.first?.thumbnailData, second.first?.thumbnailData)
+        XCTAssertNotNil(first.first?.thumbnailData)
+        XCTAssertNotEqual(first.first?.thumbnailData, jpeg)
+    }
+
+    private static func solidJPEG() -> Data {
+        let space = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil,
+            width: 8,
+            height: 8,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: space,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ), let image = ctx.makeImage() else {
+            return Data()
+        }
+        ctx.setFillColor(CGColor(red: 0.2, green: 0.3, blue: 0.8, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        let painted = ctx.makeImage() ?? image
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil) else {
+            return Data()
+        }
+        CGImageDestinationAddImage(dest, painted, nil)
+        CGImageDestinationFinalize(dest)
+        return out as Data
     }
 
     func testSmallAvatarStoredInline() throws {

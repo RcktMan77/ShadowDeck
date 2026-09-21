@@ -7,6 +7,40 @@ import XCTest
 @testable import ShadowDeck
 
 final class AdvancementEngineTests: XCTestCase {
+    func testSkillPreviewCacheRebuildsOnFilterSortAndKarma() {
+        let rules = RulesRegistry.rules(for: .sr5)
+        var character = baseCharacter()
+        var cache = AdvancementSkillPreviewCache()
+
+        cache.invalidate(character: character, rules: rules, filter: .all, sort: .name)
+        XCTAssertEqual(cache.rebuildCount, 1)
+        let allByName = cache.previews.map(\.displayName)
+        XCTAssertFalse(allByName.isEmpty)
+
+        cache.invalidate(character: character, rules: rules, filter: .active, sort: .name)
+        XCTAssertEqual(cache.rebuildCount, 2)
+        XCTAssertTrue(cache.previews.allSatisfy { $0.skillCategory == .active })
+        XCTAssertLessThan(cache.previews.count, allByName.count)
+
+        cache.invalidate(character: character, rules: rules, filter: .active, sort: .cheapest)
+        XCTAssertEqual(cache.rebuildCount, 3)
+        let cheapest = cache.previews.map(\.karmaCost)
+
+        character.karmaAvailable = 0
+        cache.invalidate(character: character, rules: rules, filter: .active, sort: .cheapest)
+        XCTAssertEqual(cache.rebuildCount, 4)
+        XCTAssertEqual(cache.previews.map(\.karmaCost), cheapest)
+        XCTAssertEqual(
+            cache.previews,
+            AdvancementSkillPreviewCache.build(
+                character: character,
+                rules: rules,
+                filter: .active,
+                sort: .cheapest
+            )
+        )
+    }
+
     // MARK: - Fixtures
 
     private func baseCharacter(

@@ -6,11 +6,48 @@
 //
 
 import AppKit
+import CoreGraphics
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 public enum AvatarThumbnail {
+    /// Long edge, in pixels, of the JPEG stored on the library row.
+    public static let storedLongEdge = 96
+    /// JPEG quality for that stored row thumbnail.
+    public static let storedJPEGQuality: CGFloat = 0.6
+
     /// Edge length in points for library-row portraits (also used for gallery cards).
     public static let listEdge: CGFloat = 200
+
+    /// Aspect-preserving JPEG for list rows. ImageIO only, so it can run off the main actor.
+    public nonisolated static func makeStoredJPEG(from data: Data) -> Data? {
+        guard !data.isEmpty,
+              let source = CGImageSourceCreateWithData(data as CFData, nil)
+        else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: storedLongEdge,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(
+            out,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+        CGImageDestinationAddImage(
+            dest,
+            image,
+            [kCGImageDestinationLossyCompressionQuality: storedJPEGQuality] as CFDictionary
+        )
+        guard CGImageDestinationFinalize(dest) else { return nil }
+        return out as Data
+    }
 
     /// Returns a compact JPEG suitable for list display, or nil if the source cannot be decoded.
     public static func make(from data: Data, edge: CGFloat = listEdge) -> Data? {

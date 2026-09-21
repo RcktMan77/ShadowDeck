@@ -62,26 +62,31 @@ public final class CharacterLibrary {
             }
 
             var summary = record.summary
-            // Thumbnail generation must never take down the library list.
-            // Prefer avatar store (file/inline), then raw inline snapshot bytes.
-            let full: Data? = {
-                if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
-                   !loaded.isEmpty {
-                    return loaded
-                }
-                if let inline = record.avatarSnapshot.inlineData, !inline.isEmpty {
-                    return inline
-                }
-                return nil
-            }()
-            if let full {
-                if let thumb = AvatarThumbnail.make(from: full) {
+            if let stored = record.thumbnailJPEG, !stored.isEmpty {
+                // Stored row JPEG. Do not touch the original avatar bytes.
+                summary.thumbnailData = stored
+                summary.hasAvatar = true
+            } else if record.avatarKind != .none, record.avatarByteCount > 0 {
+                // One-time backfill for rows saved before thumbnailJPEG existed.
+                let full: Data? = {
+                    if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
+                       !loaded.isEmpty {
+                        return loaded
+                    }
+                    if let inline = record.avatarSnapshot.inlineData, !inline.isEmpty {
+                        return inline
+                    }
+                    return nil
+                }()
+                if let full, let thumb = Self.storedThumbnail(from: full) {
+                    record.thumbnailJPEG = thumb
                     summary.thumbnailData = thumb
-                } else {
-                    // Fallback: use original bytes if thumbnail encode fails.
+                    summary.hasAvatar = true
+                    didBackfill = true
+                } else if let full {
                     summary.thumbnailData = full.count < 256_000 ? full : nil
+                    summary.hasAvatar = summary.thumbnailData != nil
                 }
-                summary.hasAvatar = summary.thumbnailData != nil
             }
             return summary
         }
@@ -143,6 +148,7 @@ public final class CharacterLibrary {
                     isAnimated: working.avatar.isAnimated
                 )
                 applyResolvedAvatar(resolved, to: record)
+                record.thumbnailJPEG = Self.storedThumbnail(from: incomingAvatar)
                 working.avatar.fileName = resolved.fileName
                 working.avatar.mimeType = resolved.mimeType
                 working.avatar.isAnimated = resolved.isAnimated
@@ -159,6 +165,7 @@ public final class CharacterLibrary {
             record.avatarIsAnimated = false
             record.avatarInlineData = nil
             record.avatarByteCount = 0
+            record.thumbnailJPEG = nil
         }
 
         CharacterMapper.updateRecordMetadata(record, from: working)
@@ -170,6 +177,18 @@ public final class CharacterLibrary {
         }
 
         try modelContext.save()
+    }
+
+    /// JPEG for the library row. ImageIO runs off the main thread; `save` waits for it.
+    private static func storedThumbnail(from data: Data) -> Data? {
+        final class Holder: @unchecked Sendable {
+            var value: Data?
+        }
+        let holder = Holder()
+        DispatchQueue.global(qos: .userInitiated).sync {
+            holder.value = AvatarThumbnail.makeStoredJPEG(from: data)
+        }
+        return holder.value
     }
 
     public func delete(id: UUID) throws {

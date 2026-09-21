@@ -12,8 +12,9 @@ struct AdvancementPlannerView: View {
     var onPersist: () -> Void
     var onStatus: ((String) -> Void)?
 
-    @State private var skillFilter: SkillFilter = .all
-    @State private var skillSort: SkillSort = .name
+    @State private var skillFilter: AdvancementSkillListFilter = .all
+    @State private var skillSort: AdvancementSkillListSort = .name
+    @State private var skillPreviewCache = AdvancementSkillPreviewCache()
     @State private var errorMessage: String?
     @State private var confirmApplyPlan = false
     @State private var pendingBuy: AdvancementPlanItem?
@@ -25,30 +26,6 @@ struct AdvancementPlannerView: View {
     /// Draft plan is stored on the character so it survives tab switches and app restarts.
     private var cart: [AdvancementPlanItem] {
         character.advancementPlanItems
-    }
-
-    private enum SkillFilter: String, CaseIterable, Identifiable {
-        case all, active, knowledge, language
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .all: "All"
-            case .active: "Active"
-            case .knowledge: "Knowledge"
-            case .language: "Language"
-            }
-        }
-    }
-
-    private enum SkillSort: String, CaseIterable, Identifiable {
-        case name, cheapest
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .name: "Name"
-            case .cheapest: "Cheapest"
-            }
-        }
     }
 
     private var rules: any EditionRules {
@@ -74,28 +51,17 @@ struct AdvancementPlannerView: View {
     }
 
     private var skillPreviews: [AdvancementRaisePreview] {
-        var list = character.skills.map {
-            AdvancementEngine.skillRaisePreview(character: character, skill: $0, rules: rules)
-        }
-        switch skillFilter {
-        case .all: break
-        case .active: list = list.filter { $0.skillCategory == .active }
-        case .knowledge: list = list.filter { $0.skillCategory == .knowledge }
-        case .language: list = list.filter { $0.skillCategory == .language }
-        }
-        switch skillSort {
-        case .name:
-            list.sort {
-                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-            }
-        case .cheapest:
-            list.sort {
-                if $0.canRaise != $1.canRaise { return $0.canRaise && !$1.canRaise }
-                if $0.karmaCost != $1.karmaCost { return $0.karmaCost < $1.karmaCost }
-                return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-            }
-        }
-        return list
+        skillPreviewCache.previews
+    }
+
+    /// The only place skill-raise rows are rebuilt.
+    private func invalidateSkillPreviews() {
+        skillPreviewCache.invalidate(
+            character: character,
+            rules: rules,
+            filter: skillFilter,
+            sort: skillSort
+        )
     }
 
     var body: some View {
@@ -142,9 +108,20 @@ struct AdvancementPlannerView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .onAppear { refreshStaleCart() }
-            .onChange(of: character.karmaAvailable) { _, _ in refreshStaleCart() }
-            .onChange(of: character.skills) { _, _ in refreshStaleCart() }
+            .onAppear {
+                refreshStaleCart()
+                invalidateSkillPreviews()
+            }
+            .onChange(of: skillFilter) { _, _ in invalidateSkillPreviews() }
+            .onChange(of: skillSort) { _, _ in invalidateSkillPreviews() }
+            .onChange(of: character.karmaAvailable) { _, _ in
+                refreshStaleCart()
+                invalidateSkillPreviews()
+            }
+            .onChange(of: character.skills) { _, _ in
+                refreshStaleCart()
+                invalidateSkillPreviews()
+            }
             .onChange(of: character.attributes) { _, _ in refreshStaleCart() }
             .onReceive(NotificationCenter.default.publisher(for: AppCommand.marketingFocus)) { note in
                 marketingAnchor = note.userInfo?["anchor"] as? String
@@ -448,7 +425,7 @@ struct AdvancementPlannerView: View {
                 sectionTitle("Skills")
                 Spacer()
                 Picker("Filter", selection: $skillFilter) {
-                    ForEach(SkillFilter.allCases) { f in
+                    ForEach(AdvancementSkillListFilter.allCases) { f in
                         Text(f.title).tag(f)
                     }
                 }
@@ -456,7 +433,7 @@ struct AdvancementPlannerView: View {
                 .frame(maxWidth: 320)
 
                 Picker("Sort", selection: $skillSort) {
-                    ForEach(SkillSort.allCases) { s in
+                    ForEach(AdvancementSkillListSort.allCases) { s in
                         Text(s.title).tag(s)
                     }
                 }

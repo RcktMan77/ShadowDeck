@@ -35,6 +35,8 @@ public final class CharacterRecord {
     /// Small portraits only; large/animated use files.
     @Attribute(.externalStorage) public var avatarInlineData: Data?
     public var avatarByteCount: Int
+    /// List-row JPEG (long edge 96). Nil on rows saved before this column existed.
+    public var thumbnailJPEG: Data?
 
     public init(
         id: UUID,
@@ -52,7 +54,8 @@ public final class CharacterRecord {
         avatarMimeType: String? = nil,
         avatarIsAnimated: Bool = false,
         avatarInlineData: Data? = nil,
-        avatarByteCount: Int = 0
+        avatarByteCount: Int = 0,
+        thumbnailJPEG: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -70,6 +73,7 @@ public final class CharacterRecord {
         self.avatarIsAnimated = avatarIsAnimated
         self.avatarInlineData = avatarInlineData
         self.avatarByteCount = avatarByteCount
+        self.thumbnailJPEG = thumbnailJPEG
     }
 
     public var avatarKind: AvatarStorageKind {
