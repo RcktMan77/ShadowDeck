@@ -165,13 +165,13 @@ public enum PrioritySummaryBuilder {
     }
 
     private static func magicLine(edition: Edition, letter: PriorityLetter) -> String {
-        // High-level guidance; full tables are data-driven later.
+        // Summary copy only. Not a Magic/Resonance point table, and not used by steppers.
         switch (edition, letter) {
-        case (_, .a): return "Full Magician / Mystic Adept / high Resonance options"
-        case (_, .b): return "Magician / Adept / Technomancer mid options"
-        case (_, .c): return "Adept / Aspected / limited Magic or Resonance"
-        case (_, .d): return "Minimal Magic/Resonance or mundane Edge focus"
-        case (_, .e): return "Mundane (special points to Edge only)"
+        case (_, .a): return "Summary — Full Magician / Mystic Adept / high Resonance options"
+        case (_, .b): return "Summary — Magician / Adept / Technomancer mid options"
+        case (_, .c): return "Summary — Adept / Aspected / limited Magic or Resonance"
+        case (_, .d): return "Summary — Minimal Magic/Resonance or mundane Edge focus"
+        case (_, .e): return "Summary — Mundane (special points to Edge only)"
         }
     }
 

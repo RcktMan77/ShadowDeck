@@ -217,6 +217,22 @@ final class CharacterEffectsTests: XCTestCase {
         XCTAssertTrue(mods.contains { $0.target == .strength && $0.usesRating })
     }
 
+    func testSparseStatModifierJSONUsesDocumentedDefaults() throws {
+        let json = Data("""
+        { "target": "body", "amount": 2 }
+        """.utf8)
+        let first = try JSONDecoder().decode(StatModifier.self, from: json)
+        let second = try JSONDecoder().decode(StatModifier.self, from: json)
+        XCTAssertEqual(first.target, .body)
+        XCTAssertEqual(first.amount, 2)
+        XCTAssertFalse(first.usesRating)
+        XCTAssertEqual(first.ratingOffset, 0)
+        XCTAssertNil(first.ratingTable)
+        XCTAssertNil(first.skillKey)
+        XCTAssertNil(first.condition)
+        XCTAssertNotEqual(first.id, second.id)
+    }
+
     func testLegacyGearJSONDecodesWithoutNewFields() throws {
         // Pre–Phase 7 gear payload (no rating/modifiers/purchasedInApp).
         let json = Data("""

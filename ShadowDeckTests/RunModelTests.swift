@@ -83,6 +83,22 @@ final class RunModelTests: XCTestCase {
         XCTAssertEqual(run.title, "Legacy Job")
     }
 
+    func testSparseRunJSONUsesDocumentedDefaults() throws {
+        let json = Data("""
+        { "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE" }
+        """.utf8)
+        let run = try JSONDecoder().decode(Run.self, from: json)
+        XCTAssertEqual(run.title, "")
+        XCTAssertEqual(run.tags, [])
+        XCTAssertEqual(run.status, .planning)
+        XCTAssertEqual(run.edition, .sr5)
+        XCTAssertEqual(run.heatDelta, 0)
+        XCTAssertEqual(run.expectedPayout, .zero)
+        XCTAssertEqual(run.client, "")
+        XCTAssertNil(run.campaignID)
+        XCTAssertNil(run.awardsAppliedAt)
+    }
+
     func testPruneIneligibleParticipantsOnEditionChange() {
         let sr4 = UUID()
         let sr5 = UUID()

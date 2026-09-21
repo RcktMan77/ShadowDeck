@@ -61,8 +61,9 @@ public struct MetatypeProfile: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
-/// Factory for core-book metatype profiles. Values follow common core baselines;
-/// exact tables live in edition rules and can be data-driven later.
+/// Factory for core-book metatype profiles.
+/// Attribute bounds for the five core metatypes live in `boundsTable` below.
+/// Edition rules call `profile(for:edition:)`.
 public enum MetatypeCatalog {
     public static func profile(for metatype: MetatypeID, edition: Edition) -> MetatypeProfile {
         MetatypeProfile(id: metatype, edition: edition, bounds: boundsTable(metatype, edition))
