@@ -285,13 +285,17 @@ private struct NotesTextView: NSViewRepresentable {
         }
 
         nonisolated func textDidChange(_ notification: Notification) {
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 self.pushText()
                 self.bridge?.refreshFormatState()
                 (self.textView as? NotesNSTextView)?.scrollCaretIntoView()
                 self.saveWorkItem?.cancel()
-                let work = DispatchWorkItem { [weak self] in
-                    Task { @MainActor in self?.parent.onCommit?() }
+                // Hold the commit closure, not `self`, so this delayed save does not
+                // fight the outer task's weak capture.
+                let commit = self.parent.onCommit
+                let work = DispatchWorkItem {
+                    Task { @MainActor in commit?() }
                 }
                 self.saveWorkItem = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
