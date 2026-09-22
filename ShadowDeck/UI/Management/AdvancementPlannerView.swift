@@ -12,50 +12,50 @@ struct AdvancementPlannerView: View {
     var onPersist: () -> Void
     var onStatus: ((String) -> Void)?
 
-    @State private var skillFilter: AdvancementSkillListFilter = .all
-    @State private var skillSort: AdvancementSkillListSort = .name
-    @State private var skillPreviewCache = AdvancementSkillPreviewCache()
-    @State private var errorMessage: String?
-    @State private var confirmApplyPlan = false
-    @State private var pendingBuy: AdvancementPlanItem?
-    @State private var showNewSkill = false
+    @State var skillFilter: AdvancementSkillListFilter = .all
+    @State var skillSort: AdvancementSkillListSort = .name
+    @State var skillPreviewCache = AdvancementSkillPreviewCache()
+    @State var errorMessage: String?
+    @State var confirmApplyPlan = false
+    @State var pendingBuy: AdvancementPlanItem?
+    @State var showNewSkill = false
     /// Marketing GIF scroll / pulse targets.
-    @State private var marketingAnchor: String?
-    @State private var marketingHighlight: String?
+    @State var marketingAnchor: String?
+    @State var marketingHighlight: String?
 
     /// Draft plan is stored on the character so it survives tab switches and app restarts.
-    private var cart: [AdvancementPlanItem] {
+    var cart: [AdvancementPlanItem] {
         character.advancementPlanItems
     }
 
-    private var rules: any EditionRules {
+    var rules: any EditionRules {
         RulesRegistry.rules(for: character.edition)
     }
 
-    private var planTotal: Int {
+    var planTotal: Int {
         cart.reduce(0) { $0 + $1.karmaCost }
     }
 
-    private var remainingAfterPlan: Int {
+    var remainingAfterPlan: Int {
         character.karmaAvailable - planTotal
     }
 
-    private var cartTargetKeys: Set<String> {
+    var cartTargetKeys: Set<String> {
         Set(cart.map(\.targetKey))
     }
 
-    private var attributePreviews: [AdvancementRaisePreview] {
+    var attributePreviews: [AdvancementRaisePreview] {
         AdvancementEngine.raiseableAttributes(for: character).map {
             AdvancementEngine.attributeRaisePreview(character: character, attribute: $0, rules: rules)
         }
     }
 
-    private var skillPreviews: [AdvancementRaisePreview] {
+    var skillPreviews: [AdvancementRaisePreview] {
         skillPreviewCache.previews
     }
 
     /// The only place skill-raise rows are rebuilt.
-    private func invalidateSkillPreviews() {
+    func invalidateSkillPreviews() {
         skillPreviewCache.invalidate(
             character: character,
             rules: rules,
@@ -190,7 +190,7 @@ struct AdvancementPlannerView: View {
 
     // MARK: - Sticky chrome (metrics left, plan right)
 
-    private var stickyPlannerChrome: some View {
+    var stickyPlannerChrome: some View {
         // Metrics sit left; Plan fills the rest. Trailing edge of the plan ScrollView
         // matches the main tab ScrollView (no extra trailing inset) so both scroll bars line up.
         HStack(alignment: .top, spacing: 14) {
@@ -248,9 +248,9 @@ struct AdvancementPlannerView: View {
     }
 
     /// Caps overall sticky strip height so Suggested/full lists start higher.
-    private var stickyChromeContentHeight: CGFloat { 108 }
+    var stickyChromeContentHeight: CGFloat { 108 }
 
-    private func metric(_ title: String, _ value: String, emphasizeNegative: Bool = false) -> some View {
+    func metric(_ title: String, _ value: String, emphasizeNegative: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2)
@@ -264,7 +264,7 @@ struct AdvancementPlannerView: View {
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private var planPanel: some View {
+    var planPanel: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text("Plan")
@@ -338,7 +338,7 @@ struct AdvancementPlannerView: View {
     // MARK: - Suggestions
 
     /// Grouped suggestion buckets for display (attributes, then skill categories).
-    private var suggestionGroups: [(title: String, items: [AdvancementRaisePreview])] {
+    var suggestionGroups: [(title: String, items: [AdvancementRaisePreview])] {
         // Pull a wider pool so each type can surface a few rows after grouping.
         let all = AdvancementEngine.suggestions(for: character, rules: rules, limit: 18)
         let perGroup = 4
@@ -358,369 +358,7 @@ struct AdvancementPlannerView: View {
         ].filter { !$0.items.isEmpty }
     }
 
-    private var suggestionsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionTitle("Suggested for You")
-            Text("Hints only — based on metatype bias, concept role keywords when recognized, and cheap next raises. Full lists stay below.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            let groups = suggestionGroups
-            if groups.isEmpty {
-                Text("No raiseable skills or attributes right now (at maxima or empty sheet).")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                        suggestionGroupBlock(title: group.title, items: group.items)
-                    }
-                }
-            }
-        }
-    }
-
-    private func suggestionGroupBlock(title: String, items: [AdvancementRaisePreview]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            VStack(spacing: 0) {
-                ForEach(items) { preview in
-                    raiseRow(preview)
-                    if preview.id != items.last?.id {
-                        Divider()
-                    }
-                }
-            }
-            .padding(10)
-            .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-    }
-
-    // MARK: - Attributes
-
-    private var attributesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionTitle("Attributes")
-            VStack(spacing: 0) {
-                ForEach(attributePreviews) { preview in
-                    raiseRow(preview)
-                    if preview.id != attributePreviews.last?.id {
-                        Divider()
-                    }
-                }
-            }
-            .padding(10)
-            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-    }
-
-    // MARK: - Skills
-
-    private var skillsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                sectionTitle("Skills")
-                Spacer()
-                Picker("Filter", selection: $skillFilter) {
-                    ForEach(AdvancementSkillListFilter.allCases) { f in
-                        Text(f.title).tag(f)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 320)
-
-                Picker("Sort", selection: $skillSort) {
-                    ForEach(AdvancementSkillListSort.allCases) { s in
-                        Text(s.title).tag(s)
-                    }
-                }
-                .frame(maxWidth: 140)
-            }
-
-            if skillPreviews.isEmpty {
-                Text("No skills match this filter. Add skills on the Skills tab or New Skill…")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(skillPreviews) { preview in
-                        raiseRow(preview)
-                        if preview.id != skillPreviews.last?.id {
-                            Divider()
-                        }
-                    }
-                }
-                .padding(10)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-        }
-    }
-
-    // MARK: - Ledger
-
-    private var ledgerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionTitle("Recent Advances")
-            let entries = Array(character.advancementLedgerEntries.prefix(20))
-            if entries.isEmpty {
-                Text("Applied purchases will appear here.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entries) { entry in
-                        HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.summary)
-                                    .font(.caption)
-                                HStack(spacing: 6) {
-                                    Text(entry.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                    if entry.kind == .runAward {
-                                        Text("Run award")
-                                            .font(.caption2.weight(.semibold))
-                                            .foregroundStyle(.green.opacity(0.9))
-                                    }
-                                }
-                            }
-                            Spacer()
-                            Text(ledgerKarmaLabel(entry.karmaSpent))
-                                .font(.caption.monospacedDigit().weight(.medium))
-                                .foregroundStyle(entry.karmaSpent < 0 ? .green : .secondary)
-                        }
-                    }
-                }
-                .padding(10)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-        }
-    }
-
-    /// Formats ledger karma: positive = spent (−N), negative = gained (+N).
-    private func ledgerKarmaLabel(_ karmaSpent: Int) -> String {
-        if karmaSpent > 0 { return "−\(karmaSpent)" }
-        if karmaSpent < 0 { return "+\(-karmaSpent)" }
-        return "—"
-    }
-
-    // MARK: - Rows
-
-    private func raiseRow(_ preview: AdvancementRaisePreview) -> some View {
-        let inCart = cartTargetKeys.contains(preview.targetKey)
-        let impact = AdvancementGuidance.impact(for: preview, character: character, rules: rules)
-        let highlightID = "skill-\(preview.targetKey)"
-        return HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(preview.displayName)
-                    .font(.body.weight(.medium))
-                HStack(spacing: 8) {
-                    Text("\(preview.fromRating) → \(preview.toRating)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    if preview.canRaise {
-                        Text("\(preview.karmaCost) karma")
-                            .font(.caption.monospacedDigit().weight(.semibold))
-                    } else {
-                        Text("At max")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Text("max \(preview.maxRating)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                // Compact progress indicator
-                progressBar(current: preview.fromRating, maximum: preview.maxRating)
-                if let impact {
-                    Text(impact.headline)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineLimit(2)
-                }
-            }
-            Spacer(minLength: 8)
-            if preview.canRaise {
-                let canAddToPlan = AdvancementEngine.canAffordPlanAdd(
-                    karmaAvailable: character.karmaAvailable,
-                    currentPlanTotal: planTotal,
-                    itemCost: preview.karmaCost
-                )
-                Button(inCart ? "In Plan" : "Add") {
-                    addPreviewToCart(preview)
-                }
-                .disabled(inCart || !canAddToPlan)
-                .controlSize(.small)
-                .help(
-                    inCart
-                        ? "Already in plan"
-                        : (canAddToPlan ? "Add to plan" : "Not enough karma for plan")
-                )
-                .modifier(MarketingHighlightPulse(active: marketingHighlight == highlightID && !inCart))
-
-                Button("Buy") {
-                    if let item = planItem(from: preview) {
-                        errorMessage = nil
-                        pendingBuy = item
-                    }
-                }
-                .controlSize(.small)
-                .disabled(preview.karmaCost > character.karmaAvailable)
-                .help(preview.karmaCost > character.karmaAvailable ? "Not enough karma" : "Buy this raise now")
-            }
-        }
-        .padding(.vertical, 6)
-        .opacity(preview.canRaise ? 1 : 0.55)
-        .help(impact?.detail ?? "")
-        .accessibilityHint(impact?.detail ?? "")
-        .id(highlightID)
-        .modifier(MarketingHighlightPulse(active: marketingHighlight == highlightID))
-    }
-
-    private func progressBar(current: Int, maximum: Int) -> some View {
-        let clampedMax = Swift.max(1, maximum)
-        let fraction = min(1, CGFloat(current) / CGFloat(clampedMax))
-        return GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.15))
-                Capsule()
-                    .fill(Color.accentColor.opacity(0.55))
-                    .frame(width: Swift.max(4, geo.size.width * fraction))
-            }
-        }
-        .frame(height: 4)
-        .frame(maxWidth: 160)
-        .accessibilityLabel("Rating \(current) of \(maximum)")
-    }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.headline)
-    }
-
-    // MARK: - Cart helpers (persisted on character)
-
-    private func setCart(_ items: [AdvancementPlanItem], persist: Bool = true) {
-        character.advancementPlanItems = items
-        if persist { onPersist() }
-    }
-
-    private func removeFromCart(id: UUID) {
-        setCart(cart.filter { $0.id != id })
-    }
-
-    private func planItem(from preview: AdvancementRaisePreview) -> AdvancementPlanItem? {
-        switch preview.kind {
-        case .skillRaise:
-            return AdvancementEngine.makeSkillRaiseItem(
-                character: character,
-                catalogKey: preview.targetKey,
-                rules: rules
-            )
-        case .attributeRaise:
-            guard let attr = AttributeID(rawValue: preview.targetKey) else { return nil }
-            return AdvancementEngine.makeAttributeRaiseItem(
-                character: character,
-                attribute: attr,
-                rules: rules
-            )
-        case .newSkill, .other, .runAward:
-            return nil
-        }
-    }
-
-    private func addPreviewToCart(_ preview: AdvancementRaisePreview) {
-        errorMessage = nil
-        guard preview.canRaise else { return }
-        guard !cartTargetKeys.contains(preview.targetKey) else { return }
-        guard let item = planItem(from: preview) else { return }
-        guard AdvancementEngine.canAffordPlanAdd(
-            karmaAvailable: character.karmaAvailable,
-            currentPlanTotal: planTotal,
-            itemCost: item.karmaCost
-        ) else {
-            errorMessage = "Not enough karma to add \(item.displayName) to the plan (need \(item.karmaCost), available after plan \(max(0, remainingAfterPlan)))."
-            return
-        }
-        setCart(cart + [item])
-    }
-
-    private func addNewSkillToCart(_ entry: CatalogEntry) {
-        errorMessage = nil
-        let key = ManagementSupport.catalogKey(from: entry.name)
-        if character.skills.contains(where: {
-            $0.catalogKey == key
-                || $0.displayName.caseInsensitiveCompare(entry.name) == .orderedSame
-        }) {
-            errorMessage = "\(entry.name) is already on the character — raise it from the list."
-            return
-        }
-        if cartTargetKeys.contains(key) {
-            errorMessage = "\(entry.name) is already in the plan."
-            return
-        }
-        let category = skillCategory(from: entry)
-        let item = AdvancementEngine.makeNewSkillItem(
-            catalogKey: key,
-            displayName: entry.name,
-            category: category,
-            rules: rules
-        )
-        guard AdvancementEngine.canAffordPlanAdd(
-            karmaAvailable: character.karmaAvailable,
-            currentPlanTotal: planTotal,
-            itemCost: item.karmaCost
-        ) else {
-            errorMessage = "Not enough karma to add \(entry.name) to the plan."
-            return
-        }
-        setCart(cart + [item])
-    }
-
-    private func addCustomNewSkillToCart() {
-        errorMessage = nil
-        let name = "Custom Skill"
-        let key = ManagementSupport.catalogKey(from: name) + "_\(UUID().uuidString.prefix(6))"
-        let item = AdvancementEngine.makeNewSkillItem(
-            catalogKey: key,
-            displayName: name,
-            category: .active,
-            rules: rules
-        )
-        guard AdvancementEngine.canAffordPlanAdd(
-            karmaAvailable: character.karmaAvailable,
-            currentPlanTotal: planTotal,
-            itemCost: item.karmaCost
-        ) else {
-            errorMessage = "Not enough karma to add a new skill to the plan."
-            return
-        }
-        setCart(cart + [item])
-        onStatus?("Added custom skill placeholder to plan (rename after apply via Skills tab if needed).")
-    }
-
-    private func skillCategory(from entry: CatalogEntry) -> SkillCategory {
-        let cat = entry.category.lowercased()
-        let notes = entry.notes.lowercased()
-        if cat.contains("language") {
-            return .language
-        }
-        if notes == "knowledge" || cat.contains("knowledge")
-            || ["academic", "interest", "professional", "street"].contains(cat) {
-            return .knowledge
-        }
-        return .active
-    }
-
-    // MARK: - Stale cart
-
-    /// Drop or rebuild cart lines whose fromRating / cost no longer match the character.
-    private func refreshStaleCart() {
+    func refreshStaleCart() {
         guard !cart.isEmpty else { return }
         var refreshed: [AdvancementPlanItem] = []
         var dropped = false
@@ -791,7 +429,7 @@ struct AdvancementPlannerView: View {
 
     // MARK: - Apply
 
-    private func applyPlan() {
+    func applyPlan() {
         errorMessage = nil
         guard !cart.isEmpty else { return }
         let items = cart
@@ -807,7 +445,7 @@ struct AdvancementPlannerView: View {
         }
     }
 
-    private func buyNow(_ item: AdvancementPlanItem) {
+    func buyNow(_ item: AdvancementPlanItem) {
         errorMessage = nil
         pendingBuy = nil
         do {
