@@ -191,12 +191,43 @@ final class PDFSearchBridge: ObservableObject {
 @MainActor
 final class SharedPDFDocumentSession: ObservableObject {
     let url: URL
-    let document: PDFDocument?
+    @Published private(set) var document: PDFDocument?
+    @Published private(set) var isLoading = true
+    @Published private(set) var loadError: String?
+    private var loadTask: Task<Void, Never>?
 
     init(url: URL) {
         self.url = url
-        self.document = PDFDocument(url: url)
+        let target = url
+        loadTask = Task.detached(priority: .userInitiated) { [weak self] in
+            let box = PDFDocumentBox()
+            autoreleasepool {
+                box.document = PDFDocument(url: target)
+            }
+            guard !Task.isCancelled else { return }
+            let opened = box.document
+            await MainActor.run { [weak self] in
+                guard let self, !Task.isCancelled, self.url == target else { return }
+                self.isLoading = false
+                if let opened {
+                    self.document = opened
+                    self.loadError = nil
+                } else {
+                    self.document = nil
+                    self.loadError = "Could not open this PDF."
+                }
+            }
+        }
     }
+
+    deinit {
+        loadTask?.cancel()
+    }
+}
+
+/// Carries a `PDFDocument` from a background open onto the main actor.
+private final class PDFDocumentBox: @unchecked Sendable {
+    var document: PDFDocument?
 }
 
 // MARK: - Workspace
@@ -232,25 +263,39 @@ struct PDFReaderWorkspace: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let thumbW = min(thumbnailWidth, max(100, geo.size.width * 0.18))
-
-            HStack(spacing: 0) {
-                PDFThumbnailPane(session: session, page: $page)
-                    .frame(width: thumbW)
-                    .frame(maxHeight: .infinity)
-
-                Divider()
-
-                PDFCanvasView(
-                    session: session,
-                    page: $page,
-                    zoomPreset: $zoomPreset,
-                    navigationEpoch: navigationEpoch,
-                    searchBridge: searchBridge,
-                    onPageChange: onPageChange
+        Group {
+            if session.isLoading {
+                ProgressView("Opening PDF…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let loadError = session.loadError {
+                ContentUnavailableView(
+                    "Couldn’t open PDF",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(loadError)
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if session.document != nil {
+                GeometryReader { geo in
+                    let thumbW = min(thumbnailWidth, max(100, geo.size.width * 0.18))
+
+                    HStack(spacing: 0) {
+                        PDFThumbnailPane(session: session, page: $page)
+                            .frame(width: thumbW)
+                            .frame(maxHeight: .infinity)
+
+                        Divider()
+
+                        PDFCanvasView(
+                            session: session,
+                            page: $page,
+                            zoomPreset: $zoomPreset,
+                            navigationEpoch: navigationEpoch,
+                            searchBridge: searchBridge,
+                            onPageChange: onPageChange
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

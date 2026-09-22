@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import CoreGraphics
 import ImageIO
 import SwiftUI
 
@@ -33,7 +34,10 @@ struct AnimatedImageView: View {
             }
         }
         .task(id: dataIdentity) {
-            let decoded = GIFDecoder.decode(data)
+            let payload = data
+            let decoded = await Task.detached(priority: .userInitiated) {
+                GIFDecoder.decode(payload)
+            }.value
             frames = decoded
             frameIndex = 0
             guard decoded.count > 1 else { return }
@@ -70,25 +74,54 @@ struct GIFFrame: Sendable {
 }
 
 enum GIFDecoder {
+    /// A long portrait loops its first frames at a reduced size. This is a visible limit.
+    static let maxFrames = 48
+    static let maxLongEdge = 512
+
     /// Decode multi-frame image data (GIF / APNG). Returns one frame for stills.
-    static func decode(_ data: Data) -> [GIFFrame] {
+    /// Runs off the main actor. Frames past `maxFrames` are dropped. The long edge is capped.
+    nonisolated static func decode(_ data: Data) -> [GIFFrame] {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             return []
         }
         let count = CGImageSourceGetCount(source)
         guard count > 0 else { return [] }
 
+        let limit = min(count, maxFrames)
         var frames: [GIFFrame] = []
-        frames.reserveCapacity(count)
-        for index in 0..<count {
+        frames.reserveCapacity(limit)
+        for index in 0..<limit {
             guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
                 continue
             }
-            let size = NSSize(width: cgImage.width, height: cgImage.height)
-            let nsImage = NSImage(cgImage: cgImage, size: size)
+            let scaled = downscale(cgImage, maxLongEdge: maxLongEdge)
+            let size = NSSize(width: scaled.width, height: scaled.height)
+            let nsImage = NSImage(cgImage: scaled, size: size)
             frames.append(GIFFrame(image: nsImage, delay: delay(for: source, index: index)))
         }
         return frames
+    }
+
+    private nonisolated static func downscale(_ image: CGImage, maxLongEdge: Int) -> CGImage {
+        let width = image.width
+        let height = image.height
+        let longEdge = max(width, height)
+        guard longEdge > maxLongEdge, longEdge > 0 else { return image }
+        let scale = Double(maxLongEdge) / Double(longEdge)
+        let targetW = max(1, Int((Double(width) * scale).rounded()))
+        let targetH = max(1, Int((Double(height) * scale).rounded()))
+        guard let context = CGContext(
+            data: nil,
+            width: targetW,
+            height: targetH,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return image }
+        context.interpolationQuality = .medium
+        context.draw(image, in: CGRect(x: 0, y: 0, width: targetW, height: targetH))
+        return context.makeImage() ?? image
     }
 
     /// True when data is a multi-frame GIF/APNG suitable for animation.
