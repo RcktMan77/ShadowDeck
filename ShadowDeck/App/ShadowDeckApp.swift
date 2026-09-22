@@ -19,6 +19,20 @@ struct ShadowDeckApp: App {
     @State private var showLaunchVeil: Bool
 
     init() {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["SHADOWDECK_MEASURE_LAUNCH"] == "1" {
+            let started = ContinuousClock.now
+            do {
+                _ = try LibraryEnvironment.live()
+            } catch {
+                fputs("LAUNCH_FAIL \(error)\n", stderr)
+                exit(1)
+            }
+            let ms = ContinuousClock.now - started
+            fputs("LAUNCH_MS \(ms)\n", stderr)
+            exit(0)
+        }
+        #endif
         // Splash on every cold launch unless Settings disables it (`skipLaunchSplash`).
         // Drop legacy first-dismiss / revision keys so older installs no longer suppress splash forever.
         AppPreferences.remove(.hasSeenLaunchSplash)
