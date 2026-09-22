@@ -119,7 +119,7 @@ struct NotesEditor: View {
 
 /// Rich-text view that honors standard format key equivalents while first responder.
 /// SwiftUI apps often lack the AppKit Format menu, so ⌘B / ⌘I / ⌘U would otherwise no-op.
-private final class NotesNSTextView: NSTextView {
+final class NotesNSTextView: NSTextView {
     weak var formatBridge: NotesTextBridge?
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
