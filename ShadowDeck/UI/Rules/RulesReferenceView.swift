@@ -25,7 +25,6 @@ private struct DraftRunSheetRequest: Identifiable, Hashable {
 struct RulesReferenceView: View {
     @ObservedObject var controller: RulesReferenceController
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var isImportingPDF = false
     @State private var libraryError: String?
     @State private var renameDraft: String = ""
@@ -52,8 +51,7 @@ struct RulesReferenceView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // Window scene already titles the chrome “Rules Reference”; avoid a second nav title + toolbar clutter.
-        .toolbarBackground(.hidden, for: .windowToolbar)
+        .background(RulesWindowTitleSetter(title: windowTitle))
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             // Defer: writing @Published during onAppear can still trip
@@ -108,6 +106,11 @@ struct RulesReferenceView: View {
             // Force a fresh sheet identity per request (same PDF re-opened after dismiss).
             .id(request.id)
         }
+    }
+
+    /// Plain title-bar string. A navigation title would bring back the macOS 27 toolbar row.
+    private var windowTitle: String {
+        controller.mode == .library ? "PDF Shelf" : "Rules Reference"
     }
 
     // MARK: - Mode switch
@@ -198,14 +201,13 @@ struct RulesReferenceView: View {
     // MARK: - Reference mode
 
     private var referenceSplit: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        HSplitView {
             referenceCategorySidebar
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        } content: {
+                .frame(minWidth: 180, idealWidth: 220, maxWidth: 280, maxHeight: .infinity)
             referenceTopicList
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 380)
-        } detail: {
+                .frame(minWidth: 220, idealWidth: 280, maxWidth: 380, maxHeight: .infinity)
             referenceCardDetail
+                .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -330,7 +332,6 @@ struct RulesReferenceView: View {
                 }
             }
         }
-        .navigationTitle("Topics")
     }
 
     private func scrollTopicsList(proxy: ScrollViewProxy) {
@@ -397,7 +398,6 @@ struct RulesReferenceView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle(entry.title)
         } else {
             ContentUnavailableView {
                 Label("Select a Card", systemImage: "doc.text.magnifyingglass")
@@ -946,6 +946,62 @@ struct RulesReferenceView: View {
         case .catalog: "books.vertical.fill"
         case .other: "ellipsis.circle.fill"
         }
+    }
+}
+
+/// Sets the window title from the mode. A SwiftUI navigation title would install
+/// the macOS 27 sidebar toolbar and move the mode switch.
+private struct RulesWindowTitleSetter: NSViewRepresentable {
+    var title: String
+
+    func makeNSView(context: Context) -> NSView {
+        let view = RulesWindowTitleView()
+        view.title = title
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let view = nsView as? RulesWindowTitleView else { return }
+        view.title = title
+        DispatchQueue.main.async {
+            view.applyTitle()
+        }
+    }
+}
+
+private final class RulesWindowTitleView: NSView {
+    var title = "" {
+        didSet { applyTitle() }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        NotificationCenter.default.removeObserver(self)
+        if let window {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(windowDidUpdate(_:)),
+                name: NSWindow.didUpdateNotification,
+                object: window
+            )
+        }
+        applyTitle()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// The setter sits behind the whole window. It must not take clicks.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    @objc private func windowDidUpdate(_ notification: Notification) {
+        applyTitle()
+    }
+
+    func applyTitle() {
+        guard let window, window.title != title else { return }
+        window.title = title
     }
 }
 
