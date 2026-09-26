@@ -203,7 +203,7 @@ Track the full campaign loop: group jobs under a campaign, plan the run, put peo
 - **On the job** — team roster plus Johnson, fixer, and target contacts
 - **In session** — objectives, log, payouts, heat, and status through the finish
 - **Close out and brief** — nuyen, karma, and reputation when you choose; player handouts stay free of GM spoilers
-- **Experimental:** turn a mission PDF on your shelf into a planning-run draft you can review before saving
+- **Experimental:** turn a mission PDF on your shelf into a planning-run draft. On-device Apple Intelligence fills the fields when it is available; a text heuristic fills them otherwise. Review before saving
 
     </td>
     <td width="42%" valign="top" align="center">

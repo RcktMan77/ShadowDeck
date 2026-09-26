@@ -301,4 +301,51 @@ final class RunDraftGeneratorTests: XCTestCase {
             || cleaned.hasPrefix("MISSION SYNOPSIS"))
     }
 
+    func testPackerKeepsRewardsAndDropsLongBehindTheScenes() {
+        let behind = String(repeating: "The secret lab under Midway is full of cloned technomancers. ", count: 80)
+        let text = srmShapedFixture.replacingOccurrences(
+            of: "Behind the Scenes\n",
+            with: "Behind the Scenes\n\(behind)\n"
+        )
+        let packed = RunDraftModelInput.pack(text: text, maxCharacters: 1_200)
+        XCTAssertTrue(packed.includedRewards)
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("PICKING UP THE PIECES"))
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("13,000") || packed.text.contains("13000"))
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("SCAN THIS"))
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("MISSION SYNOPSIS"))
+        XCTAssertFalse(packed.text.contains("cloned technomancers"))
+        XCTAssertFalse(packed.text.contains("B A R S W"))
+    }
+
+    func testPackerKeepsAShortGMBehindTheScenesWhenItFits() {
+        let packed = RunDraftModelInput.pack(text: srmShapedFixture, maxCharacters: 8_000)
+        XCTAssertTrue(packed.includedRewards)
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("BEHIND THE SCENES"))
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("GM only"))
+        XCTAssertTrue(packed.text.localizedCaseInsensitiveContains("Quantum Princess wants"))
+        XCTAssertFalse(packed.text.contains("B A R S W"))
+    }
+
+    func testPackerWarnsWhenTheExtractIsNotAMission() {
+        let packed = RunDraftModelInput.pack(
+            text: "Just a warehouse job in Redmond with no headings.",
+            maxCharacters: 2_000
+        )
+        XCTAssertFalse(packed.includedRewards)
+        XCTAssertTrue(packed.warnings.contains { $0.localizedCaseInsensitiveContains("mission layout") })
+    }
+
+    func testShouldAcceptAIDraftRejectsFluffAndAcceptsAPayout() {
+        let fluff = RunDraft(title: "", missionCode: nil, client: "", objectives: [], expectedPayoutNuyen: nil)
+        XCTAssertFalse(RunDraftGenerator.shouldAcceptAIDraft(fluff))
+
+        let named = RunDraft(
+            title: "",
+            missionCode: "SRM 5A-01",
+            expectedPayoutNuyen: 13_000,
+            expectedKarma: 6
+        )
+        XCTAssertTrue(RunDraftGenerator.shouldAcceptAIDraft(named))
+    }
+
 }
