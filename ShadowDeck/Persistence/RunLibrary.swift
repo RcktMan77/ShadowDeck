@@ -54,13 +54,19 @@ public final class RunLibrary {
                 }
                 return lhs.id.uuidString < rhs.id.uuidString
             }
-        return records.map { record in
-            // Prefer tags from full payload when available (cheap enough for small libraries).
-            if let run = try? run(from: record) {
-                return RunMapper.summary(from: run)
+        var didBackfill = false
+        let summaries: [RunSummary] = records.map { record in
+            // Older rows stored edition, tags, and start/complete dates only in the payload.
+            if record.editionRaw == nil, let run = try? run(from: record) {
+                try? RunMapper.updateRecordMetadata(record, from: run)
+                didBackfill = true
             }
             return record.summary
         }
+        if didBackfill {
+            try? modelContext.save()
+        }
+        return summaries
     }
 
     public func count() throws -> Int {
