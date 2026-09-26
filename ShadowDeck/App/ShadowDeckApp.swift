@@ -46,6 +46,8 @@ struct ShadowDeckApp: App {
         _showSplash = State(initialValue: !skipSplash)
         _showLaunchVeil = State(initialValue: !skipSplash)
         do {
+            // The on-disk store stays in init. Cold open was under 100 ms; move it only if a
+            // new median of three launches is over that.
             // SHADOWDECK_IN_MEMORY_LIBRARY=1: empty ephemeral store for QA (never touches live disk).
             // Marketing captures (Debug only) never open the on-disk personal library.
             if capture {

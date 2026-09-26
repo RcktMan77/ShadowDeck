@@ -46,8 +46,9 @@ public final class CharacterLibrary {
             .sorted { $0.modifiedAt > $1.modifiedAt }
         var didBackfill = false
         let summaries: [CharacterSummary] = records.map { record in
-            // Backfill short library taglines for rows saved before ConceptTagline existed
-            // (empty denormalized concept but full story in the payload).
+            // Decode the payload only when the denormalized concept is empty
+            // (rows saved before ConceptTagline). A gallery-sized thumbnail is used as-is;
+            // the original portrait is read only when that JPEG is missing or too small.
             if record.concept.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let character = try? CharacterMapper.decodePayload(record.payload) {
                 let label = ConceptTagline.libraryLabel(

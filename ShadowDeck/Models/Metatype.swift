@@ -77,7 +77,7 @@ public enum MetatypeCatalog {
 
     /// Shared core-book style mins/maxes. SR4A / SR5 / SR6 share the classic metatype
     /// spread for the five core metatypes; edition rules may overlay chargen caps.
-    private static func boundsTable(_ metatype: MetatypeID, _ edition: Edition) -> [AttributeID: AttributeBounds] {
+    private static func boundsTable(_ metatype: MetatypeID, _: Edition) -> [AttributeID: AttributeBounds] {
         // Edge maxima: humans get higher natural Edge in all modern editions.
         let humanEdgeMax = 7
         let otherEdgeMax = 6
@@ -140,14 +140,11 @@ public enum MetatypeCatalog {
                 resonance: 0...6
             )
         case .troll:
-            // SR5/6 troll Body/Strength maxima are higher; keep peer-level core tables.
-            let bodyMax = edition == .sr4 ? 10 : 10
-            let strengthMax = edition == .sr4 ? 10 : 10
             return base(
-                body: 5...bodyMax,
+                body: 5...10,
                 agility: 1...5,
                 reaction: 1...6,
-                strength: 5...strengthMax,
+                strength: 5...10,
                 willpower: 1...6,
                 logic: 1...5,
                 intuition: 1...5,
