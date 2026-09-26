@@ -80,8 +80,9 @@ SampleAssets/ghostwire_portrait_animated_still.jpg
 # Local product docs / design notes (not published in the public repository)
 Docs/
 
-# Local maintainer tooling (not published in the public repository)
-Scripts/
+# Local maintainer tooling (not published). The release script is the exception.
+Scripts/*
+!Scripts/release_build.sh
 
 # Local screenshot capture notes (not published in the public repository)
 Screenshots/README.md

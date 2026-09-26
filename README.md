@@ -237,7 +237,7 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 </table>
 
 - **Reference** — short original summaries and formulas (dice, combat, magic, matrix, lifestyle, …) plus handy calculators
-- **Library** — add your own PDFs, browse by type, read and search files locally; optional page links from cards when you bind a book
+- **Library** — add your own PDFs, browse by type, read and search files locally; optional page links from cards when you bind a book. The mode switch still says Library. The window title is **Rules Reference** on the cards and **PDF Shelf** on the shelf, including while a book is open.
 - No rulebook PDFs are bundled or redistributed — only files you add
 
 ### Lifestyle, advancement & more
@@ -254,11 +254,11 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 ## Getting started
 
-1. Download a [**Release**](https://github.com/RcktMan77/ShadowDeck/releases), or build from source with Xcode 16+.
-2. Create a character, import one, or load samples from the library.
-3. Open a runner’s play sheet; use **Dice** (⌘D) when you need a roll.
-4. Open **Rules Reference** (⌘R) for quick rules or your PDF shelf.
-5. Start a campaign or run when you’re ready to track the next job.
+1. Download a [**Release**](https://github.com/RcktMan77/ShadowDeck/releases), or build from source. Xcode 16 is the project-format minimum. Continuous integration uses Xcode 26.3. Local development uses Xcode 27.
+2. Create a character, import one (⌘O), or load samples from the library. ⌘N starts a new character.
+3. Open a runner’s play sheet; use **Dice** (⌘D) when you need a roll. In notes, ⌘B, ⌘I, and ⌘U toggle bold, italic, and underline.
+4. Open **Rules Reference** (⌘R) for quick rules, or **PDF Shelf** (⌘⇧L) for your books.
+5. Start a campaign, or a run (⌘⇧R), when you’re ready to track the next job.
 
 **Requirements:** macOS 14.0 or later.
 
@@ -284,7 +284,7 @@ Focus: deepen solo campaign tools before multi-user play.
 | **Done** | **Run Tracker Phase 2** | Full job loop from plan through awards and briefing |
 | **1** | **Combat / initiative tracker** | High-value GM aid once the core loop is solid |
 | **2** | **Shared Hub** | Multi-user campaigns when the single-player experience is mature |
-| **3** | **PDF draft polish** | Better experimental drafting from mission PDFs |
+| **3** | **PDF draft polish** | The experimental draft has landed (on-device model, heuristic fallback, review before save). Later work improves that draft. |
 
 ---
 
@@ -305,6 +305,15 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 ```
 
 Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`).
+
+A notarized zip is `Scripts/release_build.sh`. It reads `CODESIGN_IDENTITY` and `SHADOWDECK_NOTARY_PROFILE` from the environment. Those values stay on your machine.
+
+```bash
+Scripts/release_build.sh                  # unsigned Release app
+Scripts/release_build.sh --zip            # also dist/ShadowDeck-<version>-macos.zip
+Scripts/release_build.sh --zip --sign     # Developer ID sign
+Scripts/release_build.sh --zip --sign --notarize
+```
 
 ---
 
