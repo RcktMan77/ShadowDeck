@@ -501,13 +501,24 @@ struct DraftRunFromPDFSheet: View {
             documentPageCount = 1
             return
         }
-        let store = PDFLibraryStore.loadDefault()
-        let url = store.fileURL(for: item)
-        if let doc = PDFDocument(url: url) {
-            documentPageCount = max(1, doc.pageCount)
-        } else {
-            documentPageCount = item.pageCount ?? 1
+        if let known = item.pageCount, known > 0 {
+            applyPageBounds(count: known)
+            return
         }
+        let url = PDFLibraryStore.loadDefault().fileURL(for: item)
+        let itemID = item.id
+        Task.detached(priority: .userInitiated) {
+            let counted = autoreleasepool { PDFDocument(url: url)?.pageCount ?? 0 }
+            let published = max(counted, 1)
+            await MainActor.run {
+                guard selectedPDFID == itemID else { return }
+                applyPageBounds(count: published)
+            }
+        }
+    }
+
+    private func applyPageBounds(count: Int) {
+        documentPageCount = max(1, count)
         let limits = extractionLimits
         pageStart = min(max(1, pageStart), documentPageCount)
         pageEnd = min(max(pageStart, pageEnd), documentPageCount)

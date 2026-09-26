@@ -269,12 +269,7 @@ struct CharacterGlanceVitalsGrid: View {
     }
 
     private var essenceString: String {
-        let ess = derived.currentEssence
-        let n = NSDecimalNumber(decimal: ess)
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 2
-        return f.string(from: n) ?? "\(ess)"
+        DecimalFormat.essence(derived.currentEssence)
     }
 
     private var initiativeString: String {
