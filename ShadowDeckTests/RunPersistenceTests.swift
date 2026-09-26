@@ -61,6 +61,25 @@ final class RunPersistenceTests: XCTestCase {
         XCTAssertNil(try runLibrary.fetch(id: run.id))
     }
 
+    func testListSummariesKeepEditionAndTagsWhenPayloadIsEmpty() throws {
+        var run = Run.makeDraft(title: "Tagged job", edition: .sr6)
+        run.tags = ["wetwork", "seattle"]
+        let started = Date(timeIntervalSince1970: 1_700_000_000)
+        run.startedAt = started
+        try runLibrary.save(run)
+
+        let records = try container.mainContext.fetch(FetchDescriptor<RunRecord>())
+            .filter { $0.id == run.id }
+        XCTAssertEqual(records.count, 1)
+        records[0].payload = Data()
+        try container.mainContext.save()
+
+        let summary = try runLibrary.listSummaries().first { $0.id == run.id }
+        XCTAssertEqual(summary?.edition, .sr6)
+        XCTAssertEqual(summary?.tags, ["wetwork", "seattle"])
+        XCTAssertEqual(summary?.startedAt, started)
+    }
+
     func testEmptyTitleRejected() throws {
         let run = Run(title: "   ")
         XCTAssertThrowsError(try runLibrary.save(run)) { error in

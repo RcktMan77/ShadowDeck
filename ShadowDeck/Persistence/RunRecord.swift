@@ -26,6 +26,12 @@ public final class RunRecord {
     /// Optional campaign soft-link (denormalized for list filters). UUID string or empty.
     public var campaignIDString: String?
 
+    /// Denormalized list fields. `editionRaw == nil` means an older row still needs one payload read.
+    public var editionRaw: String?
+    public var tagsJSON: Data = Data()
+    public var startedAt: Date?
+    public var completedAt: Date?
+
     /// Full `Run` JSON.
     @Attribute(.externalStorage) public var payload: Data
 
@@ -39,7 +45,11 @@ public final class RunRecord {
         createdAt: Date,
         participantIDsJSON: Data,
         campaignIDString: String? = nil,
-        payload: Data
+        payload: Data,
+        editionRaw: String? = nil,
+        tagsJSON: Data = Data(),
+        startedAt: Date? = nil,
+        completedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -50,6 +60,10 @@ public final class RunRecord {
         self.createdAt = createdAt
         self.participantIDsJSON = participantIDsJSON
         self.campaignIDString = campaignIDString
+        self.editionRaw = editionRaw
+        self.tagsJSON = tagsJSON
+        self.startedAt = startedAt
+        self.completedAt = completedAt
         self.payload = payload
     }
 
@@ -70,11 +84,11 @@ public final class RunRecord {
             id: id,
             title: title,
             status: status,
-            edition: .sr5, // payload may refine when fully decoded
-            tags: [], // tags live in payload; list can refresh from fetch when needed
+            edition: editionRaw.flatMap(Edition.init(rawValue:)) ?? .sr5,
+            tags: (try? JSONDecoder().decode([String].self, from: tagsJSON)) ?? [],
             plannedDate: plannedDate,
-            startedAt: nil,
-            completedAt: nil,
+            startedAt: startedAt,
+            completedAt: completedAt,
             modifiedAt: modifiedAt,
             participantCharacterIDs: participantIDs,
             campaignID: campaignID
