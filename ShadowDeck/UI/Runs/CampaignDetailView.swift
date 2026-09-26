@@ -469,4 +469,3 @@ struct CampaignDetailView: View {
         }
     }
 }
-

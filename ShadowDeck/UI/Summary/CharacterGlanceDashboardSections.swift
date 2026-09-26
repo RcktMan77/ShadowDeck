@@ -206,7 +206,6 @@ struct CharacterGlanceLifestyleBanner: View {
             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
     }
-
 }
 
 // MARK: - Vitals grid

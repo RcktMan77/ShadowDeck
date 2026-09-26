@@ -234,6 +234,4 @@ enum RunDraftHeuristic {
         }
         return nil
     }
-
-
 }

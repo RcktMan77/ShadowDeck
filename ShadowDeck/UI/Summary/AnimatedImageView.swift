@@ -102,7 +102,7 @@ enum GIFDecoder {
         return frames
     }
 
-    private nonisolated static func downscale(_ image: CGImage, maxLongEdge: Int) -> CGImage {
+    nonisolated private static func downscale(_ image: CGImage, maxLongEdge: Int) -> CGImage {
         let width = image.width
         let height = image.height
         let longEdge = max(width, height)

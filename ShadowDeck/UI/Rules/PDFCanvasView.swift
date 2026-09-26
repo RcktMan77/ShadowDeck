@@ -609,4 +609,3 @@ struct PDFCanvasView: NSViewRepresentable {
         }
     }
 }
-

@@ -105,5 +105,4 @@ extension GenerationWizardView {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
-
 }

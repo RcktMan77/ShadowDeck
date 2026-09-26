@@ -23,7 +23,7 @@ public enum AvatarThumbnail {
 
     /// True when a stored JPEG is already large enough for the gallery card.
     /// Smaller files (the 96px thumbnails) are rebuilt from the original portrait.
-    public nonisolated static func isGallerySized(_ jpeg: Data) -> Bool {
+    nonisolated public static func isGallerySized(_ jpeg: Data) -> Bool {
         guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = props[kCGImagePropertyPixelWidth] as? Int,
@@ -34,7 +34,7 @@ public enum AvatarThumbnail {
     }
 
     /// Square aspect-fill JPEG for library rows and gallery cards. ImageIO only, so it can run off the main actor.
-    public nonisolated static func makeStoredJPEG(from data: Data) -> Data? {
+    nonisolated public static func makeStoredJPEG(from data: Data) -> Data? {
         guard !data.isEmpty,
               let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil)

@@ -174,5 +174,4 @@ public enum PrioritySummaryBuilder {
         case (_, .e): return "Summary — Mundane (special points to Edge only)"
         }
     }
-
 }

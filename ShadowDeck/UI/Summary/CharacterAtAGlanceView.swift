@@ -781,7 +781,6 @@ struct CharacterAtAGlanceView: View {
         let n = derived.initiativeDice
         return n == 1 ? "1 Initiative Die" : "\(n) Initiative Dice"
     }
-
 }
 
 

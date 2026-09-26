@@ -322,4 +322,3 @@ struct CampaignsListView: View {
         }
     }
 }
-

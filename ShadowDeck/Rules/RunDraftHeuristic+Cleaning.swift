@@ -234,5 +234,4 @@ extension RunDraftHeuristic {
         }
         return text
     }
-
 }

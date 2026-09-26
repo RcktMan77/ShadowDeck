@@ -242,5 +242,4 @@ extension RulesReferenceView {
             controller.backToShelf()
         }
     }
-
 }

@@ -18,8 +18,7 @@ struct PDFCoverImage: View {
         Group {
             if let coverURL, let image = NSImage(contentsOf: coverURL) {
                 Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .resizable().scaledToFill()
             } else {
                 ZStack {
                     Color.secondary.opacity(0.12)

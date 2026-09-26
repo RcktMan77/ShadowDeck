@@ -28,7 +28,7 @@ public final class RunRecord {
 
     /// Denormalized list fields. `editionRaw == nil` means an older row still needs one payload read.
     public var editionRaw: String?
-    public var tagsJSON: Data = Data()
+    public var tagsJSON = Data()
     public var startedAt: Date?
     public var completedAt: Date?
 

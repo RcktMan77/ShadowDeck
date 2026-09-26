@@ -207,10 +207,8 @@ extension GenerationWizardView {
 
     private static func displayContactRoleName(_ raw: String) -> String {
         var name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        for suffix in [" Contact Role", " contact role"] {
-            if name.hasSuffix(suffix) {
-                name = String(name.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
+        for suffix in [" Contact Role", " contact role"] where name.hasSuffix(suffix) {
+            name = String(name.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return name
     }

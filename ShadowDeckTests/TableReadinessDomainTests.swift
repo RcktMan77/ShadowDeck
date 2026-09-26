@@ -206,5 +206,4 @@ final class TableReadinessDomainTests: XCTestCase {
             XCTAssertEqual(draft.edition, edition)
         }
     }
-
 }

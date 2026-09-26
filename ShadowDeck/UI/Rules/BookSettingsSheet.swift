@@ -179,4 +179,3 @@ struct BookSettingsSheet: View {
         onSave(section, resolvedKey, max(0, pageOffset))
     }
 }
-

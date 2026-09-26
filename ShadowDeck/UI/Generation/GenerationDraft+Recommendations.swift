@@ -8,10 +8,10 @@
 
 import Foundation
 
-extension GenerationDraft {
+public extension GenerationDraft {
     // MARK: - Recommendations (user-triggered)
 
-    public func applyRecommendedPriorities() {
+    func applyRecommendedPriorities() {
         let rec = ChargenRecommendations.priorities(archetype: archetype, metatype: metatype)
         priority = rec.assignment
         if houseRules.isEnabled(.sumToTen) {
@@ -25,7 +25,7 @@ extension GenerationDraft {
     /// In BP mode, counts free BP as if physical/mental attributes were back at metatype minima
     /// so a second click does not shrink the budget by the spend of the first apply.
     /// **Pure** — must not mutate budget (called from SwiftUI view bodies for button subtitles).
-    public var recommendedAttributePointBudget: Int {
+    var recommendedAttributePointBudget: Int {
         if generationSystem == .buildPoints {
             let ledger = buildPointLedger
             let total = budget.buildPointsTotal > 0
@@ -41,7 +41,7 @@ extension GenerationDraft {
 
     /// Active-skill rank budget for recommendations (stable if reapplied).
     /// **Pure** — must not mutate budget (called from SwiftUI view bodies).
-    public var recommendedSkillPointBudget: Int {
+    var recommendedSkillPointBudget: Int {
         if generationSystem == .buildPoints {
             let ledger = buildPointLedger
             let total = budget.buildPointsTotal > 0
@@ -55,7 +55,7 @@ extension GenerationDraft {
         return budget.skillPointsTotal
     }
 
-    public func applyRecommendedAttributes() {
+    func applyRecommendedAttributes() {
         // Keep ledger remaining current before applying (mutation only on user action).
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
@@ -89,7 +89,7 @@ extension GenerationDraft {
         lastRecommendationNote = rec.rationale
     }
 
-    public func applyRecommendedSkills() {
+    func applyRecommendedSkills() {
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
         }
@@ -124,7 +124,7 @@ extension GenerationDraft {
     }
 
     /// Whether a quality can be toggled on under current caps / BP.
-    public func canAddQuality(kind: QualityKind, karmaValue: Int) -> Bool {
+    func canAddQuality(kind: QualityKind, karmaValue: Int) -> Bool {
         let cost = abs(karmaValue)
         if generationSystem == .buildPoints {
             let pos = qualities.filter { $0.kind == .positive }.reduce(0) { $0 + abs($1.karmaValue) }
@@ -146,7 +146,7 @@ extension GenerationDraft {
         }
     }
 
-    public func setSkillRank(catalogKey: String, displayName: String, rank: Int, category: SkillCategory = .active) {
+    func setSkillRank(catalogKey: String, displayName: String, rank: Int, category: SkillCategory = .active) {
         let clamped = max(0, min(rank, 6))
         let previous = skillRanks[catalogKey] ?? 0
         let delta = clamped - previous
@@ -184,7 +184,7 @@ extension GenerationDraft {
         )
     }
 
-    public func canIncreaseSkill(catalogKey: String) -> Bool {
+    func canIncreaseSkill(catalogKey: String) -> Bool {
         let current = skillRanks[catalogKey] ?? 0
         guard current < 6 else { return false }
         if generationSystem == .buildPoints {
@@ -193,22 +193,22 @@ extension GenerationDraft {
         return budget.skillPointsRemaining > 0
     }
 
-    public func canDecreaseSkill(catalogKey: String) -> Bool {
+    func canDecreaseSkill(catalogKey: String) -> Bool {
         (skillRanks[catalogKey] ?? 0) > 0
     }
 
     // MARK: - Skill groups / spells / contacts
 
     /// Max skill group rating at chargen (SR4A BP: 4; priority SR5-style: 6).
-    public var skillGroupMaxAtChargen: Int {
+    var skillGroupMaxAtChargen: Int {
         generationSystem == .buildPoints ? SR4BuildPointEngine.skillGroupMaxAtChargen : 6
     }
 
-    public func skillGroupRating(_ group: SkillGroupID) -> Int {
+    func skillGroupRating(_ group: SkillGroupID) -> Int {
         skillGroupRatings[group] ?? 0
     }
 
-    public func canIncreaseSkillGroup(_ group: SkillGroupID) -> Bool {
+    func canIncreaseSkillGroup(_ group: SkillGroupID) -> Bool {
         let current = skillGroupRating(group)
         guard current < skillGroupMaxAtChargen else { return false }
         if generationSystem == .buildPoints {
@@ -218,11 +218,11 @@ extension GenerationDraft {
         return budget.skillGroupPointsRemaining > 0
     }
 
-    public func canDecreaseSkillGroup(_ group: SkillGroupID) -> Bool {
+    func canDecreaseSkillGroup(_ group: SkillGroupID) -> Bool {
         skillGroupRating(group) > 0
     }
 
-    public func setSkillGroupRating(_ group: SkillGroupID, rating: Int) {
+    func setSkillGroupRating(_ group: SkillGroupID, rating: Int) {
         let clamped = max(0, min(rating, skillGroupMaxAtChargen))
         let previous = skillGroupRating(group)
         let delta = clamped - previous
@@ -250,14 +250,14 @@ extension GenerationDraft {
         }
     }
 
-    public func canAddSpell() -> Bool {
+    func canAddSpell() -> Bool {
         guard generationSystem == .buildPoints else { return true }
         guard awakened.usesMagic else { return false }
         guard spells.count < maxSpellsAtChargen else { return false }
         return budget.buildPointsRemaining >= SR4BuildPointEngine.spellCost
     }
 
-    public func addSpell(_ spell: SpellInstance) {
+    func addSpell(_ spell: SpellInstance) {
         if generationSystem == .buildPoints {
             guard canAddSpell() else { return }
             guard !spells.contains(where: { $0.catalogKey == spell.catalogKey || $0.name == spell.name }) else {
@@ -270,24 +270,24 @@ extension GenerationDraft {
         }
     }
 
-    public func removeSpell(id: UUID) {
+    func removeSpell(id: UUID) {
         spells.removeAll { $0.id == id }
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
         }
     }
 
-    public func contactBPCost(_ contact: Contact) -> Int {
+    func contactBPCost(_ contact: Contact) -> Int {
         SR4BuildPointEngine.contactCost(connection: contact.connection, loyalty: contact.loyalty)
     }
 
-    public func canAddContact(connection: Int, loyalty: Int) -> Bool {
+    func canAddContact(connection: Int, loyalty: Int) -> Bool {
         guard generationSystem == .buildPoints else { return true }
         let cost = SR4BuildPointEngine.contactCost(connection: connection, loyalty: loyalty)
         return budget.buildPointsRemaining >= cost
     }
 
-    public func addContact(_ contact: Contact) {
+    func addContact(_ contact: Contact) {
         if generationSystem == .buildPoints {
             guard canAddContact(connection: contact.connection, loyalty: contact.loyalty) else { return }
         }
@@ -297,7 +297,7 @@ extension GenerationDraft {
         }
     }
 
-    public func updateContact(_ contact: Contact) {
+    func updateContact(_ contact: Contact) {
         guard let idx = contacts.firstIndex(where: { $0.id == contact.id }) else { return }
         let previous = contacts[idx]
         if generationSystem == .buildPoints {
@@ -312,14 +312,14 @@ extension GenerationDraft {
         }
     }
 
-    public func removeContact(id: UUID) {
+    func removeContact(id: UUID) {
         contacts.removeAll { $0.id == id }
         if generationSystem == .buildPoints {
             recomputeBuildPoints()
         }
     }
 
-    public func buildCharacter() -> Character {
+    func buildCharacter() -> Character {
         let groupInstances = skillGroupRatings
             .filter { $0.value > 0 }
             .map { SkillGroupRating(group: $0.key, rating: $0.value) }
@@ -370,5 +370,4 @@ extension GenerationDraft {
         }
         return character
     }
-
 }
