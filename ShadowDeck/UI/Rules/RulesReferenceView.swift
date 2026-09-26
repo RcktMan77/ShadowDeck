@@ -526,15 +526,13 @@ private final class RulesWindowTitleView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        NotificationCenter.default.removeObserver(self)
-        if let window {
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowDidUpdate(_:)),
-                name: NSWindow.didUpdateNotification,
-                object: window
-            )
-        }
+        guard let window else { return }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidUpdate(_:)),
+            name: NSWindow.didUpdateNotification,
+            object: window
+        )
         applyTitle()
     }
 
@@ -554,4 +552,3 @@ private final class RulesWindowTitleView: NSView {
         window.title = title
     }
 }
-

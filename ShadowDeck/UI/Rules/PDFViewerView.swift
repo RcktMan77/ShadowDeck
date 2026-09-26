@@ -186,4 +186,3 @@ struct PDFReaderWorkspace: View {
         .id(url) // remount session when the open book changes
     }
 }
-

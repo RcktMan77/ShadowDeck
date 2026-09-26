@@ -149,5 +149,4 @@ final class ImportTests: XCTestCase {
         let result = try CharacterImporter.importChummerJSON(bom)
         XCTAssertEqual(result.character.name, "Test Runner")
     }
-
 }

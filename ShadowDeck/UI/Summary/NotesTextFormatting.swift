@@ -499,4 +499,3 @@ private extension NSRange {
         return NSRange(location: loc, length: len)
     }
 }
-
