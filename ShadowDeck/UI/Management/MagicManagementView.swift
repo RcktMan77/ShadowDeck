@@ -372,10 +372,6 @@ struct MagicManagementView: View {
     }
 
     private func formatPP(_ value: Decimal) -> String {
-        let n = NSDecimalNumber(decimal: value)
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 0
-        f.maximumFractionDigits = 2
-        return f.string(from: n) ?? "\(value)"
+        DecimalFormat.powerPoints(value)
     }
 }

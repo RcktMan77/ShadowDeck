@@ -252,10 +252,6 @@ struct AugmentationsManagementView: View {
     }
 
     private func formatEssence(_ value: Decimal) -> String {
-        let n = NSDecimalNumber(decimal: value)
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 2
-        return f.string(from: n) ?? "\(value)"
+        DecimalFormat.essence(value)
     }
 }

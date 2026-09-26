@@ -1025,13 +1025,8 @@ struct CharacterAtAGlanceView: View {
 
     // MARK: - Formatting
 
-    private func essenceString(_ c: Character) -> String {
-        let ess = derived.currentEssence
-        let n = NSDecimalNumber(decimal: ess)
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 2
-        return f.string(from: n) ?? "\(ess)"
+    private func essenceString(_: Character) -> String {
+        DecimalFormat.essence(derived.currentEssence)
     }
 
     private func initiativeString(_ c: Character) -> String {
