@@ -80,5 +80,3 @@ SampleAssets/ghostwire_portrait_animated_still.jpg
 # Local screenshot capture notes (not published in the public repository)
 Screenshots/README.md
 
-# Bundled chargen portraits are not published
-ShadowDeck/Resources/ChargenArt/*.jpg
