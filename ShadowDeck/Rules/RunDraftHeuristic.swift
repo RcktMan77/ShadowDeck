@@ -386,6 +386,7 @@ enum RunDraftHeuristic {
             + #"Tell\s+It\s+to\s+Them\s+Straight|"#
             + #"Behind\s+the\s+Scenes|"#
             + #"Pushing\s+the\s+Envelope|"#
+            + #"Hooks|"#
             + #"Debugging|"#
             + #"SCENE\s+\d+[A-Z]?(?:\s*:\s*.+)?"#
             + #")\s*$"#
