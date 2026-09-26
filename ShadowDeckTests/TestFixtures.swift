@@ -3,8 +3,8 @@
 //  ShadowDeckTests
 //
 //  Load in-repo fixtures without probing the source tree path.
-//  Fixtures ship in the app bundle under Resources/TestFixtures (and optional
-//  test-bundle copies) so tests do not touch ~/Desktop when the project lives there.
+//  Fixtures ship in the test bundle (ShadowDeckTests/Fixtures) so the app
+//  does not carry them, and tests do not touch ~/Desktop.
 //
 
 import Foundation
@@ -32,7 +32,7 @@ enum TestFixtures {
         XCTFail(
             """
             Fixture “\(name)” not found in the test or app bundle. \
-            Ensure ShadowDeck/Resources/TestFixtures/\(name) is present in the target.
+            Ensure ShadowDeckTests/Fixtures/\(name) is copied into the test bundle.
             """
         )
         throw FixtureError.notFound(name)
