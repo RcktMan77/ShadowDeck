@@ -86,5 +86,3 @@ Scripts/
 # Local screenshot capture notes (not published in the public repository)
 Screenshots/README.md
 
-# Bundled chargen portraits are not published
-ShadowDeck/Resources/ChargenArt/*.jpg
