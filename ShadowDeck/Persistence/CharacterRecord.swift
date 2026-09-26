@@ -35,7 +35,7 @@ public final class CharacterRecord {
     /// Small portraits only; large/animated use files.
     @Attribute(.externalStorage) public var avatarInlineData: Data?
     public var avatarByteCount: Int
-    /// List-row JPEG (long edge 96). Nil on rows saved before this column existed.
+    /// Gallery/list JPEG (200×200). Nil on older rows; undersized files are rebuilt.
     public var thumbnailJPEG: Data?
 
     public init(

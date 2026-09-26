@@ -62,12 +62,12 @@ public final class CharacterLibrary {
             }
 
             var summary = record.summary
-            if let stored = record.thumbnailJPEG, !stored.isEmpty {
+            if let stored = record.thumbnailJPEG, !stored.isEmpty, AvatarThumbnail.isGallerySized(stored) {
                 // Stored row JPEG. Do not touch the original avatar bytes.
                 summary.thumbnailData = stored
                 summary.hasAvatar = true
             } else if record.avatarKind != .none, record.avatarByteCount > 0 {
-                // One-time backfill for rows saved before thumbnailJPEG existed.
+                // One-time backfill when the row has no gallery-sized thumbnail yet.
                 let full: Data? = {
                     if let loaded = try? avatarStore.load(characterID: record.id, record: record.avatarSnapshot),
                        !loaded.isEmpty {

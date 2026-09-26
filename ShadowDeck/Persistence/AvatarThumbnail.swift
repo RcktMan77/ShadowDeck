@@ -12,27 +12,56 @@ import ImageIO
 import UniformTypeIdentifiers
 
 public enum AvatarThumbnail {
-    /// Long edge, in pixels, of the JPEG stored on the library row.
-    public static let storedLongEdge = 96
-    /// JPEG quality for that stored row thumbnail.
-    public static let storedJPEGQuality: CGFloat = 0.6
+    /// Square edge, in pixels, of the JPEG stored for library rows and gallery cards.
+    /// Matches the pre-stored thumbnail: 200×200 aspect-fill.
+    public static let storedEdge = 200
+    /// JPEG quality for that stored thumbnail. Matches the previous list thumbnail.
+    public static let storedJPEGQuality: CGFloat = 0.82
 
     /// Edge length in points for library-row portraits (also used for gallery cards).
     public static let listEdge: CGFloat = 200
 
-    /// Aspect-preserving JPEG for list rows. ImageIO only, so it can run off the main actor.
+    /// True when a stored JPEG is already large enough for the gallery card.
+    /// Smaller files (the 96px thumbnails) are rebuilt from the original portrait.
+    public nonisolated static func isGallerySized(_ jpeg: Data) -> Bool {
+        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = props[kCGImagePropertyPixelWidth] as? Int,
+              let height = props[kCGImagePropertyPixelHeight] as? Int
+        else { return false }
+        let edge = Int(storedEdge)
+        return width >= edge && height >= edge
+    }
+
+    /// Square aspect-fill JPEG for library rows and gallery cards. ImageIO only, so it can run off the main actor.
     public nonisolated static func makeStoredJPEG(from data: Data) -> Data? {
         guard !data.isEmpty,
-              let source = CGImageSourceCreateWithData(data as CFData, nil)
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceThumbnailMaxPixelSize: storedLongEdge,
-            kCGImageSourceCreateThumbnailWithTransform: true
-        ]
-        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
+        let edge = Int(storedEdge)
+        let pixelW = max(image.width, 1)
+        let pixelH = max(image.height, 1)
+        let scale = max(CGFloat(edge) / CGFloat(pixelW), CGFloat(edge) / CGFloat(pixelH))
+        let drawSize = CGSize(width: CGFloat(pixelW) * scale, height: CGFloat(pixelH) * scale)
+        let origin = CGPoint(
+            x: (CGFloat(edge) - drawSize.width) / 2,
+            y: (CGFloat(edge) - drawSize.height) / 2
+        )
+        guard let context = CGContext(
+            data: nil,
+            width: edge,
+            height: edge,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.interpolationQuality = .high
+        context.setFillColor(CGColor(gray: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: edge, height: edge))
+        context.draw(image, in: CGRect(origin: origin, size: drawSize))
+        guard let rendered = context.makeImage() else { return nil }
         let out = NSMutableData()
         guard let dest = CGImageDestinationCreateWithData(
             out,
@@ -42,7 +71,7 @@ public enum AvatarThumbnail {
         ) else { return nil }
         CGImageDestinationAddImage(
             dest,
-            image,
+            rendered,
             [kCGImageDestinationLossyCompressionQuality: storedJPEGQuality] as CFDictionary
         )
         guard CGImageDestinationFinalize(dest) else { return nil }
