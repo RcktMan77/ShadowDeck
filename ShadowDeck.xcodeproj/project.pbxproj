@@ -112,6 +112,7 @@
 			buildPhases = (
 				A90000000000000000000002 /* Sources */,
 				A60000000000000000000002 /* Frameworks */,
+				AA0000000000000000000002 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -167,6 +168,13 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		AA0000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000002 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -375,6 +383,11 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = (
+					"*/TestFixtures/*",
+					"*/MarketingPDFCovers/*",
+					app_icon_master.png,
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShadowDeck/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ShadowDeck;
