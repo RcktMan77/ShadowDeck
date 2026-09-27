@@ -140,11 +140,11 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 Create a new character for SR4, SR5, or SR6 with a guided flow from concept through attributes, skills, and resources.
 
-- **SR4A Build Points** chargen (real 400 BP ledger: metatype, attributes, skills, skill groups, spells, contacts, qualities, nuyen)
-- **SR5 / SR6** priority (and house-rule Sum-to-Ten / karmagen) chargen
-- Optional house rules for priorities, contacts, dice math, and more
-- Role suggestions with archetype and metatype art
-- Import existing runners from Chummer or a portable package
+- SR4A chargen uses a real 400 build-point ledger for metatype, attributes, skills, skill groups, spells, contacts, qualities, and nuyen.
+- SR5 and SR6 use priority generation, and Sum-to-Ten or karmagen is available as a house rule.
+- You can turn on house rules for priorities, contacts, dice, and more.
+- Role suggestions come with archetype and metatype art.
+- You can bring in a runner from Chummer or from a portable package.
 
 ### Character library & play sheet
 
@@ -156,24 +156,24 @@ Create a new character for SR4, SR5, or SR6 with a guided flow from concept thro
 
 Keep a stable of runners ready for the next session — open a sheet, see the numbers that matter, and roll when it counts.
 
-- Searchable library of your characters
-- Play sheet for attributes, condition, karma, nuyen, pools, and gear-backed bonuses
-- Skills, gear, contacts, lifestyle, magic, and advancement in one place
-- Still or animated portraits
-- Dice from the sheet (⌘D)
-- SR4/5: Push the Limit and Second Chance
-- SR6: Edge Actions by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call); simplified SR5-style Edge as a house rule
-- Edition-aware gear and quality catalogs: SR4A supplement pack (2,445), SR5 Chummer-derived (4,197), SR6 core pack (195), with book spot-checks
+- You can search the library of characters you have saved.
+- The play sheet shows attributes, condition, karma, nuyen, pools, and the bonuses that come from gear.
+- Skills, gear, contacts, lifestyle, magic, and advancement all live on that same runner.
+- A portrait can be a still image or an animation.
+- You roll dice from the sheet with ⌘D.
+- In SR4 and SR5, Edge covers Push the Limit and Second Chance.
+- In SR6, Edge Actions are the default: Add Edge Dice, Reroll Failures, Buy a Hit, and Close Call. A house rule can use simplified SR5-style Edge for that runner instead.
+- Gear and qualities come from the edition catalogs: an SR4A supplement pack of 2,445 entries, a Chummer-derived SR5 set of 4,197, and an SR6 core pack of 195, checked against the books.
 
 ### Runs / mission tracker
 
 Track the full campaign loop: group jobs under a campaign, plan the run, put people on it, play the session, then close out and brief the table.
 
-- **Campaigns and planning** — related jobs, notes, blank runs, or reusable templates
-- **On the job** — team roster plus Johnson, fixer, and target contacts
-- **In session** — objectives, log, payouts, heat, and status through the finish
-- **Close out and brief** — nuyen, karma, and reputation when you choose; player handouts stay free of GM spoilers
-- **Experimental:** turn a mission PDF on your shelf into a planning-run draft. On-device Apple Intelligence fills the fields when it is available; a text heuristic fills them otherwise. Review before saving
+- You can keep related jobs under a campaign, with notes, blank runs, or a template you reuse.
+- The roster holds the team, plus the Johnson, the fixer, and anyone the run is aimed at.
+- While you play, you track objectives, the log, payouts, heat, and where the job stands.
+- When you close out, you apply nuyen, karma, and reputation yourself. The handout the players see stays free of GM spoilers.
+- You can draft a planning run from a mission PDF already on your shelf, then look it over before you save. On-device Apple Intelligence fills the fields when it is available, and a reading of the page text fills them when it is not.
 
 <p align="center">
   <a href="Screenshots/07-run-mission-flow.gif">
@@ -202,9 +202,9 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
   </tr>
 </table>
 
-- **Reference** — short original summaries and formulas (dice, combat, magic, matrix, lifestyle, and the rest) plus handy calculators. The window title is **Rules Reference**.
-- **Library** — add your own PDFs, browse by type, and read and search them locally. Optional page links from cards open a book you have bound. The switch still says Library; the window title is **PDF Shelf**, including while a book is open.
-- No rulebook PDFs are bundled or redistributed — only files you add
+- Reference cards give you short original summaries and formulas for dice, combat, magic, the matrix, lifestyle, and the rest, plus a few calculators.
+- You add your own PDFs, browse them by type, and read or search them on your Mac. A page link on a card can open a book you have tied to that reference.
+- ShadowDeck does not bundle or redistribute rulebook PDFs. The shelf only holds files you add.
 
 ### Lifestyle, advancement & more
 
@@ -226,7 +226,7 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 2. Create a character (⌘N), import one (⌘O), or load samples from the library.
 3. Open a runner’s play sheet and roll with **Dice** (⌘D).
 4. Open **Rules Reference** (⌘R) for quick rules, or **PDF Shelf** (⌘⇧L) for your books.
-5. Start a campaign, or a run (⌘⇧R), when you are ready to track the next job.
+5. When you are ready for the next job, start a campaign or open a new run with ⌘⇧R.
 
 **Requirements:** macOS 14.0 or later.
 
@@ -234,12 +234,12 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 ## Tips for the table
 
-- Changes save as you go — no separate “commit sheet” step.
-- Process lifestyle and apply run awards only when you mean to; nothing pays out on its own.
+- The sheet saves as you work, so there is no separate step to commit it.
+- Process a lifestyle month, or apply run awards, only when you mean to. Nothing pays out on its own.
 - House rules on a character shape validation, essence, and dice for that runner.
-- Use the player briefing for what the team may know; keep GM spoilers off that handout.
-- Bind your own rulebooks if you want reference cards to open the right page in your PDFs.
-- In notes, ⌘B, ⌘I, and ⌘U toggle bold, italic, and underline.
+- The player briefing is what the team is allowed to know. Keep GM spoilers off that handout.
+- Bind your own rulebooks when you want a reference card to open the right page in your PDF.
+- In notes, ⌘B, ⌘I, and ⌘U turn bold, italic, and underline on and off.
 
 ---
 
