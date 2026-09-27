@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.2.5-0A7EA4?style=flat-square" alt="Version 1.2.5" /></a>
+  <a href="https://github.com/RcktMan77/ShadowDeck/releases"><img src="https://img.shields.io/badge/version-1.3.0-0A7EA4?style=flat-square" alt="Version 1.3.0" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
   <img src="https://img.shields.io/badge/platform-Mac-lightgrey?style=flat-square" alt="Mac" />
@@ -23,23 +23,9 @@
   <em>Unofficial fan project — not affiliated with or endorsed by Catalyst Game Labs or The Topps Company, Inc.</em>
 </p>
 
----
-
-## Table of contents
-
-- [Why ShadowDeck?](#why-shadowdeck)
-- [Tour](#tour)
-- [Features](#features)
-  - [Build a runner](#build-a-runner)
-  - [Character library & play sheet](#character-library--play-sheet)
-  - [Runs / mission tracker](#runs--mission-tracker)
-  - [Rules Reference & PDF library](#rules-reference--pdf-library)
-  - [Lifestyle, advancement & more](#lifestyle-advancement--more)
-- [Getting started](#getting-started)
-- [Tips for the table](#tips-for-the-table)
-- [Roadmap](#roadmap)
-- [For developers](#for-developers)
-- [License & content](#license--content)
+<p align="center">
+  <a href="#tour">Tour</a> · <a href="https://github.com/RcktMan77/ShadowDeck/releases">Releases</a> · <a href="#license--content">License</a>
+</p>
 
 ---
 
@@ -47,12 +33,7 @@
 
 Chummer is still the go-to for deep character data. **ShadowDeck is built for the table** — sheets you can play from, jobs you can track, dice you can roll, and a rules shelf you control, all in one Mac app.
 
-| | |
-|:--|:--|
-| **Status** | Ready for solo campaign use; shared online play is planned later |
-| **Editions** | Shadowrun **4e · 5e · 6e** |
-| **Import** | Chummer and portable character packages |
-| **Privacy** | Everything stays on your Mac |
+<p align="center"><sub>Solo · local-first · SR4 / SR5 / SR6 · Chummer import</sub></p>
 
 <table>
   <tr>
@@ -79,52 +60,50 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 ## Tour
 
-<p align="center"><sub>Click a still for the full image</sub></p>
+<p align="center"><sub>Stills open full size. Expand a poster for a short GIF.</sub></p>
 
 <table align="center">
   <tr>
-    <td width="25%" align="center" valign="top">
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/02-library.jpg">
-        <img src="Screenshots/thumbs/02-library.jpg" alt="Character library" width="210" />
+        <img src="Screenshots/thumbs/02-library.jpg" alt="Character library" width="220" />
       </a><br />
       <sub><strong>Character Library</strong></sub>
     </td>
-    <td width="25%" align="center" valign="top">
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/03-generation-role.jpg">
-        <img src="Screenshots/thumbs/03-generation-role.jpg" alt="Character generation — Concept &amp; Role" width="210" />
+        <img src="Screenshots/thumbs/03-generation-role.jpg" alt="Character generation — Concept and Role" width="220" />
       </a><br />
       <sub><strong>New Character · Role</strong></sub>
     </td>
-    <td width="25%" align="center" valign="top">
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/04-character-sheet.jpg">
-        <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Character summary sheet" width="210" />
+        <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Character summary sheet" width="220" />
       </a><br />
       <sub><strong>Play sheet</strong></sub>
     </td>
-    <td width="25%" align="center" valign="top">
+  </tr>
+  <tr>
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/05-dice-roller.jpg">
-        <img src="Screenshots/thumbs/05-dice-roller.jpg" alt="Dice roller with skill roll and Edge options" width="210" />
+        <img src="Screenshots/thumbs/05-dice-roller.jpg" alt="Dice roller with skill roll and Edge options" width="220" />
       </a><br />
       <sub><strong>Dice roller</strong></sub>
     </td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center" valign="top">
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/06-rules-reference.jpg">
-        <img src="Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="210" />
+        <img src="Screenshots/thumbs/06-rules-reference.jpg" alt="Rules Reference — mechanical cards" width="220" />
       </a><br />
       <sub><strong>Rules Reference</strong></sub>
     </td>
-    <td colspan="2" align="center" valign="top">
+    <td width="33%" align="center" valign="top">
       <a href="Screenshots/09-pdf-library.jpg">
-        <img src="Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="210" />
+        <img src="Screenshots/thumbs/09-pdf-library.jpg" alt="PDF library shelf" width="220" />
       </a><br />
       <sub><strong>PDF Library</strong></sub>
     </td>
   </tr>
 </table>
-
-<p align="center"><sub>Expand a poster to play a silent looping GIF</sub></p>
 
 <table align="center">
   <tr>
@@ -159,65 +138,50 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 ### Build a runner
 
-Create a new character for SR4, SR5, or SR6 with a guided flow from concept through attributes, skills, and resources.
+You can build a runner for Shadowrun 4th, 5th, or 6th edition.
 
-- **SR4A Build Points** chargen (real 400 BP ledger: metatype, attributes, skills, skill groups, spells, contacts, qualities, nuyen)
-- **SR5 / SR6** priority (and house-rule Sum-to-Ten / karmagen) chargen
-- Optional house rules for priorities, contacts, dice math, and more
-- Role suggestions with archetype and metatype art
-- Import existing runners from Chummer (SR4 / SR5 / SR6 fixtures in tests) or a portable package
+- Fourth edition uses a 400-point Build Point ledger (metatype, attributes, skills, groups, spells, contacts, qualities, and nuyen).
+- Fifth and sixth edition use priority tables, with Sum-to-Ten or karmagen available as house rules.
+- You can turn on house rules for priorities, contacts, dice, and more.
+- Role suggestions come with archetype and metatype art.
+- Bring in a runner from Chummer or a portable package.
 
 ### Character library & play sheet
 
-<table>
-  <tr>
-    <td width="46%" valign="top">
-      <a href="Screenshots/04-character-sheet.jpg">
-        <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet — attributes, portrait, and resources" width="420" style="width:100%; max-width:420px; height:auto;" />
-      </a>
-    </td>
-    <td width="54%" valign="top">
+<p align="center">
+  <a href="Screenshots/04-character-sheet.jpg">
+    <img src="Screenshots/thumbs/04-character-sheet.jpg" alt="Play sheet — attributes, portrait, and resources" width="420" />
+  </a>
+</p>
 
 Keep a stable of runners ready for the next session — open a sheet, see the numbers that matter, and roll when it counts.
 
-- Searchable library of your characters
-- Play sheet for attributes, condition, karma, nuyen, pools, and gear-backed bonuses
-- Skills, gear, contacts, lifestyle, magic, and advancement in one place
-- Still or animated portraits
-- Dice from the sheet with Edge: SR4/5 Push the Limit & Second Chance; **SR6 Edge Actions** by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call), or simplified SR5-style Edge as a house rule
-- Edition-aware gear/quality catalogs (SR4A core pack, large SR5 Chummer-derived reference, SR6 core pack with book spot-checks)
-
-    </td>
-  </tr>
-</table>
+- Search the library of characters you have saved.
+- The play sheet shows attributes, condition, karma, nuyen, pools, and the bonuses that come from gear.
+- Skills, gear, contacts, lifestyle, magic, and advancement all live on that same runner.
+- A portrait can be a still image or an animation.
+- Rolls start from the sheet (⌘D). Fourth and fifth edition support Push the Limit and Second Chance. Sixth edition uses Edge Actions by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call). A house rule can restore a simpler, fifth-edition-style Edge pool.
+- Gear and quality catalogs follow the character’s edition: an SR4A supplement pack (2,445 entries), a large SR5 set derived from Chummer (4,197), and an SR6 core pack (195).
 
 ### Runs / mission tracker
 
-<table>
-  <tr>
-    <td width="58%" valign="top">
-
 Track the full campaign loop: group jobs under a campaign, plan the run, put people on it, play the session, then close out and brief the table.
 
-- **Campaigns and planning** — related jobs, notes, blank runs, or reusable templates
-- **On the job** — team roster plus Johnson, fixer, and target contacts
-- **In session** — objectives, log, payouts, heat, and status through the finish
-- **Close out and brief** — nuyen, karma, and reputation when you choose; player handouts stay free of GM spoilers
-- **Experimental:** turn a mission PDF on your shelf into a planning-run draft you can review before saving
+- You can keep related jobs under a campaign, with notes, blank runs, or a template you reuse.
+- The roster holds the team, plus the Johnson, the fixer, and anyone the run is aimed at.
+- While you play, you track objectives, the log, payouts, heat, and where the job stands.
+- When you close out, you apply nuyen, karma, and reputation yourself. The handout the players see stays free of GM spoilers.
+- You can draft a planning run from a mission PDF on your shelf. When Apple Intelligence is available on the Mac, an on-device model fills the fields; otherwise a text heuristic does. Either way, you review the draft before it becomes a run.
 
-    </td>
-    <td width="42%" valign="top" align="center">
-      <a href="Screenshots/07-run-mission-flow.gif">
-        <img src="Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow" width="360" />
-      </a><br />
-      <sub>Expand the tour poster above to play the full flow</sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="Screenshots/07-run-mission-flow.gif">
+    <img src="Screenshots/thumbs/07-run-mission-flow-poster.jpg" alt="Run mission flow" width="420" />
+  </a>
+</p>
 
 ### Rules Reference & PDF library
 
-Two tools in one window: a **mechanical quick reference** for the table, and a **personal PDF shelf** for books you already own.
+The same window holds a searchable card reference and a shelf for PDFs you add yourself. ShadowDeck does not ship rulebooks.
 
 <table>
   <tr>
@@ -229,16 +193,12 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
     </td>
     <td width="50%" align="center" valign="top">
       <a href="Screenshots/09-pdf-library.jpg">
-        <img src="Screenshots/thumbs/09-pdf-library.jpg" alt="Rules Reference — PDF library shelf" width="420" />
+        <img src="Screenshots/thumbs/09-pdf-library.jpg" alt="PDF library shelf" width="420" />
       </a><br />
       <sub><strong>Library</strong> — personal PDF shelf (sample books in marketing shots; yours stay local)</sub>
     </td>
   </tr>
 </table>
-
-- **Reference** — short original summaries and formulas (dice, combat, magic, matrix, lifestyle, …) plus handy calculators
-- **Library** — add your own PDFs, browse by type, read and search files locally; optional page links from cards when you bind a book
-- No rulebook PDFs are bundled or redistributed — only files you add
 
 ### Lifestyle, advancement & more
 
@@ -248,17 +208,19 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 | **Advancement** | Plan and spend karma on raises with edition-aware costs |
 | **Contacts** | Standing, tags, and a log of favors and meetings |
 | **Import / export** | Bring characters in from Chummer; export sheets and portable packages |
-| **Catalog** | Edition-scoped gear/quality packs (SR4A, SR5, SR6) that update the sheet when you equip them |
+| **Catalog** | Edition-scoped gear and quality packs (SR4A, SR5, SR6) that update the sheet when you equip them |
 
 ---
 
 ## Getting started
 
-1. Download a [**Release**](https://github.com/RcktMan77/ShadowDeck/releases), or build from source with Xcode 16+.
-2. Create a character, import one, or load samples from the library.
-3. Open a runner’s play sheet; use **Dice** (⌘D) when you need a roll.
-4. Open **Rules Reference** (⌘R) for quick rules or your PDF shelf.
-5. Start a campaign or run when you’re ready to track the next job.
+[**Download the latest release**](https://github.com/RcktMan77/ShadowDeck/releases)
+
+1. Install the release, or build from source.
+2. Create a character (⌘N), import one (⌘O), or load samples from the library.
+3. Open a runner’s play sheet and roll with **Dice** (⌘D).
+4. Open **Rules Reference** (⌘R) for quick rules, or **PDF Shelf** (⌘⇧L) for your books.
+5. When you are ready for the next job, create a campaign or a new run (⌘⇧R).
 
 **Requirements:** macOS 14.0 or later.
 
@@ -266,11 +228,12 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 ## Tips for the table
 
-- Changes save as you go — no separate “commit sheet” step.
-- Process lifestyle and apply run awards only when you mean to; nothing pays out on its own.
+- Edits save as you work; there is no separate commit step for the sheet.
+- Lifestyle charges and run awards apply only when you choose them.
 - House rules on a character shape validation, essence, and dice for that runner.
-- Use the player briefing for what the team may know; keep GM spoilers off that handout.
-- Bind your own rulebooks if you want reference cards to open the right page in your PDFs.
+- The player briefing is what the team is allowed to know. Keep GM spoilers off that handout.
+- Bind your own rulebooks when you want a reference card to open the right page in your PDF.
+- In notes, ⌘B, ⌘I, and ⌘U turn bold, italic, and underline on and off.
 
 ---
 
@@ -278,17 +241,17 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 Focus: deepen solo campaign tools before multi-user play.
 
-| Priority | Feature | Why |
-|----------|---------|-----|
-| **Done** | **Rules Reference** | Fast rules and your own books at the table |
-| **Done** | **Run Tracker Phase 2** | Full job loop from plan through awards and briefing |
-| **1** | **Combat / initiative tracker** | High-value GM aid once the core loop is solid |
-| **2** | **Shared Hub** | Multi-user campaigns when the single-player experience is mature |
-| **3** | **PDF draft polish** | Better experimental drafting from mission PDFs |
+**Shipped:** Rules Reference, the campaign and run loop, and character generation for 4e–6e.
+
+**Next:** a combat and initiative tracker.
+
+**Later:** Shared Hub, and polish on the experimental PDF draft.
 
 ---
 
 ## For developers
+
+Xcode 16 is the project-format minimum. Continuous integration uses Xcode 26.3. Local development uses Xcode 27.
 
 ```bash
 # Debug build
@@ -302,6 +265,9 @@ xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
 # Release configuration app
 xcodebuild -project ShadowDeck.xcodeproj -scheme ShadowDeck \
   -configuration Release -destination 'platform=macOS' build
+
+# Notarized zip. Reads CODESIGN_IDENTITY and SHADOWDECK_NOTARY_PROFILE from the environment.
+Scripts/release_build.sh --zip --sign --notarize
 ```
 
 Bundled catalogs live under `ShadowDeck/Resources/Catalog/` (`sr4_catalog.json`, `sr5_catalog.json`, `sr6_catalog.json`).
@@ -321,14 +287,14 @@ ShadowDeck source is for **personal, non-commercial use**.
 - Rules Reference cards use **original short summaries and formulas**, not copied rulebook prose.
 - Full rules stay with their publishers (e.g. Catalyst Game Labs).
 - The PDF library holds **only files you add**; ShadowDeck does not ship or redistribute rulebooks.
-- Bundled SR5 catalog data is attributed in `Resources/Catalog/NOTICE.txt`.
+- Bundled SR5 catalog data is attributed in [`ShadowDeck/Resources/Catalog/NOTICE.txt`](ShadowDeck/Resources/Catalog/NOTICE.txt).
 
 See [LICENSE](LICENSE) for full terms. Commercial licensing, if any, would be handled separately.
 
 ### Credits
 
-- Catalog data derived from Chummer5a open data (GPL-3.0); see `ShadowDeck/Resources/Catalog/NOTICE.txt`
-- Brand fonts: Orbitron / Rajdhani (SIL OFL) under `Resources/Fonts/`
+- Catalog data derived from Chummer5a open data (GPL-3.0); see [`ShadowDeck/Resources/Catalog/NOTICE.txt`](ShadowDeck/Resources/Catalog/NOTICE.txt)
+- Brand fonts: Orbitron / Rajdhani (SIL OFL) under `ShadowDeck/Resources/Fonts/`
 - Splash and icon art are original assets for this fan tool
 
 **Shadowrun** names and setting elements remain trademarks of their owners. Use ShadowDeck for personal tabletop play, and respect publishers’ rights when importing your own materials.

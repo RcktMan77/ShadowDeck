@@ -11,7 +11,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Token for `sheet(item:)` so Draft Run always opens with a concrete mission PDF id.
-private struct DraftRunSheetRequest: Identifiable, Hashable {
+struct DraftRunSheetRequest: Identifiable, Hashable {
     /// Unique per presentation so reopening the same PDF remounts a fresh sheet.
     let id: UUID
     let pdfID: UUID
@@ -25,18 +25,17 @@ private struct DraftRunSheetRequest: Identifiable, Hashable {
 struct RulesReferenceView: View {
     @ObservedObject var controller: RulesReferenceController
     @Environment(LibraryEnvironment.self) private var libraryEnvironment
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
     @State private var isImportingPDF = false
-    @State private var libraryError: String?
-    @State private var renameDraft: String = ""
-    @State private var itemPendingRename: PDFLibraryItem?
-    @State private var itemPendingBookSettings: PDFLibraryItem?
+    @State var libraryError: String?
+    @State var renameDraft: String = ""
+    @State var itemPendingRename: PDFLibraryItem?
+    @State var itemPendingBookSettings: PDFLibraryItem?
     @State private var isShelfDropTargeted = false
     /// Presents Draft Run sheet with a stable preselected mission PDF id.
     /// Uses `sheet(item:)` so the id is not lost to the isPresented + separate state race.
-    @State private var draftRunRequest: DraftRunSheetRequest?
+    @State var draftRunRequest: DraftRunSheetRequest?
     /// Preview-style find for the open PDF.
-    @StateObject private var pdfSearch = PDFSearchBridge()
+    @StateObject var pdfSearch = PDFSearchBridge()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,8 +51,7 @@ struct RulesReferenceView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // Window scene already titles the chrome “Rules Reference”; avoid a second nav title + toolbar clutter.
-        .toolbarBackground(.hidden, for: .windowToolbar)
+        .background(RulesWindowTitleSetter(title: windowTitle))
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             // Defer: writing @Published during onAppear can still trip
@@ -108,6 +106,11 @@ struct RulesReferenceView: View {
             // Force a fresh sheet identity per request (same PDF re-opened after dismiss).
             .id(request.id)
         }
+    }
+
+    /// Plain title-bar string. A navigation title would bring back the macOS 27 toolbar row.
+    private var windowTitle: String {
+        controller.mode == .library ? "PDF Shelf" : "Rules Reference"
     }
 
     // MARK: - Mode switch
@@ -198,14 +201,13 @@ struct RulesReferenceView: View {
     // MARK: - Reference mode
 
     private var referenceSplit: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        HSplitView {
             referenceCategorySidebar
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        } content: {
+                .frame(minWidth: 180, idealWidth: 220, maxWidth: 280, maxHeight: .infinity)
             referenceTopicList
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 380)
-        } detail: {
+                .frame(minWidth: 220, idealWidth: 280, maxWidth: 380, maxHeight: .infinity)
             referenceCardDetail
+                .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -330,7 +332,6 @@ struct RulesReferenceView: View {
                 }
             }
         }
-        .navigationTitle("Topics")
     }
 
     private func scrollTopicsList(proxy: ScrollViewProxy) {
@@ -397,7 +398,6 @@ struct RulesReferenceView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle(entry.title)
         } else {
             ContentUnavailableView {
                 Label("Select a Card", systemImage: "doc.text.magnifyingglass")
@@ -462,7 +462,7 @@ struct RulesReferenceView: View {
     // MARK: Reader status (shelf uses LibraryShelfBrowseView)
 
     @ViewBuilder
-    private var statusBanners: some View {
+    var statusBanners: some View {
         if let libraryError {
             Text(libraryError)
                 .font(.caption)
@@ -483,456 +483,6 @@ struct RulesReferenceView: View {
         }
     }
 
-    // MARK: Reader (one book)
-
-    @ViewBuilder
-    private var libraryReader: some View {
-        if let item = controller.selectedPDFItem {
-            let url = controller.pdfLibrary.fileURL(for: item)
-            // Explicit top chrome + flexible reader — avoid VStack intrinsic-size collapse
-            // that left PDFKit with a ~0 height host (thin scrollbar strip).
-            VStack(spacing: 0) {
-                readerChrome(for: item)
-                Divider()
-                statusBanners
-                PDFReaderControlsBar(
-                    pageCount: item.pageCount,
-                    page: pageBinding,
-                    zoomPreset: zoomBinding(for: item.id),
-                    search: pdfSearch
-                )
-                Divider()
-                Group {
-                    if FileManager.default.fileExists(atPath: url.path) {
-                        PDFReaderWorkspace(
-                            url: url,
-                            page: pageBinding,
-                            zoomPreset: zoomBinding(for: item.id),
-                            navigationEpoch: controller.pdfNavigationEpoch,
-                            searchBridge: pdfSearch
-                        ) { page in
-                                persistLastPage(itemID: item.id, page: page)
-                        }
-                        .id(item.id)
-                        .onAppear {
-                            // Clear find results after the mount update (not mid-body).
-                            Task { @MainActor in
-                                await Task.yield()
-                                pdfSearch.clear()
-                            }
-                        }
-                    } else {
-                        ContentUnavailableView {
-                            Label("Missing File", systemImage: "doc.questionmark")
-                        } description: {
-                            Text("This shelf entry’s file is missing. Remove it and add the PDF again.")
-                        } actions: {
-                            AppChromeButton.title("Back to shelf", help: "Return to the Library shelf") {
-                                controller.backToShelf()
-                            }
-                            AppChromeButton.title(
-                                "Remove",
-                                help: "Remove this shelf entry",
-                                style: .destructive
-                            ) {
-                                removePDF(item.id)
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .layoutPriority(1)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
-    private func readerChrome(for item: PDFLibraryItem) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            AppChromeButton.labeled(
-                "All books",
-                systemImage: "chevron.left",
-                help: "Back to the Library shelf (clears PDF text search)"
-            ) {
-                controller.backToShelf()
-            }
-
-            if controller.canReturnToSearchResults {
-                AppChromeButton.labeled(
-                    "Search results",
-                    systemImage: "doc.text.magnifyingglass",
-                    help: "Back to PDF text search results"
-                ) {
-                    controller.backToSearchResults()
-                }
-            }
-
-            if controller.canReturnToCard {
-                AppChromeButton.labeled(
-                    "Back to card",
-                    systemImage: "doc.text",
-                    help: "Back to the Rules Reference card"
-                ) {
-                    controller.backToCard()
-                }
-            }
-
-            // More menu left of title (vertically centered on title line only);
-            // subtitle sits under the title, indented past the icon.
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .center, spacing: 6) {
-                    Menu {
-                        if item.shelfSection == .mission {
-                            Button("Draft run from PDF…") { beginDraftRun(from: item) }
-                            Divider()
-                        }
-                        Button("Rename…") { beginRename(item) }
-                        Button("Reveal in Finder") { revealInFinder(item) }
-                        Button("Refresh cover from page 1") { refreshCover(item.id) }
-                        Divider()
-                        Button("Remove from library", role: .destructive) {
-                            removePDF(item.id)
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 22, height: 22)
-                            .contentShape(Rectangle())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .frame(width: 22, height: 22)
-                    .help("More book actions")
-                    .accessibilityLabel("More")
-
-                    Text(item.displayTitle)
-                        .font(.headline)
-                        .lineLimit(1)
-                }
-
-                HStack(spacing: 6) {
-                    Text(item.shelfSection.displayName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    if let key = item.bookKey, !key.isEmpty {
-                        Text(key)
-                            .font(.caption2.weight(.semibold).monospaced())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color.accentColor.opacity(0.14), in: Capsule())
-                            .foregroundStyle(.tint)
-                    } else {
-                        Text("No book key")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    if let count = item.pageCount {
-                        Text("\(count) pages")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                // Align metadata under title text (22 icon + 6 spacing).
-                .padding(.leading, 28)
-            }
-
-            Spacer(minLength: 8)
-
-            if item.shelfSection == .mission {
-                AppChromeButton.labeled(
-                    "Draft run…",
-                    systemImage: "sparkles",
-                    help: "Draft a planning run from this mission PDF"
-                ) {
-                    beginDraftRun(from: item)
-                }
-            }
-
-            // Flush trailing: book settings only.
-            AppChromeButton.labeled(
-                (item.bookKey?.isEmpty == false) ? "Book settings" : "Book settings…",
-                systemImage: "slider.horizontal.3",
-                help: "Section, book key, and metadata for page chips"
-            ) {
-                beginBookSettings(item)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    private func beginDraftRun(from item: PDFLibraryItem) {
-        guard item.shelfSection == .mission else { return }
-        // Unique presentation id each time so sheet(item:) always remounts with this pdfID.
-        draftRunRequest = DraftRunSheetRequest(pdfID: item.id)
-    }
-
-    /// Open a shelf book (controller already defers publishes off the view-update stack).
-    private func openBookDeferred(_ id: UUID, page: Int? = nil) {
-        controller.selectPDF(id, page: page)
-    }
-
-    private var pageBinding: Binding<Int> {
-        Binding(
-            get: { controller.pdfTargetPage },
-            set: { new in
-                let page = max(1, new)
-                guard controller.pdfTargetPage != page else { return }
-                // Text field / buttons: user-driven, outside representable update.
-                // PDFKit still publishes page via afterViewUpdate → this setter.
-                controller.pdfTargetPage = page
-            }
-        )
-    }
-
-    private func zoomBinding(for itemID: UUID) -> Binding<PDFZoomPreset> {
-        Binding(
-            get: { controller.zoomPreset(for: itemID) },
-            set: { new in
-                guard controller.zoomPreset(for: itemID) != new else { return }
-                // Write immediately so get() and the reader match the Picker.
-                controller.setZoomPreset(new, for: itemID)
-            }
-        )
-    }
-
-    // MARK: - Sheets
-
-    private func renameSheet(for item: PDFLibraryItem) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Rename book")
-                .font(.headline)
-            TextField("Title", text: $renameDraft)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { commitRename(item) }
-            HStack {
-                Spacer()
-                Button("Cancel") { itemPendingRename = nil }
-                    .keyboardShortcut(.cancelAction)
-                Button("Save") { commitRename(item) }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(renameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding(20)
-        .frame(minWidth: 360)
-    }
-
-    // MARK: - Actions
-
-    private func handleImport(_ result: Result<[URL], Error>) {
-        switch result {
-        case .failure(let error):
-            libraryError = error.localizedDescription
-        case .success(let urls):
-            guard let url = urls.first else { return }
-            importPDF(from: url, openReader: true)
-        }
-    }
-
-    private func handleShelfFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            let url: URL?
-            if let data = item as? Data {
-                url = URL(dataRepresentation: data, relativeTo: nil)
-            } else if let urlItem = item as? URL {
-                url = urlItem
-            } else if let str = item as? String {
-                url = URL(fileURLWithPath: str)
-            } else {
-                url = nil
-            }
-            guard let url else { return }
-            DispatchQueue.main.async {
-                importPDF(from: url, openReader: false)
-            }
-        }
-        return true
-    }
-
-    private func importPDF(from url: URL, openReader: Bool) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
-        do {
-            var library = controller.pdfLibrary
-            let item = try library.addPDF(from: url)
-            controller.replacePDFLibrary(library)
-            if openReader {
-                openBookDeferred(item.id)
-            }
-            Task { @MainActor in
-                controller.libraryStatusMessage = "Added “\(item.displayTitle)”."
-            }
-            libraryError = nil
-        } catch {
-            libraryError = error.localizedDescription
-        }
-    }
-
-    private func removePDF(_ id: UUID) {
-        do {
-            let title = controller.pdfLibrary.item(id: id)?.displayTitle ?? "Book"
-            var library = controller.pdfLibrary
-            try library.remove(id: id)
-            controller.replacePDFLibrary(library)
-            if controller.selectedLibraryItemID == id {
-                controller.backToShelf()
-            }
-            Task { @MainActor in
-                controller.libraryStatusMessage = "Removed “\(title)”."
-            }
-            libraryError = nil
-        } catch {
-            libraryError = error.localizedDescription
-        }
-    }
-
-    private func bindBookKey(_ id: UUID, key: String?) {
-        do {
-            var library = controller.pdfLibrary
-            try library.setBookKey(id: id, bookKey: key)
-            controller.replacePDFLibrary(library)
-            let title = library.item(id: id)?.displayTitle ?? "Book"
-            Task { @MainActor in
-                if let key, !key.isEmpty {
-                    let label = PDFBookKeyCatalog.curated.first { $0.key == key }?.label ?? key
-                    controller.libraryStatusMessage = "“\(title)” bound as \(label) (\(key))."
-                } else {
-                    controller.libraryStatusMessage = "Cleared book key on “\(title)”."
-                }
-            }
-            libraryError = nil
-        } catch {
-            libraryError = error.localizedDescription
-        }
-    }
-
-    private func beginRename(_ item: PDFLibraryItem) {
-        renameDraft = item.displayTitle
-        itemPendingRename = item
-    }
-
-    private func commitRename(_ item: PDFLibraryItem) {
-        let title = renameDraft
-        itemPendingRename = nil
-        do {
-            var library = controller.pdfLibrary
-            try library.setTitle(id: item.id, title: title)
-            controller.replacePDFLibrary(library)
-            Task { @MainActor in
-                controller.libraryStatusMessage = "Renamed to “\(library.item(id: item.id)?.displayTitle ?? title)”."
-            }
-            libraryError = nil
-        } catch {
-            libraryError = error.localizedDescription
-        }
-    }
-
-    private func beginBookSettings(_ item: PDFLibraryItem) {
-        // PDFView often holds first responder; resign so sheet controls receive clicks.
-        NSApp.keyWindow?.makeFirstResponder(nil)
-        // Defer presentation past the current event so the sheet is fully interactive.
-        Task { @MainActor in
-            await Task.yield()
-            itemPendingBookSettings = item
-        }
-    }
-
-    private func commitBookSettings(
-        itemID: UUID,
-        section: PDFShelfSection,
-        bookKey: String?,
-        pageOffset: Int
-    ) {
-        itemPendingBookSettings = nil
-        let offset = max(0, pageOffset)
-        do {
-            var library = controller.pdfLibrary
-            try library.setShelfSection(id: itemID, section: section)
-            try library.setBookKey(id: itemID, bookKey: bookKey)
-            try library.setPageOffset(id: itemID, pageOffset: offset)
-            controller.replacePDFLibrary(library)
-            let title = library.item(id: itemID)?.displayTitle ?? "Book"
-            Task { @MainActor in
-                var parts = [section.displayName]
-                if let bookKey, !bookKey.isEmpty {
-                    parts.append(bookKey)
-                } else {
-                    parts.append("no book key")
-                }
-                if offset > 0 {
-                    parts.append("offset +\(offset)")
-                }
-                controller.libraryStatusMessage = "Updated “\(title)” · \(parts.joined(separator: " · "))."
-            }
-            libraryError = nil
-        } catch {
-            libraryError = error.localizedDescription
-        }
-    }
-
-    private func coverURL(for item: PDFLibraryItem) -> URL? {
-        controller.pdfLibrary.coverURL(for: item)
-    }
-
-    private func ensureMissingCovers() {
-        var library = controller.pdfLibrary
-        var changed = false
-        for item in library.items where library.coverURL(for: item) == nil {
-            if library.ensureCover(id: item.id) {
-                changed = true
-            }
-        }
-        if changed {
-            controller.replacePDFLibrary(library)
-        }
-    }
-
-    private func refreshCover(_ id: UUID) {
-        var library = controller.pdfLibrary
-        if library.refreshCover(id: id) {
-            controller.replacePDFLibrary(library)
-            Task { @MainActor in
-                controller.libraryStatusMessage = "Cover refreshed from page 1."
-            }
-        }
-    }
-
-    private func revealInFinder(_ item: PDFLibraryItem) {
-        let url = controller.pdfLibrary.fileURL(for: item)
-        NSWorkspace.shared.activateFileViewerSelecting([url])
-    }
-
-    private func persistLastPage(itemID: UUID, page: Int) {
-        // Page callbacks can nest under view updates; never publish the store inline.
-        Task { @MainActor in
-            do {
-                var library = controller.pdfLibrary
-                if library.item(id: itemID)?.lastOpenedPage == page { return }
-                try library.setLastOpenedPage(id: itemID, page: page)
-                controller.replacePDFLibrary(library)
-            } catch {
-                // Non-fatal
-            }
-        }
-    }
-
-    private func handlePageRef(_ ref: PageRef) {
-        if controller.pdfLibrary.item(bookKey: ref.bookKey) != nil {
-            libraryError = nil
-            controller.openPageRef(ref)
-        } else {
-            libraryError = "No PDF bound to “\(ref.bookKey)”. Open Library, open your book, and use Book settings to set that key."
-            controller.switchMode(.library)
-            controller.backToShelf()
-        }
-    }
-
     private func categorySymbol(_ cat: RuleCategory) -> String {
         switch cat {
         case .dice: "dice.fill"
@@ -949,195 +499,56 @@ struct RulesReferenceView: View {
     }
 }
 
-// MARK: - Book settings sheet
+/// Sets the window title from the mode. A SwiftUI navigation title would install
+/// the macOS 27 sidebar toolbar and move the mode switch.
+private struct RulesWindowTitleSetter: NSViewRepresentable {
+    var title: String
 
-/// Self-contained editor so library/reader parent updates cannot freeze controls.
-private struct BookSettingsSheet: View {
-    let item: PDFLibraryItem
-    let coverURL: URL?
-    var onCancel: () -> Void
-    var onSave: (_ section: PDFShelfSection, _ bookKey: String?, _ pageOffset: Int) -> Void
-
-    @State private var section: PDFShelfSection
-    /// `"none"` | curated key | `"custom"`.
-    @State private var keyChoice: String
-    @State private var customKey: String
-    @State private var pageOffset: Int
-
-    init(
-        item: PDFLibraryItem,
-        coverURL: URL?,
-        onCancel: @escaping () -> Void,
-        onSave: @escaping (PDFShelfSection, String?, Int) -> Void
-    ) {
-        self.item = item
-        self.coverURL = coverURL
-        self.onCancel = onCancel
-        self.onSave = onSave
-
-        _section = State(initialValue: item.shelfSection)
-        _pageOffset = State(initialValue: max(0, item.pageOffset))
-
-        if let key = item.bookKey, !key.isEmpty {
-            if PDFBookKeyCatalog.curated.contains(where: { $0.key == key }) {
-                _keyChoice = State(initialValue: key)
-                _customKey = State(initialValue: "")
-            } else {
-                _keyChoice = State(initialValue: "custom")
-                _customKey = State(initialValue: key)
-            }
-        } else {
-            _keyChoice = State(initialValue: "none")
-            _customKey = State(initialValue: "")
-        }
+    func makeNSView(context: Context) -> NSView {
+        let view = RulesWindowTitleView()
+        view.title = title
+        return view
     }
 
-    private var canSave: Bool {
-        if keyChoice == "custom" {
-            return !customKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let view = nsView as? RulesWindowTitleView else { return }
+        view.title = title
+        DispatchQueue.main.async {
+            view.applyTitle()
         }
-        return true
-    }
-
-    private var pageOffsetHelp: String {
-        if pageOffset == 0 {
-            return "Printed p. 1 = PDF page 1 (no offset)."
-        }
-        let pdfForPrint1 = 1 + pageOffset
-        return "Printed p. 1 = PDF page \(pdfForPrint1). Example: chip p. 2 opens PDF page \(2 + pageOffset)."
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack(alignment: .top, spacing: 14) {
-                PDFCoverImage(coverURL: coverURL, cornerRadius: 6)
-                    .frame(width: 72, height: 96)
-                    .clipped()
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Book settings")
-                        .font(.headline)
-                    Text(item.displayTitle)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(2)
-                    Text("Shelf section and book key control how this PDF appears and which page chips open it.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(20)
-            .padding(.bottom, 4)
-
-            Form {
-                Section {
-                    Picker("Shelf section", selection: $section) {
-                        ForEach(PDFShelfSection.allCases) { s in
-                            Label(s.displayName, systemImage: s.systemImage)
-                                .tag(s)
-                        }
-                    }
-                    .pickerStyle(.radioGroup)
-                    .labelsHidden()
-                } header: {
-                    Text("Shelf section")
-                }
-
-                Section {
-                    Picker("Book key", selection: $keyChoice) {
-                        Text("None").tag("none")
-                        ForEach(PDFBookKeyCatalog.curated, id: \.key) { entry in
-                            Text("\(entry.label)  ·  \(entry.key)").tag(entry.key)
-                        }
-                        Text("Custom…").tag("custom")
-                    }
-                    .pickerStyle(.radioGroup)
-                    .labelsHidden()
-
-                    if keyChoice == "custom" {
-                        TextField("custom-book-key", text: $customKey)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body.monospaced())
-                    }
-
-                    Text("Reference cards open this PDF when their chip uses the same key.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } header: {
-                    Text("Book key (page chips)")
-                }
-
-                Section {
-                    Stepper(value: $pageOffset, in: 0...50) {
-                        HStack {
-                            Text("Front matter pages")
-                            Spacer()
-                            Text("\(pageOffset)")
-                                .font(.body.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Text("Reference chips use printed page numbers. Unnumbered front matter sits before printed page 1.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(pageOffsetHelp)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } header: {
-                    Text("Page numbering")
-                }
-            }
-            .formStyle(.grouped)
-            .frame(maxHeight: 420)
-
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-                Button("Save") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!canSave)
-            }
-            .padding(20)
-        }
-        .frame(minWidth: 460, idealWidth: 480)
-        .onAppear {
-            // Belt-and-suspenders: sheet window should own key focus, not PDFKit.
-            DispatchQueue.main.async {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            }
-        }
-    }
-
-    private func save() {
-        let resolvedKey: String?
-        switch keyChoice {
-        case "none":
-            resolvedKey = nil
-        case "custom":
-            let trimmed = customKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            resolvedKey = trimmed.isEmpty ? nil : trimmed
-        default:
-            resolvedKey = keyChoice
-        }
-        onSave(section, resolvedKey, max(0, pageOffset))
     }
 }
 
-// MARK: - Window root
+private final class RulesWindowTitleView: NSView {
+    var title = "" {
+        didSet { applyTitle() }
+    }
 
-struct RulesReferenceWindowRoot: View {
-    /// Observe the session root so the window stays tied to the process-wide session.
-    /// The controller is still the source of `@Published` UI state for the view tree.
-    @ObservedObject private var session = RulesReferenceSession.shared
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard let window else { return }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidUpdate(_:)),
+            name: NSWindow.didUpdateNotification,
+            object: window
+        )
+        applyTitle()
+    }
 
-    var body: some View {
-        RulesReferenceView(controller: session.controller)
-            .frame(minWidth: 880, minHeight: 520)
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// The setter sits behind the whole window. It must not take clicks.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    @objc private func windowDidUpdate(_ notification: Notification) {
+        applyTitle()
+    }
+
+    func applyTitle() {
+        guard let window, window.title != title else { return }
+        window.title = title
     }
 }

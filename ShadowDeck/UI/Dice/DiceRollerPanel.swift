@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct DiceRollerPanel: View {
+    /// Inspector column width. The window itself is not resized when this opens.
+    static let columnWidth: CGFloat = 400
+
     @ObservedObject var controller: DiceRollerController
     var onClose: () -> Void
 
@@ -32,9 +35,11 @@ struct DiceRollerPanel: View {
                     historySection
                 }
                 .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(width: Self.columnWidth, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -100,15 +105,20 @@ struct DiceRollerPanel: View {
             Text("Glitch: \(glitch.displayName) · Hits on \(controller.diceRules.hitMinimum)+")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Text(controller.edgeModelCaption)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(controller.usesFullSR6Edge ? Color.accentColor : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if !lines.isEmpty {
                 Text(lines.joined(separator: " · "))
                     .font(.caption2)
                     .foregroundStyle(.tint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .help("From this character’s House Rules. Change them on the sheet’s House Rules browser.")
     }
 
@@ -199,6 +209,7 @@ struct DiceRollerPanel: View {
                         Text(pushTheLimitSubtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .toggleStyle(.checkbox)

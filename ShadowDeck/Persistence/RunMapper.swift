@@ -30,6 +30,10 @@ public enum RunMapper {
         record.createdAt = run.createdAt
         record.participantIDsJSON = try encodeParticipantIDs(run.participantCharacterIDs)
         record.campaignIDString = run.campaignID?.uuidString
+        record.editionRaw = run.edition.rawValue
+        record.tagsJSON = try JSONEncoder().encode(run.tags)
+        record.startedAt = run.startedAt
+        record.completedAt = run.completedAt
     }
 
     public static func summary(from run: Run) -> RunSummary {

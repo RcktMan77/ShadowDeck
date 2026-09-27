@@ -338,7 +338,14 @@ public struct Run: Codable, Sendable, Hashable, Identifiable {
         self.modifiedAt = modifiedAt
     }
 
-    // MARK: Codable (legacy payloads may omit `edition` / awards / contacts / briefing)
+    // MARK: Codable
+    //
+    // Older run JSON may omit keys. Defaults, and only these:
+    // strings → "", arrays → [], edition → .sr5, status → .planning,
+    // schemaVersion → current, heatDelta → 0, expectedPayout → .zero,
+    // createdAt / modifiedAt → Date() when absent.
+    // Optional dates, campaignID, actualPayout, and awards note stay nil.
+    // `id` is required. Missing keys do not fail decode.
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, title, tags, status, edition

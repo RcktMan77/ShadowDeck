@@ -6,7 +6,6 @@
 # Defaults stay on; enable recommended opt-in rules rather than a tiny only_rules set.
 opt_in_rules:
   - array_init
-  - attributes
   - closure_end_indentation
   - closure_spacing
   - collection_alignment
@@ -59,10 +58,9 @@ opt_in_rules:
   - yoda_condition
 
 disabled_rules:
-  # Solo app; many public APIs are intentional for tests / future modules.
-  # Tracked in CODE_AUDIT; allow intentional TODOs without noise.
+  # TODOs are allowed. Length rules stay off while feature files are still long.
   - todo
-  # Large SwiftUI feature files still exist; split over time without blocking CI.
+  # file_length stays off. Several views remain over the default 400-line warning.
   - file_length
   - type_body_length
   - function_body_length

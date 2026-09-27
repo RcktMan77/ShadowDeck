@@ -40,6 +40,13 @@ public final class LibraryEnvironment {
     }
 
     public static func live() throws -> LibraryEnvironment {
+        #if DEBUG
+        let started = ContinuousClock.now
+        defer {
+            let ms = ContinuousClock.now - started
+            fputs("LibraryEnvironment.live \(ms)\n", stderr)
+        }
+        #endif
         let container = try PersistenceController.makeContainer(inMemory: false)
         let library = try PersistenceController.makeLibrary(container: container)
         let runLibrary = PersistenceController.makeRunLibrary(container: container)

@@ -2,8 +2,9 @@
 //  TableReadinessDomainTests.swift
 //  ShadowDeckTests
 //
-//  Domain-level table-readiness probes for the product QA audit.
+//  Cross-edition smoke for samples, advancement, lifestyle, and one campaign loop.
 //  Uses ephemeral in-memory libraries only (never the user's live store).
+//  Dice defaults, skill-raise costs, and the SR5 import fixture live in their engine tests.
 //
 
 import XCTest
@@ -33,39 +34,7 @@ final class TableReadinessDomainTests: XCTestCase {
         }
     }
 
-    // MARK: - Dice edition defaults
-
-    func testGlitchThresholdEditionDefaults() {
-        // 4 dice, 2 ones: SR4 halfOrMore → glitch; SR5/SR6 moreThanHalf → not glitch
-        XCTAssertTrue(DiceRollerEngine.isGlitch(ones: 2, diceCount: 4, edition: .sr4))
-        XCTAssertFalse(DiceRollerEngine.isGlitch(ones: 2, diceCount: 4, edition: .sr5))
-        XCTAssertFalse(DiceRollerEngine.isGlitch(ones: 2, diceCount: 4, edition: .sr6))
-        for ed in Edition.allCases {
-            XCTAssertTrue(DiceRollerEngine.isGlitch(ones: 3, diceCount: 4, edition: ed), ed.shortName)
-        }
-    }
-
-    func testHitsDefaultAndHouseRuleAcrossEditions() {
-        let faces = [4, 5, 6, 1]
-        for ed in Edition.allCases {
-            let core = DiceRollerEngine.evaluate(dice: faces, edition: ed)
-            XCTAssertEqual(core.hits, 2, ed.shortName)
-            let house = DiceRollerEngine.evaluate(
-                dice: faces,
-                edition: ed,
-                diceRules: DiceHouseRules(hitsOn4: true)
-            )
-            XCTAssertEqual(house.hits, 3, ed.shortName)
-        }
-    }
-
     // MARK: - Advancement
-
-    func testSkillRaiseCostFrom3To4DiffersForSR6() {
-        XCTAssertEqual(SR4Rules().karmaCostToRaiseSkill(from: 3), 8)
-        XCTAssertEqual(SR5Rules().karmaCostToRaiseSkill(from: 3), 8)
-        XCTAssertEqual(SR6Rules().karmaCostToRaiseSkill(from: 3), 20)
-    }
 
     func testAdvancementBlockedWithoutKarma() {
         var c = SampleCharacters.sr5CombatMage()
@@ -236,13 +205,5 @@ final class TableReadinessDomainTests: XCTestCase {
             draft.name = "Audit \(edition.shortName)"
             XCTAssertEqual(draft.edition, edition)
         }
-    }
-
-    // MARK: - Import fixtures edition coverage
-
-    func testImportFixtureSR5LoadsFromBundle() throws {
-        let data = try TestFixtures.data(named: "minimal_sr5.json")
-        let result = try CharacterImporter.importChummerJSON(data, fileName: "minimal_sr5.json")
-        XCTAssertEqual(result.character.edition, .sr5)
     }
 }

@@ -32,7 +32,7 @@ public struct ConditionMonitor: Codable, Sendable, Hashable {
     public var stunRemaining: Int { max(0, stunBoxes - stunFilled) }
 }
 
-/// Edition-aware derived values (limits, initiative, pools placeholders).
+/// Edition-aware derived values filled by `DerivedStatsCalculator`: initiative, limits, and condition inputs.
 public struct DerivedStats: Codable, Sendable, Hashable {
     public var initiativeDice: Int
     public var initiativeBase: Int

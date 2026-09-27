@@ -3,7 +3,7 @@
 //  ShadowDeck
 //
 //  Short library / list labels from free-text concept + background.
-//  Prefers Shadowrun role keywords; never requires an LLM.
+//  Keyword scan of concept and background. No network.
 //
 
 import Foundation

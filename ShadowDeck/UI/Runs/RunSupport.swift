@@ -16,7 +16,7 @@ enum RunSupport {
     }
 
     static func formatNuyen(_ value: Int) -> String {
-        "¥\(value.formatted())"
+        NuyenFormat.format(value)
     }
 }
 

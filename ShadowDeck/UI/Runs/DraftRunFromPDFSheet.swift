@@ -52,7 +52,8 @@ struct DraftRunFromPDFSheet: View {
     }
 
     private var extractionLimits: PDFMissionTextExtractor.Limits {
-        .current(aiAvailable: RunDraftGenerator.isOnDeviceAIAvailable)
+        // Wide extract, then the model packer keeps the sections that fit.
+        .heuristic
     }
 
     private var selectedItem: PDFLibraryItem? {
@@ -107,8 +108,8 @@ struct DraftRunFromPDFSheet: View {
                     phase == .pick
                         ? pickHeaderSubtitle
                         : (draft?.usedOnDeviceAI == true
-                            ? "Experimental on-device AI draft. Edit freely before saving."
-                            : "Experimental heuristic draft from PDF text. Edit freely before saving.")
+                            ? "On-device model filled this draft — review before saving."
+                            : "Heuristic draft (Apple Intelligence unavailable or the model failed).")
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -124,9 +125,9 @@ struct DraftRunFromPDFSheet: View {
 
     private var pickHeaderSubtitle: String {
         if RunDraftGenerator.isOnDeviceAIAvailable {
-            return "Experimental: extract a page range from a mission PDF. On-device AI fills a draft when available — always review before saving."
+            return "Experimental. Include the rewards pages. The on-device model drafts from mission sections in that range — review before saving."
         }
-        return "Experimental: extract a page range from a mission PDF. Without on-device AI, text heuristics fill the draft — always review before saving."
+        return "Experimental. Text heuristics fill the draft from the page range — review before saving."
     }
 
     private var pickForm: some View {
@@ -151,18 +152,19 @@ struct DraftRunFromPDFSheet: View {
                     }
                 }
 
-                HStack {
-                    Text("Pages")
-                    TextField("Start", value: $pageStart, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 64)
-                    Text("–")
-                    TextField("End", value: $pageEnd, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 64)
-                    Text("of \(documentPageCount)")
-                        .foregroundStyle(.secondary)
-                    Spacer()
+                LabeledContent("Pages") {
+                    HStack(alignment: .center, spacing: 8) {
+                        pageBoundField("Start", value: $pageStart)
+                        Text("–")
+                            .foregroundStyle(.secondary)
+                        pageBoundField("End", value: $pageEnd)
+                        Text("of \(documentPageCount)")
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 Text(pageRangeHelp)
                     .font(.caption)
@@ -217,12 +219,30 @@ struct DraftRunFromPDFSheet: View {
         .padding(.bottom, 8)
     }
 
+    /// Equal page fields. Titles stay off the text fields so the form does not
+    /// adopt them as labels and wrap “Start”.
+    private func pageBoundField(_ title: String, value: Binding<Int>) -> some View {
+        HStack(alignment: .center, spacing: 6) {
+            Text(title)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+            TextField("", value: value, format: .number)
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.center)
+                .monospacedDigit()
+                .frame(width: 72)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
     private var pageRangeHelp: String {
         let limits = extractionLimits
         if RunDraftGenerator.isOnDeviceAIAvailable {
-            return "Prefer briefing / setup pages. Max \(limits.hardMaxPages) pages (AI context budget)."
+            return "Include “Picking Up the Pieces” if it is in the PDF. The model reads mission sections from this range, not the whole book. Max \(limits.hardMaxPages) pages."
         }
-        return "Prefer briefing / setup pages, or take a wider range when needed. Max \(limits.hardMaxPages) pages · up to \(limits.maxCharacters.formatted()) characters (heuristic budget)."
+        return "Prefer briefing and rewards pages, or take a wider range when needed. Max \(limits.hardMaxPages) pages · up to \(limits.maxCharacters.formatted()) characters."
     }
 
     private func reviewForm(_ draftBinding: RunDraft) -> some View {
@@ -481,16 +501,31 @@ struct DraftRunFromPDFSheet: View {
             documentPageCount = 1
             return
         }
-        let store = PDFLibraryStore.loadDefault()
-        let url = store.fileURL(for: item)
-        if let doc = PDFDocument(url: url) {
-            documentPageCount = max(1, doc.pageCount)
-        } else {
-            documentPageCount = item.pageCount ?? 1
+        if let known = item.pageCount, known > 0 {
+            applyPageBounds(count: known)
+            return
         }
+        let url = PDFLibraryStore.loadDefault().fileURL(for: item)
+        let itemID = item.id
+        Task.detached(priority: .userInitiated) {
+            let counted = autoreleasepool { PDFDocument(url: url)?.pageCount ?? 0 }
+            let published = max(counted, 1)
+            await MainActor.run {
+                guard selectedPDFID == itemID else { return }
+                applyPageBounds(count: published)
+            }
+        }
+    }
+
+    private func applyPageBounds(count: Int) {
+        documentPageCount = max(1, count)
         let limits = extractionLimits
         pageStart = min(max(1, pageStart), documentPageCount)
         pageEnd = min(max(pageStart, pageEnd), documentPageCount)
+        // A fresh sheet starts at pages 1–4. Expand that default to the wide extract.
+        if pageStart == 1, pageEnd <= 4, documentPageCount > 4 {
+            pageEnd = min(documentPageCount, limits.defaultMaxPages)
+        }
         if pageEnd - pageStart + 1 > limits.defaultMaxPages {
             pageEnd = min(documentPageCount, pageStart + limits.defaultMaxPages - 1)
         }
