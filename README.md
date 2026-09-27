@@ -138,10 +138,10 @@ Chummer is still the go-to for deep character data. **ShadowDeck is built for th
 
 ### Build a runner
 
-Create a new character for SR4, SR5, or SR6 with a guided flow from concept through attributes, skills, and resources.
+You can build a runner for Shadowrun 4th, 5th, or 6th edition.
 
-- SR4A chargen uses a real 400 build-point ledger for metatype, attributes, skills, skill groups, spells, contacts, qualities, and nuyen.
-- SR5 and SR6 use priority generation, and Sum-to-Ten or karmagen is available as a house rule.
+- Fourth edition uses a 400-point Build Point ledger (metatype, attributes, skills, groups, spells, contacts, qualities, and nuyen).
+- Fifth and sixth edition use priority tables, with Sum-to-Ten or karmagen available as house rules.
 - You can turn on house rules for priorities, contacts, dice, and more.
 - Role suggestions come with archetype and metatype art.
 - You can bring in a runner from Chummer or from a portable package.
@@ -160,10 +160,8 @@ Keep a stable of runners ready for the next session — open a sheet, see the nu
 - The play sheet shows attributes, condition, karma, nuyen, pools, and the bonuses that come from gear.
 - Skills, gear, contacts, lifestyle, magic, and advancement all live on that same runner.
 - A portrait can be a still image or an animation.
-- You roll dice from the sheet with ⌘D.
-- In SR4 and SR5, Edge covers Push the Limit and Second Chance.
-- In SR6, Edge Actions are the default: Add Edge Dice, Reroll Failures, Buy a Hit, and Close Call. A house rule can use simplified SR5-style Edge for that runner instead.
-- Gear and qualities come from the edition catalogs: an SR4A supplement pack of 2,445 entries, a Chummer-derived SR5 set of 4,197, and an SR6 core pack of 195, checked against the books.
+- Rolls start from the sheet (⌘D). Fourth and fifth edition support Push the Limit and Second Chance. Sixth edition uses Edge Actions by default (Add Edge Dice, Reroll Failures, Buy a Hit, Close Call). A house rule can restore a simpler, fifth-edition-style Edge pool.
+- Gear and quality catalogs follow the character’s edition: an SR4A supplement pack (2,445 entries), a large SR5 set derived from Chummer (4,197), and an SR6 core pack (195).
 
 ### Runs / mission tracker
 
@@ -173,7 +171,7 @@ Track the full campaign loop: group jobs under a campaign, plan the run, put peo
 - The roster holds the team, plus the Johnson, the fixer, and anyone the run is aimed at.
 - While you play, you track objectives, the log, payouts, heat, and where the job stands.
 - When you close out, you apply nuyen, karma, and reputation yourself. The handout the players see stays free of GM spoilers.
-- You can draft a planning run from a mission PDF already on your shelf, then look it over before you save. On-device Apple Intelligence fills the fields when it is available, and a reading of the page text fills them when it is not.
+- You can draft a planning run from a mission PDF on your shelf. When Apple Intelligence is available on the Mac, an on-device model fills the fields; otherwise a text heuristic does. Either way, you review the draft before it becomes a run.
 
 <p align="center">
   <a href="Screenshots/07-run-mission-flow.gif">
@@ -183,7 +181,7 @@ Track the full campaign loop: group jobs under a campaign, plan the run, put peo
 
 ### Rules Reference & PDF library
 
-Two tools in one window: a **mechanical quick reference** for the table, and a **personal PDF shelf** for books you already own.
+The same window holds a searchable card reference and a shelf for PDFs you add yourself. ShadowDeck does not ship rulebooks.
 
 <table>
   <tr>
@@ -201,10 +199,6 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
     </td>
   </tr>
 </table>
-
-- Reference cards give you short original summaries and formulas for dice, combat, magic, the matrix, lifestyle, and the rest, plus a few calculators.
-- You add your own PDFs, browse them by type, and read or search them on your Mac. A page link on a card can open a book you have tied to that reference.
-- ShadowDeck does not bundle or redistribute rulebook PDFs. The shelf only holds files you add.
 
 ### Lifestyle, advancement & more
 
@@ -226,7 +220,7 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 2. Create a character (⌘N), import one (⌘O), or load samples from the library.
 3. Open a runner’s play sheet and roll with **Dice** (⌘D).
 4. Open **Rules Reference** (⌘R) for quick rules, or **PDF Shelf** (⌘⇧L) for your books.
-5. When you are ready for the next job, start a campaign or open a new run with ⌘⇧R.
+5. When you are ready for the next job, create a campaign or a new run (⌘⇧R).
 
 **Requirements:** macOS 14.0 or later.
 
@@ -234,8 +228,8 @@ Two tools in one window: a **mechanical quick reference** for the table, and a *
 
 ## Tips for the table
 
-- The sheet saves as you work, so there is no separate step to commit it.
-- Process a lifestyle month, or apply run awards, only when you mean to. Nothing pays out on its own.
+- Edits save as you work; there is no separate commit step for the sheet.
+- Lifestyle charges and run awards apply only when you choose them.
 - House rules on a character shape validation, essence, and dice for that runner.
 - The player briefing is what the team is allowed to know. Keep GM spoilers off that handout.
 - Bind your own rulebooks when you want a reference card to open the right page in your PDF.
