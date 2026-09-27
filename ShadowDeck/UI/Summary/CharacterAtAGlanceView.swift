@@ -92,7 +92,23 @@ struct CharacterAtAGlanceView: View {
 
     private var workspace: some View {
         HStack(spacing: 0) {
-            VStack(spacing: 0) {
+            sheetColumn
+                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                .layoutPriority(0)
+            if diceRoller.isPresented {
+                Divider()
+                DiceRollerPanel(controller: diceRoller) {
+                    diceRoller.dismiss()
+                }
+                .frame(width: DiceRollerPanel.columnWidth)
+                .layoutPriority(1)
+            }
+        }
+        .animation(.smooth(duration: 0.22), value: diceRoller.isPresented)
+    }
+
+    private var sheetColumn: some View {
+        VStack(spacing: 0) {
             if let c = character {
                 toolbar(c)
                     .padding(.horizontal, 24)
@@ -183,18 +199,8 @@ struct CharacterAtAGlanceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .id(sheetTab) // tear down management views cleanly when switching tabs
             }
-            } // end main column VStack
-
-            if diceRoller.isPresented {
-                Divider()
-                DiceRollerPanel(controller: diceRoller) {
-                    diceRoller.dismiss()
-                }
-                .frame(width: 320)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
         }
-        .animation(.easeInOut(duration: 0.2), value: diceRoller.isPresented)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -782,7 +788,6 @@ struct CharacterAtAGlanceView: View {
         return n == 1 ? "1 Initiative Die" : "\(n) Initiative Dice"
     }
 }
-
 
 #Preview {
     CharacterAtAGlanceView(
