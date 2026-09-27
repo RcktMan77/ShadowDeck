@@ -144,7 +144,7 @@ You can build a runner for Shadowrun 4th, 5th, or 6th edition.
 - Fifth and sixth edition use priority tables, with Sum-to-Ten or karmagen available as house rules.
 - You can turn on house rules for priorities, contacts, dice, and more.
 - Role suggestions come with archetype and metatype art.
-- You can bring in a runner from Chummer or from a portable package.
+- Bring in a runner from Chummer or a portable package.
 
 ### Character library & play sheet
 
@@ -156,7 +156,7 @@ You can build a runner for Shadowrun 4th, 5th, or 6th edition.
 
 Keep a stable of runners ready for the next session — open a sheet, see the numbers that matter, and roll when it counts.
 
-- You can search the library of characters you have saved.
+- Search the library of characters you have saved.
 - The play sheet shows attributes, condition, karma, nuyen, pools, and the bonuses that come from gear.
 - Skills, gear, contacts, lifestyle, magic, and advancement all live on that same runner.
 - A portrait can be a still image or an animation.
